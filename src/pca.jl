@@ -1,4 +1,6 @@
-
+# ANALIZA PCA  
+#plik pca.jl 
+#
 include("lib.jl")
 using .modHydroSim
 using Plots
@@ -11,10 +13,14 @@ using ..modHydroSim
 using Plots
 using Statistics
 using LinearAlgebra
+using DataFrames
+using CSV
 
 export SimSettings, PCAResultAtTime, full_analysis, 
        p_pca, p_explained_variance,
        calc_pca
+#stała globalna 
+const ALL_FEATURE_NAMES = ["T", "A", "dT_dt", "dA_dt"]
 
 function pca_math(X::Matrix{Float64}, n_components::Int)
     # Pobranie wymiarów macierzy wejściowej
@@ -122,30 +128,33 @@ end
 
 Przeprowadza analizę PCA w `n_steps` punktach czasowych w całym zakresie symulacji.
 """
-function calc_pca(sim_result::modHydroSim.SimResult; n_steps=50, n_components=2)
-    solutions = sim_result.solutions
+function calc_pca(
+    sim_result::modHydroSim.SimResult;
+    features_indices::Union{Tuple,Vector{Int}}, # ZMIANA
+    n_steps::Int,
+    n_components::Int
+)
     t_start, t_end = sim_result.settings.tspan
     sample_times = range(t_start, t_end, length=n_steps)
-    
-    n_trajectories = length(solutions)
     pca_results_vector = PCAResultAtTime[]
 
     for tau in sample_times
-        # Zbieranie danych (T, A) dla wszystkich trajektorii w chwili tau
-        data_at_tau = zeros(Float64, n_trajectories, 2)
-        for i in 1:n_trajectories
-            data_at_tau[i, :] = solutions[i](tau)
-        end
-        
-        transformed_data, explained_variance = pca_math(data_at_tau, n_components)
+        # 1. Pobiera WSZYSTKIE dane (T, A, dT/dt, dA/dt)
+        all_data_vectors = modHydroSim.TA(sim_result, tau)
+        # 2. tylko te wektory, które odpowiadają indeksom podanym przez użytkownika
+        selected_vectors = [all_data_vectors[i] for i in features_indices]
+        # 3. połączenie  wybranych wektorów w jedną macierz danych
+        data_matrix = hcat(selected_vectors...)
+
+        # 4. PCA na przygotowanej macierzy
+        transformed_data, explained_variance = pca_math(data_matrix, n_components)
+
         result = PCAResultAtTime(tau, transformed_data, explained_variance)
         push!(pca_results_vector, result)
     end
-    
+
     return pca_results_vector
 end
-
-
 # --- SEKCJA 3: WIZUALIZACJA I GŁÓWNY WORKFLOW ---
 
 """
@@ -154,31 +163,19 @@ end
 Tworzy wykres pokazujący, jak wariancja wyjaśniona przez PCA
 zmienia się w czasie.  wykres na bazie PRL 125
 """
-function p_explained_variance(settings::modHydroSim.SimSettings)
-    wyniki_symulacji = modHydroSim.run_simulation(settings)
-    pca_results = calc_pca(wyniki_symulacji, n_steps=50)
+function p_explained_variance(pca_results::Vector{PCAResultAtTime}; prefix = " ")
     times = [res.tau for res in pca_results]
-    
-    # Zakładamy 2 komponenty
-    var_pc1 = [res.explained_variance[1] for res in pca_results]
-    var_pc2 = [res.explained_variance[2] for res in pca_results]
-    println("Wykres dla SimSettings: $(settings)")
-    p = plot(
-        times, 
-        [var_pc1, var_pc2],
-        title="Wariancja wyjaśniona przez komponenty PCA w czasie",
-        xlabel="Czas τ [fm/c]",
-        ylabel="Proporcja wyjaśnionej wariancji",
-        label=["Komponent 1" "Komponent 2"],
-        legend=:right,
-        linewidth=2,
-        xticks=[0.2,0.27,0.4,0.61],
-    )
-    
-    hline!(p, [1.0], linestyle=:dash, color=:black, label="100%", alpha=0.5)
-    
+    n_components = length(pca_results[1].explained_variance)
+    variance_data = [[res.explained_variance[i] for res in pca_results] for i in 1:n_components]
+    labels = ["Komponent $i" for i in 1:n_components]
+
+    p = plot(times, variance_data, title="Wariancja wyjaśniona przez komponenty PCA. [ $(prefix) ]",
+             xlabel="Czas τ [fm/c]", ylabel="Proporcja wyjaśnionej wariancji",
+             label=reshape(labels, 1, :), legend=:best, linewidth=2)
+    hline!(p, [1.0], linestyle=:dash, color=:black, label="", alpha=0.5)
     return p
 end
+
 
 
 """
@@ -187,7 +184,6 @@ end
 Wyszukuje i wyświetla wykres PCA dla konkretnej chwili czasu `target_tau`.
 """
 function p_pca(pca_results::Vector{PCAResultAtTime}, sim_result::modHydroSim.SimResult, target_tau::Float64)
-    # Znajdź najbliższy dostępny czas w wynikach
     idx = findmin(res -> abs(res.tau - target_tau), pca_results)[2]
     
     if isnothing(idx)
@@ -218,34 +214,102 @@ function p_pca(pca_results::Vector{PCAResultAtTime}, sim_result::modHydroSim.Sim
     return p
 end
 
+##################FUNKCJA DO ZAPISU DANYCH W CSV#############################
+
+"""
+    save_pca_dataset(sim_result::modHydroSim.SimResult, pca_results::Vector{PCAResultAtTime}, filename_prefix::String="pca_dataset")
+
+Zapisuje dane: τ, T, A, PCA1, PCA2, ... dla każdej trajektorii i chwili czasu w pliku CSV.
+Nazwa pliku zalezy od zakrecu parametrów T, A i τ.
+"""
+function save_pca_dataset(
+    sim_result::modHydroSim.SimResult,
+    pca_results::Vector{PCAResultAtTime},
+    features_indices::Union{Tuple,Vector{Int}};
+    filename_prefix::String="pca_data" # Opcjonalny prefiks
+)
+    # --- Krok 1: Zbiera wszystkie potrzebne informacje ---
+    settings = sim_result.settings
+    selected_feature_names = ALL_FEATURE_NAMES[collect(features_indices)]
+    n_components = length(pca_results[1].explained_variance)    
+
+    Tmin, Tmax = settings.T_range
+    Amin, Amax = settings.A_range
+    t_start, t_end = settings.tspan
+
+    df_columns = vcat([:id, :tau], Symbol.(selected_feature_names), [Symbol("PCA$(k)") for k in 1:n_components])
+    df_types = vcat(Int, Float64, fill(Float64, length(selected_feature_names)), fill(Float64, n_components))
+    df_all = DataFrame([T[] for T in df_types], df_columns)
+
+# wypełnianie danymi 
+    all_data_at_time = [modHydroSim.TA(sim_result, res.tau) for res in pca_results]
+    
+    for traj_idx in 1:length(sim_result.solutions)
+        for (pca_idx, res) in enumerate(pca_results)
+      
+            all_vectors = all_data_at_time[pca_idx]
+            
+       
+            original_data_row = [all_vectors[feat_idx][traj_idx] for feat_idx in features_indices]
+            
+       
+            pca_data_row = res.transformed_data[traj_idx, :]
+            
+   
+            row_to_push = vcat(traj_idx, res.tau, original_data_row, pca_data_row)
+            push!(df_all, row_to_push)
+        end
+    end
+    
+
+    file = "$(filename_prefix)_" * # 1. Prefiks
+           "features-$(join(selected_feature_names, "-"))_" * # 2. Analizowane cechy
+           "T-$(round(Tmin, digits=1))-$(round(Tmax, digits=1))_" * # 3. Zakres T
+           "A-$(round(Amin, digits=1))-$(round(Amax, digits=1))_" * # 4. Zakres A
+           "tau-$(round(t_start, digits=1))-$(round(t_end, digits=1)).csv" # 5. Zakres tau
+    
+    # --- Krok 5: Zapisz plik ---
+    CSV.write(file, df_all)
+    println("📁 Zapisano dane do pliku: $file")
+end
 """
     full_analysis(; settings=SimSettings(), n_pca_steps=50)
 
 Uruchamia cały workflow: symulację, analizę PCA, wyświetla kluczowe wyniki
 i zwraca artefakty do dalszej analizy.
 """
-function full_analysis(; settings=SimSettings(), n_pca_steps=50)
-    println("--- Krok 1: Uruchamianie symulacji hydro... ---")
-    sim_result = modHydroSim.run_simulation(settings)
-    println("Symulacja zakończona. Liczba trajektorii: $(length(sim_result.solutions)).")
-    
-    println("\n--- Krok 2: Przeprowadzanie analizy PCA w czasie... ---")
-    pca_results = calc_pca(sim_result, n_steps=n_pca_steps)
-    println("Analiza PCA zakończona dla $n_pca_steps punktów w czasie.")
-    
-    println("\n--- Krok 3: Generowanie wykresu wyjaśnionej wariancji... ---")
-    variance_plot = p_explained_variance(pca_results)
-    display(variance_plot)
-    
-    
-    println("Wykres dla koncowej wariancji wyjaśnionej przez PCA gotowy.")
-    p_pca(pca_results, sim_result, 0.4)
+function full_analysis(;
+    settings::SimSettings,
+    features_indices::Union{Tuple,Vector{Int}} = (1, 2), # <-- Prosty interfejs z domyślną wartością
+    n_pca_steps=50,
+    n_components=2
+)
+    # Walidacja wejścia
+    if any(i -> i < 1 || i > 4, features_indices)
+        error("Indeksy cech muszą być w zakresie od 1 do 4. Otrzymano: $features_indices")
+    end
+    selected_names = ALL_FEATURE_NAMES[collect(features_indices)]
 
-    final_var_pc1 = pca_results[end].explained_variance[1] * 100
-    println("\nAnaliza zakończona. Wariancja wyjaśniona przez PC1 na końcu ewolucji: $(round(final_var_pc1, digits=2))%")
-    
+    println("--- Krok 1: Uruchamianie symulacji hydro... ---")
+    sim_result = modHydroSim.run_simulation(settings=settings)
+    println("Symulacja zakończona.")
+
+    println("\n--- Krok 2: Przeprowadzanie analizy PCA dla cech: $(join(selected_names, ", "))... ---")
+    pca_results = calc_pca(sim_result, features_indices=features_indices, n_steps=n_pca_steps, n_components=n_components)
+    println("Analiza PCA zakończona.")
+
+    println("\n--- Krok 3: Generowanie wizualizacji... ---")
+    prefix_str = join(selected_names, ", ") # Tworzy string, np. "T, A, dT_dt"
+    variance_plot = p_explained_variance(pca_results, prefix=prefix_str)
+    display(variance_plot)
+
+    println("\n--- Krok 4: Zapisywanie wyników do pliku CSV... ---")
+    save_pca_dataset(sim_result, pca_results, features_indices)
+
+    println("\n✅ Analiza zakończona pomyślnie.")
     return sim_result, pca_results
 end
 
 
-end # koniec modułu PCAWorkfloexport SimSettings, run_simulation, analyzePCA, p_allPCA, p_PCAex, pca_mathw
+
+end # koniec modułu PCAWorkflow
