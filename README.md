@@ -147,6 +147,10 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 
 
 
+## T-SNE/sne
+-![t-sne](images/sne/sne1.png)
+-![t-sne2](images/sne/sne2.png)
+
 
 
 
