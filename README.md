@@ -1,4 +1,4 @@
-# Dzień dobry 
+# Dzień dobry
 
 
 ## Hydrodynamic Attractors in Phase Space
@@ -18,14 +18,17 @@ Michał Spaliński, Michał P. Heller, et al...
 
 
 ## Julia
-czego potrzeba do pracy z julia? 
+czego potrzeba do pracy z julia?
 1. [Julia](https://julialang.org/downloads/)
 2. Instalowania pakietów w menadżerze pakietów julia (REPL) poprzez wpisanie `]` i potem `add` oraz nazwy pakietu.
 ```bash
-add DifferentialEquations Plots LaTeXStrings
+
+using Pkg
+Pkg.instantiate()
+
 ```
 3. Ważne by uruchamiać julia w terminal
-```bash 
+```bash
 > julia
 > include("nazwa_pliku.jl")
 ```
@@ -36,14 +39,14 @@ using .modHydroSim
 
 # --- Eksperyment 1: Szybki test z domyślnymi ustawieniami ---
 # Tworzysz obiekt ustawień bez podawania argumentów - użyje domyślnych.
-settings1 = SimSettings() 
+settings1 = SimSettings()
 result1 = run_simulation(PARAMS_MIS_TOY_MODEL, settings1);
 create_log_ratio_animation(result1, filename="run_default.gif")
 
 
 # --- Eksperyment 2: Dłuższa ewolucja dla modelu SYM ---
 # Tworzysz obiekt ustawień, nadpisując tylko czas końcowy.
-settings2 = SimSettings(τ_end=2.5) 
+settings2 = SimSettings(τ_end=2.5)
 result2 = run_simulation(PARAMS_SYM_THEORY, settings2);
 create_log_ratio_animation(result2, filename="run_sym_long.gif")
 
@@ -55,7 +58,7 @@ create_log_ratio_animation(result3, filename="run_sym_dense_hot.gif")
 
 ```
 
-### Programy napisane w julia 
+### Programy napisane w julia
 Programy napisane w julia znajdują się w katalogu [src](/src/).
 
 - [Generowanie danych](src/data_generation/generowanie_AiT.jl) - program generujący ewolucję $A(\tau)$ i $T(\tau)$ dla  warunków początkowych. do pliku .csv
@@ -63,16 +66,16 @@ Programy napisane w julia znajdują się w katalogu [src](/src/).
 
 - [Analiza wygenerowanych danych](src/trash_can/A_and_T_evolution.jl)
 
-- [Analiza losowo generowanych Danych ewolucji (A,T)](src/trash_can/Evolution2.jl) 
-> staram się by nie trzebas było omawiać dodatkowo kodu i wszystko było jasne z komentarzy ale jak coś to zapraszam do kontaktu. 
+- [Analiza losowo generowanych Danych ewolucji (A,T)](src/trash_can/Evolution2.jl)
+> staram się by nie trzebas było omawiać dodatkowo kodu i wszystko było jasne z komentarzy ale jak coś to zapraszam do kontaktu.
 `
 ## Wygenerowane wykresy
-Wszystkie rysunki i wykresy wygenerowane przez kod bede starał się umieszczać w katalogu [images](/images/). Jeśli nie będzie tak żadnego wykresu to zalecam sprawdzenie katalogu [src](/src/) gdzie powinny być wygenerowane wykresy których jeszcze nie przeniosłem. 
+Wszystkie rysunki i wykresy wygenerowane przez kod bede starał się umieszczać w katalogu [images](/images/). Jeśli nie będzie tak żadnego wykresu to zalecam sprawdzenie katalogu [src](/src/) gdzie powinny być wygenerowane wykresy których jeszcze nie przeniosłem.
 
-## Raport 
+## Raport
 ### 19.07.2025
 - [Evolution of A and T](src/trash_can/Evolution2.jl) - program do generowania ewolucji $A(\tau)$ i $T(\tau)$ dla losowych warunków początkowych.
-- ![gif](images/A_T/19.07.2025.gif) 
+- ![gif](images/A_T/19.07.2025.gif)
 
 <details open>
 <summary><strong>⚠️ UWAGA</strong></summary>
@@ -119,26 +122,26 @@ Już po nauczeniu się obsługi REPL. [program modHydroSim.jl](/src/modHydroSim.
 - ![zdjecie_2](images/A_T/27.07.2025.gif)
 
 ## **[HINTON_SNE](neural_networks/sne.pdf)** Implementacja Algorytmu SNE do badania dynamiki regukcji wymiarowości
-Algorytm SNE (Stochastic Neighbor Embedding) jest używany do redukcji wymiarowości danych. W kontekście badania dynamiki redukcji wymiarowości, implementacja tego algorytmu może być przydatna do analizy danych z symulacji hydrodynamicznych m.in 
+Algorytm SNE (Stochastic Neighbor Embedding) jest używany do redukcji wymiarowości danych. W kontekście badania dynamiki redukcji wymiarowości, implementacja tego algorytmu może być przydatna do analizy danych z symulacji hydrodynamicznych m.in
 takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.07.2025.gif) Gdzie dokładnie wydać jak zmienia się dynamika (tempo redukcji wymiarowości do z 2d do 1d)  w czasie.
 
 - **Kod z implementacją tego Algorytmu jest umieszczony** -> [kod_sne](src/sne.jl)
 
 *Jak używać w REPL?*
 
-```bash 
+```bash
 > julia
 > ]
 > pkg > activate . # aktywacja środowiska, jeśli jest w katalogu
 > include("lib.jl")
 > using .modHydroSim
 # opcjonalnie ja osobiście używam using Revise by móc modyfikować kod bez restartowania REPL
-#albo po prostu 
+#albo po prostu
 > include("sne.jl")
 ```
 
 
-## PCA 
+## PCA
 ![pca](images/pca_analysis.png)
 - ![pca1](images/pca/pca_1.png)
 - ![pca2](images/pca/pca_2.png)
@@ -154,7 +157,7 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 
 
 
-# Citation 
+# Citation
 ```tex
 @misc{bezubik2025attractors,
   author       = {Krzysztof Bezubik and Michał Spaliński},
