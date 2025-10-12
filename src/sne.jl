@@ -1,10 +1,3 @@
-# ##############################################################################
-#
-#        ANALIZA REDUKCJI WYMIAROWOŚCI DLA SYMULACJI HYDRODYNAMICZNYCH
-#
-# Wersja z samodzielną, transparentną implementacją algorytmu t-SNE.
-#
-# ##############################################################################
 
 include("lib.jl")
 using .modHydroSim
@@ -17,16 +10,12 @@ using Printf
 using Random
 using LinearAlgebra
 
-# ##############################################################################
-# SEKCJA 0: SAMODZIELNA IMPLEMENTACJA t-SNE
-# ##############################################################################
 module ManualTSNE
 
 using LinearAlgebra, Random, Printf, Statistics
 
 export run_tsne
 
-# --- Krok 1: Obliczanie podobieństw w przestrzeni wysokowymiarowej (Macierz P) ---
 
 """
 Oblicza macierz kwadratów odległości Euklidesowych.
@@ -106,58 +95,48 @@ function run_tsne(X::Matrix{Float64}; perplexity=30.0, max_iter=1000, seed=123,
                   learning_rate=500.0, early_exaggeration=12.0,
                   initial_momentum=0.5, final_momentum=0.8,
                   stop_exaggeration_iter=250)
-    
+
     (n_points, _) = size(X)
     Random.seed!(seed)
 
-    # Oblicz macierz P (tylko raz)
     P = calculate_P_matrix(X, perplexity)
-    
-    # Inicjalizacja położeń Y w przestrzeni niskowymiarowej
+
     Y = randn(n_points, 2) * 0.0001
     dY = zeros(size(Y)) # Gradient
     iY = zeros(size(Y)) # Aktualizacja z pędem
 
-    # Pętla optymalizacji
     println("Rozpoczynanie optymalizacji t-SNE...")
     for iter in 1:max_iter
-        # Obliczanie macierzy Q (podobieństw w przestrzeni niskowymiarowej)
         sum_Y = sum(Y .^ 2, dims=2)
         dist_Y_sq = -2 * (Y * Y') .+ sum_Y .+ sum_Y'
-        
+
         # Wzór na q_ij (bez normalizacji)
         q_unnormalized_inv = 1.0 ./ (1.0 .+ dist_Y_sq)
         q_unnormalized_inv[diagind(q_unnormalized_inv)] .= 0.0
-        
+
         # Znormalizowana macierz Q
         Q = q_unnormalized_inv ./ sum(q_unnormalized_inv)
         Q = max.(Q, 1e-12)
 
-        # Ustawienie pędu i egzageracji
         current_momentum = iter <= stop_exaggeration_iter ? initial_momentum : final_momentum
         P_eff = iter <= stop_exaggeration_iter ? P * early_exaggeration : P
 
-        # Obliczanie gradientu
         # Wzór: dC/dy_i = 4 * sum_j (p_ij - q_ij) * (y_i - y_j) * (1 + ||y_i - y_j||^2)^-1
         PQ_diff = P_eff - Q
         for i in 1:n_points
             dY[i, :] = sum(4 * (PQ_diff[:, i] .* q_unnormalized_inv[:, i]) .* (Y[i, :]' .- Y), dims=1)
         end
-        
-        # Aktualizacja położeń Y z pędem
         iY = current_momentum .* iY - learning_rate .* dY
         Y .+= iY
-        
-        # Wyśrodkowanie danych, aby zapobiec "uciekaniu"
+
         Y .-= mean(Y, dims=1)
-        
-        # Raportowanie postępów
+
         if iter % 50 == 0
             cost = sum(P_eff .* log.(P_eff ./ Q))
             @printf("Iteracja %4d/%d: Koszt KL = %.4f\n", iter, max_iter, cost)
         end
     end
-    
+
     println("Optymalizacja t-SNE zakończona.")
     return Y
 end
@@ -165,13 +144,10 @@ end
 end # koniec modułu ManualTSNE
 
 
-# ##############################################################################
-# SEKCJA GŁÓWNA: WORKFLOW ANALIZY
-# ##############################################################################
 module DimRedAnalysis
 
 using ..modHydroSim
-using ..ManualTSNE # Używamy naszej własnej implementacji
+using ..ManualTSNE
 using Plots
 using Statistics
 using DataFrames
@@ -185,10 +161,10 @@ function prepare_hydro_data(sim_settings::SimSettings, n_time_samples::Int)
     println("--- Krok 1: Generowanie danych z symulacji hydrodynamiki... ---")
     sim_result = run_simulation(settings=sim_settings)
     n_trajectories = length(sim_result.solutions)
-    
+
     t_start, t_end = sim_result.settings.tspan
     sample_times = range(t_start, stop=t_end, length=n_time_samples)
-    
+
     D = n_time_samples * 2
     X = zeros(Float64, n_trajectories, D)
     initial_temps = zeros(Float64, n_trajectories)
@@ -201,7 +177,7 @@ function prepare_hydro_data(sim_settings::SimSettings, n_time_samples::Int)
         X[i, :] = flat_vector
         initial_temps[i] = sol.u[1][1]
     end
-    
+
     @printf("Przygotowanie danych zakończone. Wymiar macierzy X: %d trajektorii x %d cech.\n", n_trajectories, D)
     return X, initial_temps, sim_result
 end
@@ -244,7 +220,7 @@ function save_embedding_dataset(sim_result::SimResult, Y::Matrix{Float64}, initi
            "T-$(round(Tmin, digits=1))-$(round(Tmax, digits=1))_" *
            "A-$(round(Amin, digits=1))-$(round(Amax, digits=1))_" *
            "tau-$(round(t_start, digits=1))-$(round(t_end, digits=1)).csv"
-    
+
     CSV.write(file, df)
     println("📁 Zapisano dane do pliku: $file")
 end
@@ -259,7 +235,7 @@ function full_analysis(;
 )
     X, initial_temps, sim_result = prepare_hydro_data(hydro_settings, n_time_samples)
 
-    
+
     println("\n--- Krok 3: Uruchamianie  t-SNE... ---")
     Y = ManualTSNE.run_tsne(X, perplexity=perplexity, max_iter=max_iter, seed=seed)
 
@@ -275,4 +251,4 @@ function full_analysis(;
     return (sim_result=sim_result, X=X, Y=Y, plot=p)
 end
 
-end # koniec modułu DimRedAnalysis
+end
