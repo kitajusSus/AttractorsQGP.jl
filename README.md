@@ -26,6 +26,14 @@ czego potrzeba do pracy z julia?
 using Pkg
 Pkg.instantiate()
 
+# or
+cd src
+julia
+julia> ]
+(@v1.11) pkg> activate .
+(src) pkg> instantiate
+# copy this commands without anything before `>`
+
 ```
 3. Ważne by uruchamiać julia w terminal
 ```bash
