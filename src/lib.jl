@@ -10,7 +10,7 @@ using Plots
 # --- Publiczny Interfejs Modułu ---
 export HydroParams, SimSettings, SimResult,
        PARAMS_SYM, PARAMS_MIS,
-       evol, fm, MeV, run_simulation, kadr, TA 
+       evol, fm, MeV, run_simulation, kadr, TA
 
 # --- SEKCJA 1: STRUKTURY DANYCH ---
 
