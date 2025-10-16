@@ -72,17 +72,7 @@ Programy napisane w julia znajdują się w katalogu [src](/src/).
 Wszystkie rysunki i wykresy wygenerowane przez kod bede starał się umieszczać w katalogu [images](/images/). Jeśli nie będzie tak żadnego wykresu to zalecam sprawdzenie katalogu [src](/src/) gdzie powinny być wygenerowane wykresy których jeszcze nie przeniosłem.
 
 # Raport
-## 19.07.2025
-- [Evolution of A and T](src/trash_can/Evolution2.jl) - program do generowania ewolucji $A(\tau)$ i $T(\tau)$ dla losowych warunków początkowych.
-- ![gif](images/A_T/19.07.2025.gif)
-
-<details open>
-<summary><strong>⚠️ UWAGA</strong></summary>
-
-<p><strong>WYŻEJ ZAMIESZCZONY GIF BAZUJE NA BŁĘDNYCH DANYCH</strong></p>
-
-</details>
-
+> ## 19.07.2025
 
 ## 24.07.2025
 ```julia
@@ -141,7 +131,6 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 
 
 ## PCA
-![pca](images/pca_analysis.png)
 - ![pca1](images/pca/pca_1.png)
 - ![pca2](images/pca/pca_2.png)
 - ![pca3](images/pca/pca_3.png)
@@ -149,7 +138,7 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 
 
 
-## T-SNE/sne
+# T-SNE/sne
 -![t-sne](images/sne/sne1.png)
 -![t-sne2](images/sne/sne2.png)
 
