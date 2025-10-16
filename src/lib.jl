@@ -1,8 +1,3 @@
-#
-# Profesjonalna biblioteka do symulacji ewolucji plazmy kwarkowo-gluonowej (QGP)
-# w ramach uproszczonego modelu przepływu Bjorkena. Plik zawiera implementacje
-# kilku kluczowych teorii hydrodynamiki relatywistycznej.
-#
 # Zaimplementowane teorie:
 # 1. BRSSS (Baier, Romatschke, Son, Starinets, Stephanov)
 #    - Cechy: Drugo-rzędowa hydrodynamika lepka, wprowadza czas relaksacji.
@@ -20,7 +15,6 @@
 #      związaną z pochodną anizotropii po czasie bezwymiarowym w = τT.
 #
 
-# --- Zależności ---
 
 using DifferentialEquations
 using Random
@@ -65,13 +59,12 @@ export AbstractHydroParams,
     run_all_theories,
     wykres_Aw
 
-# --- Definicje ---
-const fm = 1.0       # Jednostka: 1 fm
-const MeV = 1 / 197.0 # Jednostka: 1 MeV w odwrotnych fermi
+# --- Definitions ---
+const fm = 1.0       #  1 fm
+const MeV = 1 / (197.0 * fm)
 
-# --- SEKCJA 1: STRUKTURY DANYCH I PARAMETRY ---
+# --- SECTION 1 --
 
-"Abstrakcyjny typ dla parametrów modeli hydrodynamiki."
 abstract type AbstractHydroParams end
 
 
@@ -106,13 +99,13 @@ struct SimSettings
 end
 
 function SimSettings(;
-    theory::Symbol = :BRSSS,
-    n_points = 500,
-    tspan = (0.2, 1),
-    T_range = (300.0 * MeV, 1500 * MeV),
-    A_range = (-25, 25),
-    Z_range = (-20.0, 20.0),
-    seed = 5,
+    theory::Symbol=:BRSSS,
+    n_points=500,
+    tspan=(0.2, 1),
+    T_range=(300.0 * MeV, 1500 * MeV),
+    A_range=(-25, 25),
+    Z_range=(-20.0, 20.0),
+    seed=5,
 )
     if theory == :BRSSS
         params, ode = PARAMS_SYM_BRSSS, ode_brsss!
@@ -121,7 +114,7 @@ function SimSettings(;
     elseif theory == :HJSW
         params, ode = PARAMS_SYM_HJSW, ode_hjsw!
     else
-        error("Nieznana teoria: $theory. Dostępne: :BRSSS, :MIS, :HJSW")
+        error("Unknown theory $theory. Available: :BRSSS, :MIS, :HJSW")
     end
     return SimSettings(
         theory,
@@ -141,7 +134,7 @@ struct SimResult
     settings::SimSettings
 end
 
-# --- SEKCJA 2: RÓWNANIA RÓŻNICZKOWE MODELI ---
+# --- Section 2: DifferentialEquations of the theories ---
 
 function ode_brsss!(du, u, p::BRSSSParams, τ)
     T, A = u[1], u[2]
@@ -177,14 +170,12 @@ function ode_hjsw!(du, u, p::HJSWParams, τ)
     A_double_prime = α1 ≈ 0 ? 0.0 : A_double_prime_numerator / α1
     du[3] = dw_dτ * A_double_prime
 end
-
-# --- SEKCJA 3: RDZEŃ SYMULACJI ---
-
+# --- Section 3: SIMULATION CORE ---
 """
-Wczytuje warunki początkowe z pliku .csv lub .h5.
+Gets and loads data from  .csv or  .h5.
 """
 function load_ics(filepath::String, theory::Symbol)
-    println("Wczytywanie warunków początkowych z pliku: $filepath")
+    println("Loading of initial_conditions : $filepath")
 
     if endswith(filepath, ".csv")
         df = CSV.read(filepath, DataFrame)
@@ -195,14 +186,12 @@ function load_ics(filepath::String, theory::Symbol)
             DataFrame([col => read(g[col]) for col in cols])
         end
     else
-        error("Nieobsługiwany format pliku: $filepath. Użyj .csv lub .h5")
+        error("Unsupported file type: $filepath. use .csv or .h5")
     end
 
-    # POPRAWKA: Pliki .csv/.h5 przechowują temperaturę w MeV.
-    # Poniższy kod konwertuje T_0 na wewnętrzne jednostki (1/fm) używane w symulacji.
     if theory == :HJSW
         if !("Z_0" in names(df))
-            error("Plik nie zawiera kolumny 'Z_0' wymaganej dla teorii HJSW.")
+            error("file dont have  'Z_0' required to  HJSW theory .")
         end
         return [[row.T_0 * MeV, row.A_0, row.Z_0] for row in eachrow(df)]
     else
@@ -212,7 +201,7 @@ end
 
 
 """
-Generuje losowe warunki początkowe na podstawie ustawień.
+Generates random initial_conditions basing on settings.
 """
 function generate_random_ics(settings::SimSettings)
     rng = Xoshiro(settings.seed)
@@ -227,18 +216,14 @@ function generate_random_ics(settings::SimSettings)
     end
 end
 
-"""
-    run_simulation(; settings, ic_file)
-Uruchamia symulację, wczytując warunki z pliku lub generując je losowo.
-"""
-function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing} = nothing)
-    println("Uruchamianie symulacji dla teorii: $(settings.theory)...")
+function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=nothing)
+    println("Starting simulation for theory: $(settings.theory)...")
 
     initial_states = if ic_file !== nothing
         load_ics(ic_file, settings.theory)
     else
         println(
-            "Generowanie $(settings.n_points) losowych warunków początkowych (seed: $(settings.seed)).",
+            "There is no file $(ic_file), Generating    $(settings.n_points) random initial_conditions (seed: $(settings.seed)).",
         )
         generate_random_ics(settings)
     end
@@ -246,15 +231,15 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing} 
     solutions = ODESolution[]
     for u0 in initial_states
         prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
-        sol = solve(prob, Tsit5(), saveat = 0.01, reltol = 1e-6, abstol = 1e-8)
+        sol = solve(prob, Tsit5(), saveat=0.01, reltol=1e-6, abstol=1e-8)
         push!(solutions, sol)
     end
 
-    println("Symulacja zakończona. Przeanalizowano $(length(solutions)) trajektorii.")
+    println("Simulation ended, generated $(length(solutions)) trajectories.")
     return SimResult(solutions, settings)
 end
 
-# --- SEKCJA 4: ANALIZA I WIZUALIZACJA ---
+# --- SEKCJA 4: ANALIZA I VIZUALIZACJA ---
 
 function TA(simres::SimResult, t::Float64)
     params, ode_func!, n_sols =
@@ -291,34 +276,34 @@ function kadr(simres::SimResult, t::Float64)
     states = TA(simres, t)
     Ts_MeV = states[1] ./ MeV
     As = states[2]
-    τ_str = round(t, digits = 2)
+    τ_str = round(t, digits=2)
     p = plot(
-        title = "Przestrzeń fazowa (T, A) dla t = $(τ_str) fm/c [$(simres.settings.theory)]",
-        xlabel = "Temperatura T [MeV]",
-        ylabel = "Anizotropia A",
-        legend = false,
-        xlims = (0, simres.settings.T_range[2] * 1.1 / MeV),
-        ylims = (simres.settings.A_range[1] - 1, simres.settings.A_range[2] + 1),
+        title="Phase space  (T, A) for  τ = $(τ_str) fm/c [$(simres.settings.theory)]",
+        xlabel="Temperature T [MeV]",
+        ylabel="Anisotropy A ",
+        legend=false,
+        xlims=(0, simres.settings.T_range[2] * 1.1 / MeV),
+        ylims=(simres.settings.A_range[1] - 1, simres.settings.A_range[2] + 1),
     )
-    scatter!(p, Ts_MeV, As, markersize = 2, markerstrokewidth = 0, alpha = 0.7)
+    scatter!(p, Ts_MeV, As, markersize=2, markerstrokewidth=0, alpha=0.7)
     display(p)
 end
 
 
-function wykres(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = -12.0)
+function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
     settings = simres.settings
     color_max = settings.A_range[2] # Użyj górnego limitu z ustawień symulacji
 
     p = plot(
-        title = "Ewolucja anizotropii A(τ) dla teorii $(settings.theory)",
-        xlabel = "Czas własny τ [fm/c]",
-        ylabel = "Anizotropia A",
-        size = size,
-        xlims = settings.tspan,
-        ylims = (settings.A_range[1] - 1, settings.A_range[2] + 1),
-        legend = false,
-        colorbar = true,
-        colorbar_title = "  Początkowa Anizotropia A_0",
+        title="Ewolution A(τ) for Theory  $(settings.theory)",
+        xlabel="Czas własny τ [fm/c]",
+        ylabel="Anizotropia A",
+        size=size,
+        xlims=settings.tspan,
+        ylims=(settings.A_range[1] - 1, settings.A_range[2] + 1),
+        legend=false,
+        colorbar=true,
+        colorbar_title="Initial Anisotropy  A_0",
     )
 
     grad = cgrad(:viridis)
@@ -335,7 +320,7 @@ function wykres(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = -12
         end
 
         A_values = getindex.(sol.u, 2)
-        plot!(p, sol.t, A_values, lw = lw, alpha = 0.4, color = line_color)
+        plot!(p, sol.t, A_values, lw=lw, alpha=0.4, color=grad)
     end
 
     display(p)
@@ -343,37 +328,32 @@ end
 
 
 
-function wykres_Aw(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = -12.0)
+function wykres_Aw(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
     settings = simres.settings
 
     p = plot(
-        title = "Ewolucja A(w) dla teorii $(settings.theory)",
-        xlabel = "Bezwymiarowy czas w = τT",
-        ylabel = "Anizotropia A",
-        size = size,
-        ylims = (settings.A_range[1] - 1, settings.A_range[2] + 1),
-        legend = false,
-    ) # Usunięto pasek kolorów, ponieważ nie jest on tu tak informacyjny
-
-    # Automatyczne skalowanie osi X
+        title="Evolution  A(w)for theory $(settings.theory)",
+        xlabel=" w = τT",
+        ylabel="Anisotropy A",
+        size=size,
+        ylims=(settings.A_range[1] - 1, settings.A_range[2] + 1),
+        legend=false,
+    )
     max_w = 0.0
     for sol in simres.solutions
         T_values = getindex.(sol.u, 1)
-        # Upewnij się, że wektory mają tę samą długość
         valid_length = min(length(sol.t), length(T_values))
         w_values = sol.t[1:valid_length] .* T_values[1:valid_length]
 
-        # Znajdź maksimum tylko dla skończonych wartości
         finite_w = filter(isfinite, w_values)
         if !isempty(finite_w)
             max_w = max(max_w, maximum(finite_w))
         end
     end
-    plot!(p, xlims = (0, max_w * 1.05))
+    plot!(p, xlims=(0, max_w * 1.05))
 
     for sol in simres.solutions
-        A0 = sol.u[1][2] # Wartość początkowa anizotropii
-
+        A0 = sol.u[1][2]
         line_color = (A0 < color_min) ? :blue : :red
 
         T_values = getindex.(sol.u, 1)
@@ -386,31 +366,31 @@ function wykres_Aw(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = 
             p,
             w_values,
             A_values[1:valid_length],
-            lw = lw,
-            alpha = 0.4,
-            color = line_color,
+            lw=lw,
+            alpha=0.4,
+            color=line_color,
         )
     end
 
     display(p)
 end
-# --- SEKCJA 5: FUNKCJE POMOCNICZE I REPL ---
+# ---Section 5 - Generating data ---
 
 function generate_and_save_ics(;
-    n_points = 10000,
-    seed = 5,
-    T_range = (200.0, 1800.0),
-    A_range = (-25, 25.0),
-    Z_range = (-50.0, 50.0),
-    output_filename_base = "initial_conditions",
+    n_points=10000,
+    seed=5,
+    T_range=(200.0, 1800.0),
+    A_range=(-25, 25.0),
+    Z_range=(-50.0, 50.0),
+    output_filename_base="initial_conditions",
 )
     rng = Xoshiro(seed)
     df = DataFrame(
-        Run_ID = 1:n_points,
+        Run_ID=1:n_points,
         # UWAGA: Temperatura jest zapisywana w pliku w jednostkach MeV
-        T_0 = rand(rng, Uniform(T_range...), n_points),
-        A_0 = rand(rng, Uniform(A_range...), n_points),
-        Z_0 = rand(rng, Uniform(Z_range...), n_points),
+        T_0=rand(rng, Uniform(T_range...), n_points),
+        A_0=rand(rng, Uniform(A_range...), n_points),
+        Z_0=rand(rng, Uniform(Z_range...), n_points),
     )
     CSV.write("$(output_filename_base).csv", df)
     println("Zapisano warunki początkowe do $(output_filename_base).csv")
@@ -428,96 +408,89 @@ function generate_and_save_ics(;
 end
 
 function repl_run_brsss()
-    println("\n--- Uruchamianie symulacji dla BRSSS (warunki losowe) ---")
+    println("\n---Simulation for  BRSSS (random points) ---")
     settings = SimSettings(
-        theory = :BRSSS,
-        n_points = 500,
-        tspan = (0.2, 2.5),
-        A_range = (-1.0, 5.0),
+        theory=:BRSSS,
+        n_points=500,
+        tspan=(0.2, 2.5),
+        A_range=(-1.0, 5.0),
     )
-    result = run_simulation(settings = settings)
+    result = run_simulation(settings=settings)
     kadr(result, 1.5)
     return result
 end
 
 function repl_run_mis()
-    println("\n--- Uruchamianie symulacji dla MIS (warunki losowe) ---")
+    println("\n--- SIMULATION FOR THEORY MIS (random initial_conditions) ---")
     settings =
-        SimSettings(theory = :MIS, n_points = 500, tspan = (0.2, 1), A_range = (-50, 15))
-    result = run_simulation(settings = settings)
+        SimSettings(theory=:MIS, n_points=500, tspan=(0.2, 1), A_range=(-50, 15))
+    result = run_simulation(settings=settings)
     wykres(result)
     return result
 end
 
 function repl_run_hjsw()
-    println("\n--- Uruchamianie symulacji dla HJSW (warunki losowe) ---")
+    println("\n--- SIMULATION FOR HJSW THEORY  (random initial_conditions) ---")
     settings = SimSettings(
-        theory = :HJSW,
-        n_points = 500,
-        tspan = (0.2, 1.5),
-        A_range = (-1.0, 5.0),
+        theory=:HJSW,
+        n_points=500,
+        tspan=(0.2, 1.5),
+        A_range=(-1.0, 5.0),
     )
-    result = run_simulation(settings = settings)
+    result = run_simulation(settings=settings)
     kadr(result, 1.0)
     return result
 end
 
 
 function repl_demo_file_io()
-    println("\n--- Demonstracja wczytywania z pliku ---")
+    println("\n--- Demo of loading data---")
     filename = "demo_ic.csv"
     generate_and_save_ics(
-        n_points = 100,
-        T_range = (250.0, 450.0),
-        A_range = (0.0, 4.0),
-        output_filename_base = splitext(filename)[1],
+        n_points=100,
+        T_range=(250.0, 450.0),
+        A_range=(0.0, 4.0),
+        output_filename_base=splitext(filename)[1],
     )
 
-    settings = SimSettings(theory = :BRSSS, tspan = (0.2, 2.5))
-    result = run_simulation(settings = settings, ic_file = filename)
+    settings = SimSettings(theory=:BRSSS, tspan=(0.2, 2.5))
+    result = run_simulation(settings=settings, ic_file=filename)
     kadr(result, 1.5)
     return result
 end
 
-# POPRAWIONA I UDOSKONALONA FUNKCJA
-function run_all_theories(ic_file::String; tspan = (0.2, 1.2))
+function run_all_theories(ic_file::String; tspan=(0.2, 1.2))
     println("="^60)
-    println(" Uruchamianie porównania teorii na pliku: $ic_file")
+    println(" Starting benchmark for initial_conditions from : $ic_file")
     println("="^60)
 
-    # Odczytaj zakresy z pliku, aby wykresy były dobrze wyskalowane.
     df = CSV.read(ic_file, DataFrame)
-    # POPRAWKA: Poprawnie konwertuj zakresy temperatury (w MeV) na jednostki wewnętrzne dla ustawień wykresu
     T_min_max = (minimum(df.T_0) * MeV, maximum(df.T_0) * MeV)
     A_min_max = (minimum(df.A_0), maximum(df.A_0))
     Z_min_max = hasproperty(df, :Z_0) ? (minimum(df.Z_0), maximum(df.Z_0)) : (-20.0, 20.0)
 
     theories = [:MIS, :BRSSS, :HJSW]
-    results = Dict{Symbol,SimResult}() # Ulepszenie: Zwraca wyniki do dalszej analizy
-
+    results = Dict{Symbol,SimResult}()
     for theory in theories
-        # Teoria HJSW często wymaga dłuższego czasu na pokazanie swojej dynamiki
         current_tspan = theory == :HJSW ? (tspan[1], 2.5) : tspan
 
         settings = SimSettings(
-            theory = theory,
-            tspan = current_tspan,
-            # Te wartości są używane do ustawienia zakresów osi na wykresach
-            n_points = nrow(df),
-            T_range = T_min_max,
-            A_range = A_min_max,
-            Z_range = Z_min_max,
+            theory=theory,
+            tspan=current_tspan,
+            n_points=nrow(df),
+            T_range=T_min_max,
+            A_range=A_min_max,
+            Z_range=Z_min_max,
         )
 
-        result = run_simulation(settings = settings, ic_file = ic_file)
-        results[theory] = result # Zapisz wynik
-
-        println("\n--- Generowanie wykresów dla $theory ---")
+        result = run_simulation(settings=settings, ic_file=ic_file)
+        results[theory] = result
+        println("\n--- Generating plot for $theory ---")
         wykres(result)
 
         if theory != last(theories)
             println(
-                "\nWykresy dla $theory wygenerowane. Naciśnij Enter, aby kontynuować...",
+                "\n Plots generated for  $theory. Press Enter, to continue...",
             )
             readline()
         end
