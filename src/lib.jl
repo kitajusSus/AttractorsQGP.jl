@@ -1,165 +1,532 @@
-#plik lib.jl
-module modHydroSim
+#
+# Profesjonalna biblioteka do symulacji ewolucji plazmy kwarkowo-gluonowej (QGP)
+# w ramach uproszczonego modelu przepływu Bjorkena. Plik zawiera implementacje
+# kilku kluczowych teorii hydrodynamiki relatywistycznej.
+#
+# Zaimplementowane teorie:
+# 1. BRSSS (Baier, Romatschke, Son, Starinets, Stephanov)
+#    - Cechy: Drugo-rzędowa hydrodynamika lepka, wprowadza czas relaksacji.
+#    - Zmienne stanu: [T(τ), A(τ)] (Temperatura, Anizotropia ciśnień).
+#
+# 2. MIS (Müller, Israel, Stewart)
+#    - Cechy: Uproszczona wersja BRSSS, często używana jako jej podstawa.
+#      Formalnie, jest to BRSSS z współczynnikiem C_λ1 = 0.
+#    - Zmienne stanu: [T(τ), A(τ)].
+#
+# 3. HJSW (Heller, Janik, Spaliński, Witaszczyk)
+#    - Cechy: Teoria "poza-hydrodynamiczna", jawnie uwzględnia mody oscylacyjne.
+#      Opisana równaniem różniczkowym wyższego rzędu.
+#    - Zmienne stanu: [T(τ), A(τ), Z(τ)], gdzie Z jest zmienną pomocniczą
+#      związaną z pochodną anizotropii po czasie bezwymiarowym w = τT.
+#
 
 # --- Zależności ---
+
 using DifferentialEquations
 using Random
 using Distributions
 using Plots
+using CSV
+using DataFrames
+using HDF5
+using Dates
+# --- Początek modułu ---
+module modHydroSim
+using DifferentialEquations
+using Random
+using Distributions
+using Plots
+plotly()
+using CSV
+using DataFrames
+using HDF5
+using Dates
 
-# --- Publiczny Interfejs Modułu ---
-export HydroParams, SimSettings, SimResult,
-       PARAMS_SYM, PARAMS_MIS,
-       evol, fm, MeV, run_simulation, kadr, TA
+# --- Publiczny interfejs modułu ---
+export AbstractHydroParams,
+    BRSSSParams,
+    HJSWParams,
+    SimSettings,
+    SimResult,
+    PARAMS_SYM_BRSSS,
+    PARAMS_MIS,
+    PARAMS_SYM_HJSW,
+    run_simulation,
+    kadr,
+    TA,
+    generate_and_save_ics,
+    repl_run_brsss,
+    repl_run_mis,
+    repl_run_hjsw,
+    repl_demo_file_io,
+    fm,
+    MeV,
+    wykres,
+    run_all_theories,
+    wykres_Aw
 
-# --- SEKCJA 1: STRUKTURY DANYCH ---
+# --- Definicje ---
+const fm = 1.0       # Jednostka: 1 fm
+const MeV = 1 / 197.0 # Jednostka: 1 MeV w odwrotnych fermi
 
-"Jednostki"
-const fm = 1.0
-const MeV = 1 / fm / 197
+# --- SEKCJA 1: STRUKTURY DANYCH I PARAMETRY ---
 
-"""
-    HydroParams(C_τπ, C_η, C_λ1)
+"Abstrakcyjny typ dla parametrów modeli hydrodynamiki."
+abstract type AbstractHydroParams end
 
-Niezmienna struktura przechowująca stałe fizyczne modelu hydrodynamiki (BRSSS).
-"""
-struct HydroParams
+
+
+struct BRSSSParams <: AbstractHydroParams
     C_τπ::Float64
     C_η::Float64
     C_λ1::Float64
 end
 
-# --- Predefiniowane zestawy parametrów ---
-"Parametry z teorii N=4 SYM (holografia/AdS-CFT), pełny model BRSSS."
-const PARAMS_SYM = HydroParams(
-    (2 - log(2)) / (2 * π), # C_τπ
-    1 / (4 * π),           # C_η
-    1 / (2 * π)            # C_λ1
-)
+struct HJSWParams <: AbstractHydroParams
+    C_η::Float64
+    C_σ::Float64
+    Ω_R::Float64
+    Ω_I::Float64
+end
 
-"Parametry z pracy PRL (Heller, Spaliński et al.) MIS."
-const PARAMS_MIS = HydroParams(
-    (2 - log(2)) / (2 * π), # C_τπ
-    1 / (4 * π),              # C_η
-    0.0                       # C_λ1
-)
+const PARAMS_SYM_BRSSS = BRSSSParams((2 - log(2)) / (2 * π), 1 / (4 * π), 1 / (2 * π))
+const PARAMS_MIS = BRSSSParams((2 - log(2)) / (2 * π), 1 / (4 * π), 0.0)
+const PARAMS_SYM_HJSW = HJSWParams(1 / (4 * π), 2 * π, 9.800, 8.629)
 
-"""
-    SimSettings(; n_points=200, ...)
-
-Niezmienna struktura przechowująca ustawienia symulacji.
-"""
 struct SimSettings
+    theory::Symbol
+    params::AbstractHydroParams
     ode::Function
-    params::HydroParams
-    n_points::Int
     tspan::Tuple{Float64,Float64}
+    n_points::Int
     T_range::Tuple{Float64,Float64}
     A_range::Tuple{Float64,Float64}
+    Z_range::Tuple{Float64,Float64}
+    seed::Int
 end
 
 function SimSettings(;
-    ode=ode_brs3!,
-    params=PARAMS_SYM,
-    n_points=200,
-    tspan=(0.2, 1.2),
-    T_range=(300.0 * MeV, 500.0 * MeV),
-    A_range=(3.0, 7.0)
+    theory::Symbol = :BRSSS,
+    n_points = 500,
+    tspan = (0.2, 1),
+    T_range = (300.0 * MeV, 1500 * MeV),
+    A_range = (-25, 25),
+    Z_range = (-20.0, 20.0),
+    seed = 5,
 )
-    return SimSettings(ode, params, n_points, tspan, T_range, A_range)
+    if theory == :BRSSS
+        params, ode = PARAMS_SYM_BRSSS, ode_brsss!
+    elseif theory == :MIS
+        params, ode = PARAMS_MIS, ode_brsss!
+    elseif theory == :HJSW
+        params, ode = PARAMS_SYM_HJSW, ode_hjsw!
+    else
+        error("Nieznana teoria: $theory. Dostępne: :BRSSS, :MIS, :HJSW")
+    end
+    return SimSettings(
+        theory,
+        params,
+        ode,
+        tspan,
+        n_points,
+        T_range,
+        A_range,
+        Z_range,
+        seed,
+    )
 end
 
-"""
-    SimResult(solutions, settings)
-
-Struktura przechowująca kompletne wyniki symulacji wraz z metadanymi.
-"""
 struct SimResult
-    solutions::Vector{ODESolution}
+    solutions::Vector
     settings::SimSettings
 end
 
-# --- SEKCJA 2: RDZEŃ SYMULACJI I WIZUALIZACJI ---
+# --- SEKCJA 2: RÓWNANIA RÓŻNICZKOWE MODELI ---
 
-function ode_brs3!(du, u, p::HydroParams, τ)
-    T, A = u
+function ode_brsss!(du, u, p::BRSSSParams, τ)
+    T, A = u[1], u[2]
     C_τπ, C_η, C_λ1 = p.C_τπ, p.C_η, p.C_λ1
+    w = τ * T
+    (T <= 1e-9 || w <= 1e-9 || !isfinite(T) || !isfinite(A)) && (du .= 0.0; return)
     du[1] = (T / τ) * (-1 / 3 + A / 18)
-    term_T = τ * T * (A + (C_λ1 / (12 * C_η)) * A^2)
-    term_A2 = (2 / 9) * C_τπ * A^2
-    du[2] = (1 / (C_τπ * τ)) * (8 * C_η - term_T - term_A2)
+    dw_dτ = T + τ * du[1]
+    A_prime_numerator =
+        12 * C_η - (3 / 2) * w * A - ((1 / 3) * C_τπ + (C_λ1 / (8 * C_η)) * w) * A^2
+    A_prime_denominator = C_τπ * w * (1 + A / 12)
+    A_prime = A_prime_denominator ≈ 0 ? 0.0 : A_prime_numerator / A_prime_denominator
+    du[2] = dw_dτ * A_prime
 end
 
-function initial_conditions(settings, seed=5)
-    rng = Xoshiro(seed)
-    Tmin, Tmax = settings.T_range
-    Amin, Amax = settings.A_range
-    Ts = rand(rng, Uniform(Tmin, Tmax), settings.n_points)
-    As = rand(rng, Uniform(Amin, Amax), settings.n_points)
-    return [[Ts[j], As[j]] for j = 1:settings.n_points]
+
+
+
+function ode_hjsw!(du, u, p::HJSWParams, τ)
+    T, A, Z = u[1], u[2], u[3]
+    C_η, C_σ, Ω_R, Ω_I = p.C_η, p.C_σ, p.Ω_R, p.Ω_I
+    w = τ * T
+    (T <= 1e-9 || w <= 1e-9 || !isfinite(T) || !isfinite(A) || !isfinite(Z)) &&
+        (du .= 0.0; return)
+    Ω² = Ω_R^2 + Ω_I^2
+    α1, α2 = w^2 * (A + 12)^2, w^2 * (A + 12)
+    α3, α4 = 12w * (A + 12) * (A + 3w * Ω_I), 48 * (3w * Ω_I - 1)
+    α5, α6 = 108 * (-4C_η * C_σ + 3w^2 * Ω²), -864C_η * (-2C_σ + 3w * Ω²)
+    du[1] = (T / τ) * (-1 / 3 + A / 18)
+    dw_dτ = T + τ * du[1]
+    du[2] = dw_dτ * Z
+    A_double_prime_numerator = -(α2 * Z^2 + α3 * Z + α4 * A^2 + α5 * A + α6)
+    A_double_prime = α1 ≈ 0 ? 0.0 : A_double_prime_numerator / α1
+    du[3] = dw_dτ * A_double_prime
 end
 
-function evol(u0, p)
-    prob = ODEProblem(p.ode, u0, p.tspan, p.params)
-    return solve(prob, Tsit5())
+# --- SEKCJA 3: RDZEŃ SYMULACJI ---
+
+"""
+Wczytuje warunki początkowe z pliku .csv lub .h5.
+"""
+function load_ics(filepath::String, theory::Symbol)
+    println("Wczytywanie warunków początkowych z pliku: $filepath")
+
+    if endswith(filepath, ".csv")
+        df = CSV.read(filepath, DataFrame)
+    elseif endswith(filepath, ".h5")
+        df = h5open(filepath, "r") do file
+            g = file["initial_conditions"]
+            cols = names(g)
+            DataFrame([col => read(g[col]) for col in cols])
+        end
+    else
+        error("Nieobsługiwany format pliku: $filepath. Użyj .csv lub .h5")
+    end
+
+    # POPRAWKA: Pliki .csv/.h5 przechowują temperaturę w MeV.
+    # Poniższy kod konwertuje T_0 na wewnętrzne jednostki (1/fm) używane w symulacji.
+    if theory == :HJSW
+        if !("Z_0" in names(df))
+            error("Plik nie zawiera kolumny 'Z_0' wymaganej dla teorii HJSW.")
+        end
+        return [[row.T_0 * MeV, row.A_0, row.Z_0] for row in eachrow(df)]
+    else
+        return [[row.T_0 * MeV, row.A_0] for row in eachrow(df)]
+    end
 end
 
-function run_simulation(; settings::SimSettings)
-    ic = initial_conditions(settings)
+
+"""
+Generuje losowe warunki początkowe na podstawie ustawień.
+"""
+function generate_random_ics(settings::SimSettings)
+    rng = Xoshiro(settings.seed)
+    Ts = rand(rng, Uniform(settings.T_range...), settings.n_points)
+    As = rand(rng, Uniform(settings.A_range...), settings.n_points)
+
+    if settings.theory == :HJSW
+        Zs = rand(rng, Uniform(settings.Z_range...), settings.n_points)
+        return [[Ts[j], As[j], Zs[j]] for j = 1:(settings.n_points)]
+    else
+        return [[Ts[j], As[j]] for j = 1:(settings.n_points)]
+    end
+end
+
+"""
+    run_simulation(; settings, ic_file)
+Uruchamia symulację, wczytując warunki z pliku lub generując je losowo.
+"""
+function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing} = nothing)
+    println("Uruchamianie symulacji dla teorii: $(settings.theory)...")
+
+    initial_states = if ic_file !== nothing
+        load_ics(ic_file, settings.theory)
+    else
+        println(
+            "Generowanie $(settings.n_points) losowych warunków początkowych (seed: $(settings.seed)).",
+        )
+        generate_random_ics(settings)
+    end
+
     solutions = ODESolution[]
-    for u0 in ic
-        sol = evol(u0, settings)
+    for u0 in initial_states
+        prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
+        sol = solve(prob, Tsit5(), saveat = 0.01, reltol = 1e-6, abstol = 1e-8)
         push!(solutions, sol)
     end
+
+    println("Symulacja zakończona. Przeanalizowano $(length(solutions)) trajektorii.")
     return SimResult(solutions, settings)
 end
 
-# --- POPRAWIONA SEKCJA ---
+# --- SEKCJA 4: ANALIZA I WIZUALIZACJA ---
 
-"""
-    TA(simres::SimResult, t::Float64) -> (Vector, Vector, Vector, Vector)
-
-Zwraca pełny stan układu: temperatury, anizotropie oraz ich pochodne czasowe.
-"""
 function TA(simres::SimResult, t::Float64)
-    solutions = simres.solutions
-    params = simres.settings.params
-    ode_func! = simres.settings.ode
+    params, ode_func!, n_sols =
+        simres.settings.params, simres.settings.ode, length(simres.solutions)
 
-    n_sols = length(solutions)
-    Ts = Vector{Float64}(undef, n_sols)
-    As = Vector{Float64}(undef, n_sols)
-    dTs = Vector{Float64}(undef, n_sols)
-    dAs = Vector{Float64}(undef, n_sols)
-
-    du = [0.0, 0.0]
-
-    for (i, sol) in enumerate(solutions)
-        u = sol(t)
-        ode_func!(du, u, params, t)
-
-        Ts[i] = u[1]
-        As[i] = u[2]
-        dTs[i] = du[1]
-        dAs[i] = du[2]
+    if simres.settings.theory == :HJSW
+        Ts, As, Zs = (zeros(n_sols) for _ = 1:3)
+        dTs, dAs, dZs = (zeros(n_sols) for _ = 1:3)
+        du = [0.0, 0.0, 0.0]
+        for (i, sol) in enumerate(simres.solutions)
+            u = sol(t)
+            (any(!isfinite, u) || u[1] <= 0) && continue
+            ode_func!(du, u, params, t)
+            Ts[i], As[i], Zs[i] = u
+            dTs[i], dAs[i], dZs[i] = du
+        end
+        return (Ts, As, Zs, dTs, dAs, dZs)
+    else # BRSSS or MIS
+        Ts, As = (zeros(n_sols) for _ = 1:2)
+        dTs, dAs = (zeros(n_sols) for _ = 1:2)
+        du = [0.0, 0.0]
+        for (i, sol) in enumerate(simres.solutions)
+            u = sol(t)
+            (any(!isfinite, u) || u[1] <= 0) && continue
+            ode_func!(du, u, params, t)
+            Ts[i], As[i] = u
+            dTs[i], dAs[i] = du
+        end
+        return (Ts, As, dTs, dAs)
     end
-
-    return (Ts, As, dTs, dAs)
 end
 
-"""
-    kadr(simres, t)
-
-Tworzy wykres w przestrzeni fazowej (T, A).
-"""
 function kadr(simres::SimResult, t::Float64)
-    (Ts, As, _, _) = TA(simres, t)
-
-    p = plot(title="Kadr w przestrzeni fazowej, t = $t",
-        xlabel="Temperatura T [MeV]",
-        ylabel="Anizotropia A")
-    plot!(p, Ts, As, seriestype=:scatter, label="")
+    states = TA(simres, t)
+    Ts_MeV = states[1] ./ MeV
+    As = states[2]
+    τ_str = round(t, digits = 2)
+    p = plot(
+        title = "Przestrzeń fazowa (T, A) dla t = $(τ_str) fm/c [$(simres.settings.theory)]",
+        xlabel = "Temperatura T [MeV]",
+        ylabel = "Anizotropia A",
+        legend = false,
+        xlims = (0, simres.settings.T_range[2] * 1.1 / MeV),
+        ylims = (simres.settings.A_range[1] - 1, simres.settings.A_range[2] + 1),
+    )
+    scatter!(p, Ts_MeV, As, markersize = 2, markerstrokewidth = 0, alpha = 0.7)
     display(p)
 end
 
-end # koniec modułu modHydroSim
+
+function wykres(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = -12.0)
+    settings = simres.settings
+    color_max = settings.A_range[2] # Użyj górnego limitu z ustawień symulacji
+
+    p = plot(
+        title = "Ewolucja anizotropii A(τ) dla teorii $(settings.theory)",
+        xlabel = "Czas własny τ [fm/c]",
+        ylabel = "Anizotropia A",
+        size = size,
+        xlims = settings.tspan,
+        ylims = (settings.A_range[1] - 1, settings.A_range[2] + 1),
+        legend = false,
+        colorbar = true,
+        colorbar_title = "  Początkowa Anizotropia A_0",
+    )
+
+    grad = cgrad(:viridis)
+
+    for sol in simres.solutions
+        A0 = sol.u[1][2] # Wartość początkowa anizotropii
+
+        local line_color
+        if A0 < color_min
+            line_color = :blue # Specjalny kolor dla wartości poniżej progu
+        else
+            # Normalizuj wartość A0 do przedziału [0, 1] dla gradientu
+            line_color = :red
+        end
+
+        A_values = getindex.(sol.u, 2)
+        plot!(p, sol.t, A_values, lw = lw, alpha = 0.4, color = line_color)
+    end
+
+    display(p)
+end
+
+
+
+function wykres_Aw(simres::SimResult; lw = 1.5, size = (1200, 750), color_min = -12.0)
+    settings = simres.settings
+
+    p = plot(
+        title = "Ewolucja A(w) dla teorii $(settings.theory)",
+        xlabel = "Bezwymiarowy czas w = τT",
+        ylabel = "Anizotropia A",
+        size = size,
+        ylims = (settings.A_range[1] - 1, settings.A_range[2] + 1),
+        legend = false,
+    ) # Usunięto pasek kolorów, ponieważ nie jest on tu tak informacyjny
+
+    # Automatyczne skalowanie osi X
+    max_w = 0.0
+    for sol in simres.solutions
+        T_values = getindex.(sol.u, 1)
+        # Upewnij się, że wektory mają tę samą długość
+        valid_length = min(length(sol.t), length(T_values))
+        w_values = sol.t[1:valid_length] .* T_values[1:valid_length]
+
+        # Znajdź maksimum tylko dla skończonych wartości
+        finite_w = filter(isfinite, w_values)
+        if !isempty(finite_w)
+            max_w = max(max_w, maximum(finite_w))
+        end
+    end
+    plot!(p, xlims = (0, max_w * 1.05))
+
+    for sol in simres.solutions
+        A0 = sol.u[1][2] # Wartość początkowa anizotropii
+
+        line_color = (A0 < color_min) ? :blue : :red
+
+        T_values = getindex.(sol.u, 1)
+        A_values = getindex.(sol.u, 2)
+
+        valid_length = min(length(sol.t), length(T_values), length(A_values))
+        w_values = sol.t[1:valid_length] .* T_values[1:valid_length]
+
+        plot!(
+            p,
+            w_values,
+            A_values[1:valid_length],
+            lw = lw,
+            alpha = 0.4,
+            color = line_color,
+        )
+    end
+
+    display(p)
+end
+# --- SEKCJA 5: FUNKCJE POMOCNICZE I REPL ---
+
+function generate_and_save_ics(;
+    n_points = 10000,
+    seed = 5,
+    T_range = (200.0, 1800.0),
+    A_range = (-25, 25.0),
+    Z_range = (-50.0, 50.0),
+    output_filename_base = "initial_conditions",
+)
+    rng = Xoshiro(seed)
+    df = DataFrame(
+        Run_ID = 1:n_points,
+        # UWAGA: Temperatura jest zapisywana w pliku w jednostkach MeV
+        T_0 = rand(rng, Uniform(T_range...), n_points),
+        A_0 = rand(rng, Uniform(A_range...), n_points),
+        Z_0 = rand(rng, Uniform(Z_range...), n_points),
+    )
+    CSV.write("$(output_filename_base).csv", df)
+    println("Zapisano warunki początkowe do $(output_filename_base).csv")
+    h5open("$(output_filename_base).h5", "w") do file
+        g = create_group(file, "initial_conditions")
+        for col in names(df)
+            g[col] = df[!, col]
+        end
+        attrs(g)["description"] = "Zestaw losowych warunków początkowych (T, A, Z)."
+        attrs(g)["seed"], attrs(g)["n_points"], attrs(g)["timestamp"] =
+            seed, n_points, string(now())
+    end
+    println("Zapisano warunki początkowe do $(output_filename_base).h5")
+    return df
+end
+
+function repl_run_brsss()
+    println("\n--- Uruchamianie symulacji dla BRSSS (warunki losowe) ---")
+    settings = SimSettings(
+        theory = :BRSSS,
+        n_points = 500,
+        tspan = (0.2, 2.5),
+        A_range = (-1.0, 5.0),
+    )
+    result = run_simulation(settings = settings)
+    kadr(result, 1.5)
+    return result
+end
+
+function repl_run_mis()
+    println("\n--- Uruchamianie symulacji dla MIS (warunki losowe) ---")
+    settings =
+        SimSettings(theory = :MIS, n_points = 500, tspan = (0.2, 1), A_range = (-50, 15))
+    result = run_simulation(settings = settings)
+    wykres(result)
+    return result
+end
+
+function repl_run_hjsw()
+    println("\n--- Uruchamianie symulacji dla HJSW (warunki losowe) ---")
+    settings = SimSettings(
+        theory = :HJSW,
+        n_points = 500,
+        tspan = (0.2, 1.5),
+        A_range = (-1.0, 5.0),
+    )
+    result = run_simulation(settings = settings)
+    kadr(result, 1.0)
+    return result
+end
+
+
+function repl_demo_file_io()
+    println("\n--- Demonstracja wczytywania z pliku ---")
+    filename = "demo_ic.csv"
+    generate_and_save_ics(
+        n_points = 100,
+        T_range = (250.0, 450.0),
+        A_range = (0.0, 4.0),
+        output_filename_base = splitext(filename)[1],
+    )
+
+    settings = SimSettings(theory = :BRSSS, tspan = (0.2, 2.5))
+    result = run_simulation(settings = settings, ic_file = filename)
+    kadr(result, 1.5)
+    return result
+end
+
+# POPRAWIONA I UDOSKONALONA FUNKCJA
+function run_all_theories(ic_file::String; tspan = (0.2, 1.2))
+    println("="^60)
+    println(" Uruchamianie porównania teorii na pliku: $ic_file")
+    println("="^60)
+
+    # Odczytaj zakresy z pliku, aby wykresy były dobrze wyskalowane.
+    df = CSV.read(ic_file, DataFrame)
+    # POPRAWKA: Poprawnie konwertuj zakresy temperatury (w MeV) na jednostki wewnętrzne dla ustawień wykresu
+    T_min_max = (minimum(df.T_0) * MeV, maximum(df.T_0) * MeV)
+    A_min_max = (minimum(df.A_0), maximum(df.A_0))
+    Z_min_max = hasproperty(df, :Z_0) ? (minimum(df.Z_0), maximum(df.Z_0)) : (-20.0, 20.0)
+
+    theories = [:MIS, :BRSSS, :HJSW]
+    results = Dict{Symbol,SimResult}() # Ulepszenie: Zwraca wyniki do dalszej analizy
+
+    for theory in theories
+        # Teoria HJSW często wymaga dłuższego czasu na pokazanie swojej dynamiki
+        current_tspan = theory == :HJSW ? (tspan[1], 2.5) : tspan
+
+        settings = SimSettings(
+            theory = theory,
+            tspan = current_tspan,
+            # Te wartości są używane do ustawienia zakresów osi na wykresach
+            n_points = nrow(df),
+            T_range = T_min_max,
+            A_range = A_min_max,
+            Z_range = Z_min_max,
+        )
+
+        result = run_simulation(settings = settings, ic_file = ic_file)
+        results[theory] = result # Zapisz wynik
+
+        println("\n--- Generowanie wykresów dla $theory ---")
+        wykres(result)
+
+        if theory != last(theories)
+            println(
+                "\nWykresy dla $theory wygenerowane. Naciśnij Enter, aby kontynuować...",
+            )
+            readline()
+        end
+    end
+    println("\nCykl porównawczy zakończony.")
+    return results
+end
+
+
+
+
+end
