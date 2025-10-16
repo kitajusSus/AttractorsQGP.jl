@@ -147,7 +147,7 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 Update of [Main library](src/lib.jl)
 how to use
 [DataFrame with inital_conditions_MIS_100](src/inital_conditions_MIS_100.csv)
-![Atau_mis_100](images/evolutionionAtau_mis_100.png)
+![Atau_mis_100](images/evolutionAtau_mis_100.png)
 
 
 ```julia
