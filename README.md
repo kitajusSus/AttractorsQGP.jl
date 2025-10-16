@@ -143,7 +143,74 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
 -![t-sne2](images/sne/sne2.png)
 
 
+# 16.10.2025
+Update of [Main library](src/lib.jl)
+how to use
+[DataFrame with inital_conditions_MIS_100](src/inital_conditions_MIS_100.csv)
+![Atau_mis_100](images/evolutionionAtau_mis_100.png)
 
+
+```julia
+julia> ustawienia = SimSettings(theory= :MIS, n_points=100, tspan=(0.2,1.2), T_range = (250*MeV, 1500*MeV), A_range = (-25,25), Z_range = (-20,20),seed = 5)
+SimSettings(:MIS, BRSSSParams(0.20799208610746486, 0.07957747154594767, 0.0), Main.modHydroSim.ode_brsss!, (0.2, 1.2), 100, (1.2690355329949237, 7.614213197969542), (-25.0, 25.0), (-20.0, 20.0), 5)
+
+julia> generate_and_save_ics(settings = ustawienia, output_filename_base="inital_conditions_MIS_100")
+Zapisano warunki początkowe do inital_conditions_MIS_100.csv
+Zapisano warunki początkowe do inital_conditions_MIS_100.h5
+100×4 DataFrame
+ Row │ Run_ID  T_0      A_0         Z_0
+     │ Int64   Float64  Float64     Float64
+─────┼─────────────────────────────────────────
+   1 │      1  2.56329   -0.714145   14.4498
+   2 │      2  6.92015   11.4684    -14.3117
+   3 │      3  6.78966  -21.2536     -3.59641
+   4 │      4  3.95529  -22.7316    -16.4062
+   5 │      5  4.13734    7.14756     8.27515
+   6 │      6  7.57515  -19.3333     11.7514
+   7 │      7  6.27432   11.4878      4.1076
+   8 │      8  1.44122    4.49841   -16.8651
+   9 │      9  3.34382  -14.9679      1.52378
+  10 │     10  7.48268   18.7165    -14.2166
+  11 │     11  4.26558    1.01318    -7.62315
+  12 │     12  6.15588    4.40737    -6.95393
+  13 │     13  5.8874    -4.81363     0.373034
+  14 │     14  2.27252  -18.4101     -2.6458
+  15 │     15  3.97232   21.8594    -18.0148
+  16 │     16  2.32057   24.2125     13.5681
+  17 │     17  2.76183  -22.1298    -15.7887
+  18 │     18  7.11749   10.1082     13.3952
+  ⋮  │   ⋮        ⋮         ⋮           ⋮
+  84 │     84  5.69588  -23.7282    -14.5631
+  85 │     85  3.80291  -24.5753     -7.9503
+  86 │     86  4.36903    6.2851     -1.47336
+  87 │     87  4.72279  -24.7817     -9.99041
+  88 │     88  5.65362   17.519       1.49891
+  89 │     89  1.29054   12.1246    -15.7277
+  90 │     90  4.13666   -4.60417     5.70431
+  91 │     91  3.50753   23.8279    -13.277
+  92 │     92  3.65191    3.22115     1.12398
+  93 │     93  7.36188    1.6227    -10.4341
+  94 │     94  7.58586    1.09245   -17.03
+  95 │     95  6.33136  -19.9576     -3.65152
+  96 │     96  6.62208   13.7746    -18.1058
+  97 │     97  5.37986  -16.969      17.5317
+  98 │     98  4.3407    22.3485     13.9696
+  99 │     99  2.66204   -9.06576    -3.95447
+ 100 │    100  5.15818   -0.485772    2.62082
+                                65 rows omitted
+
+julia> symulacja = run_simulation(settings=ustawienia, ic_file="inital_conditions_MIS_100.csv")
+Starting simulation for theory: MIS...
+Loading of initial_conditions : inital_conditions_MIS_100.csv
+############## big spam
+
+julia> wykres(symulacja)
+Opening in existing browser session.
+false
+
+
+
+```
 
 # Citation
 ```tex
