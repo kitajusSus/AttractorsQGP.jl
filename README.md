@@ -1,17 +1,13 @@
-# Dzień dobry
+# Thesis
 
 
 ## Hydrodynamic Attractors in Phase Space
-Michał Spaliński, Michał P. Heller, et al...
+Wszystkie Artykuły znajdują się w [HR Articles]
 
->Hydrodynamic attractors have recently gained prominence in the context of early stages of ultrarelativistic heavy-ion collisions at the RHIC and LHC. We critically examine the existing ideas on this subject from a phase space point of view. In this picture the hydrodynamic attractor can be seen as a special case of the more general phenomenon of dynamical dimensionality reduction of phase space regions. We quantify this using principal component analysis.
-[link do pracy ](https://www.researchgate.net/publication/345364690_Hydrodynamic_Attractors_in_Phase_Space)
-
-
-## youtube
+### youtube
 [link do zapytaj fizyka z helerem](https://www.youtube.com/watch?v=6R2ASA7-g-c&t=9s)
 
-## Źródło różnic w rozwiązaniach równania $A(w)$
+### Źródło różnic w rozwiązaniach równania $A(w)$
 [mis_vs_brsss](notes/mis_vs_brsss.md)
 
 
@@ -69,19 +65,14 @@ create_log_ratio_animation(result3, filename="run_sym_dense_hot.gif")
 ### Programy napisane w julia
 Programy napisane w julia znajdują się w katalogu [src](/src/).
 
-- [Generowanie danych](src/data_generation/generowanie_AiT.jl) - program generujący ewolucję $A(\tau)$ i $T(\tau)$ dla  warunków początkowych. do pliku .csv
-- [Generowanie Danych logarytmicznych](src/data_generation/log_gen.jl) - program generujący ewolucję $A(\tau)$ i $T(\tau)$ dla  warunków początkowych. do pliku .csv w skali logarytmicznej.
+- [Generowanie danych](src/generowanie_AiT.jl) - program generujący ewolucję $A(\tau)$ i $T(\tau)$ dla  warunków początkowych. do pliku .csv
 
-- [Analiza wygenerowanych danych](src/trash_can/A_and_T_evolution.jl)
-
-- [Analiza losowo generowanych Danych ewolucji (A,T)](src/trash_can/Evolution2.jl)
-> staram się by nie trzebas było omawiać dodatkowo kodu i wszystko było jasne z komentarzy ale jak coś to zapraszam do kontaktu.
 `
 ## Wygenerowane wykresy
 Wszystkie rysunki i wykresy wygenerowane przez kod bede starał się umieszczać w katalogu [images](/images/). Jeśli nie będzie tak żadnego wykresu to zalecam sprawdzenie katalogu [src](/src/) gdzie powinny być wygenerowane wykresy których jeszcze nie przeniosłem.
 
-## Raport
-### 19.07.2025
+# Raport
+## 19.07.2025
 - [Evolution of A and T](src/trash_can/Evolution2.jl) - program do generowania ewolucji $A(\tau)$ i $T(\tau)$ dla losowych warunków początkowych.
 - ![gif](images/A_T/19.07.2025.gif)
 
@@ -93,7 +84,7 @@ Wszystkie rysunki i wykresy wygenerowane przez kod bede starał się umieszczać
 </details>
 
 
-### 24.07.2025
+## 24.07.2025
 ```julia
 julia> include("modHydroSim.jl")
 Main.modHydroSim
@@ -129,7 +120,7 @@ Już po nauczeniu się obsługi REPL. [program modHydroSim.jl](/src/modHydroSim.
 
 - ![zdjecie_2](images/A_T/27.07.2025.gif)
 
-## **[HINTON_SNE](neural_networks/sne.pdf)** Implementacja Algorytmu SNE do badania dynamiki regukcji wymiarowości
+# **[HINTON_SNE](neural_networks/sne.pdf)** Implementacja Algorytmu SNE do badania dynamiki regukcji wymiarowości
 Algorytm SNE (Stochastic Neighbor Embedding) jest używany do redukcji wymiarowości danych. W kontekście badania dynamiki redukcji wymiarowości, implementacja tego algorytmu może być przydatna do analizy danych z symulacji hydrodynamicznych m.in
 takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.07.2025.gif) Gdzie dokładnie wydać jak zmienia się dynamika (tempo redukcji wymiarowości do z 2d do 1d)  w czasie.
 
@@ -176,9 +167,4 @@ takich których wyniki widoczne są w [Symulacja Ewolucji A i T](images/A_T/27.0
   note         = {If you use this work, please cite it using this entry.}
 }
 ```
-
-
-
-
-
 # Reference
