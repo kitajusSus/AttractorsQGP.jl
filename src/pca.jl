@@ -301,7 +301,6 @@ function p_explained_variance(pca_results::Vector{PCAResultAtTime}; prefix=" ")
 
     end
 
-    # Rysuj skumulowaną wariancję
     if n_components > 1
         cumulative_variance = [sum(res.explained_variance) for res in pca_results]
         plot!(p, times, cumulative_variance, label="Suma", linestyle=:dash, color=:black, linewidth=2.5)
@@ -350,7 +349,6 @@ function run_pca_workflow(
     println(" Teoria: $theory")
     println("="^60)
 
-    # --- Krok 1: Uruchomienie symulacji na podstawie pliku z warunkami początkowymi ---
     println("\n--- Krok 1: Uruchamianie symulacji hydro... ---")
     settings = modHydroSim.SimSettings(theory=theory, tspan=tspan)
     sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
@@ -359,10 +357,8 @@ function run_pca_workflow(
         return
     end
 
-    # --- Krok 2: Interaktywny wybór cech do analizy ---
     feature_indices, selected_feature_names = prompt_for_features(sim_result)
 
-    # --- Krok 3: Przeprowadzenie analizy PCA ---
     pca_results = calc_pca(sim_result, feature_indices=feature_indices, n_pca_steps=n_pca_steps, n_components=n_components)
     if isempty(pca_results)
         println("Błąd krytyczny: Analiza PCA nie zwróciła żadnych wyników. Przerwanie analizy.")

@@ -139,17 +139,12 @@ end
 # https://arxiv.org/pdf/1503.07514 for mis theory λ_1  = 0
 # for brsss theory λ = 1 / 2* π
 function ode_brsss!(du, u, p::BRSSSParams, τ)
-    T, A = u[1], u[2]
+    T, A = u
     C_τπ, C_η, C_λ1 = p.C_τπ, p.C_η, p.C_λ1
-    w = τ * T
-    (T <= 1e-9 || w <= 1e-9 || !isfinite(T) || !isfinite(A)) && (du .= 0.0; return)
     du[1] = (T / τ) * (-1 / 3 + A / 18)
-    dw_dτ = T + τ * du[1]
-    A_prime_numerator =
-        12 * C_η - (3 / 2) * w * A - ((1 / 3) * C_τπ + (C_λ1 / (8 * C_η)) * w) * A^2
-    A_prime_denominator = C_τπ * w * (1 + A / 12)
-    A_prime = A_prime_denominator ≈ 0 ? 0.0 : A_prime_numerator / A_prime_denominator
-    du[2] = dw_dτ * A_prime
+    term_T = τ * T * (A + (C_λ1 / (12 * C_η)) * A^2)
+    term_A2 = (2 / 9) * C_τπ * A^2
+    du[2] = (1 / (C_τπ * τ)) * (8 * C_η - term_T - term_A2)
 end
 
 
@@ -218,6 +213,21 @@ function generate_random_ics(settings::SimSettings)
     end
 end
 
+"generuje listę warunków początkowych"
+function initial_conditions(settings, seed=5)
+    rng = Xoshiro(seed)
+    Tmin, Tmax = settings.T_range
+    Amin, Amax = settings.A_range
+    Ts = rand(rng, Uniform(Tmin, Tmax), settings.n_points)
+    As = rand(rng, Uniform(Amin, Amax), settings.n_points)
+    return [[Ts[j], As[j]] for j = 1:settings.n_points]
+end
+
+function evol(u0, p)
+    prob = ODEProblem(p.ode, u0, p.tspan, p.params)
+    return solve(prob, Tsit5())
+end
+
 function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=nothing)
     println("Starting simulation for theory: $(settings.theory)...")
 
@@ -232,8 +242,7 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=
 
     solutions = ODESolution[]
     for u0 in initial_states
-        prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
-        sol = solve(prob, Tsit5(), saveat=0.01, reltol=1e-6, abstol=1e-8)
+        sol = evol(u0, settings)
         push!(solutions, sol)
     end
 
