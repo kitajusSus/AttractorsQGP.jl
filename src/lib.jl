@@ -26,6 +26,7 @@ using HDF5
 using Dates
 # --- Początek modułu ---
 module modHydroSim
+using Base: annotate!
 using DifferentialEquations
 using Random
 using Distributions
@@ -135,7 +136,8 @@ struct SimResult
 end
 
 # --- Section 2: DifferentialEquations of the theories ---
-
+# https://arxiv.org/pdf/1503.07514 for mis theory λ_1  = 0
+# for brsss theory λ = 1 / 2* π
 function ode_brsss!(du, u, p::BRSSSParams, τ)
     T, A = u[1], u[2]
     C_τπ, C_η, C_λ1 = p.C_τπ, p.C_η, p.C_λ1
@@ -295,7 +297,7 @@ function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
     color_max = settings.A_range[2] # Użyj górnego limitu z ustawień symulacji
 
     p = plot(
-        title="Ewolution A(τ) for Theory  $(settings.theory)",
+        title="Ewolution A(τ) for Theory  $(settings.theory).  Settings: A range = $(settings.A_range),T range = $(settings.T_range), n points= $(settings.n_points)",
         xlabel="Czas własny τ [fm/c]",
         ylabel="Anizotropia A",
         size=size,
@@ -316,12 +318,14 @@ function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
         else
             line_color = :red
         end
-
         A_values = getindex.(sol.u, 2)
         plot!(p, sol.t, A_values, lw=lw, alpha=0.4, color=line_color)
+
     end
 
-    display(p)
+
+    #    display(p)
+    gui()
 end
 
 
