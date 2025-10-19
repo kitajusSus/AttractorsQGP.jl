@@ -387,7 +387,7 @@ function wykres_Aw(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
 end
 # ---Section 5 - Generating data ---
 
-function generate_and_save_ics(; settings::SimSettings, output_filename_base="initial_conditions",
+function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC_",
 )
     rng = Xoshiro(settings.seed)
     df = DataFrame(
@@ -397,8 +397,8 @@ function generate_and_save_ics(; settings::SimSettings, output_filename_base="in
         A_0=rand(rng, Uniform(settings.A_range...), settings.n_points),
         Z_0=rand(rng, Uniform(settings.Z_range...), settings.n_points),
     )
-    CSV.write("$(output_filename_base).csv", df)
-    println("Zapisano warunki początkowe do $(output_filename_base).csv")
+    nazwa = CSV.write("$(output_filename_base)_$(settings.T_range)_$(settings.A_range)_$(settings.n_points)_t_$(settings.tspan).csv", df)
+    println("Zapisano warunki początkowe do $(nazwa)")
     h5open("$(output_filename_base).h5", "w") do file
         g = create_group(file, "initial_conditions")
         for col in names(df)
