@@ -1,10 +1,7 @@
-# Dołączenie modułu symulacji jest niezbędne
 include("lib.jl")
-
-# --- Początek modułu PCAWorkflow ---
+using .modHydroSim
 module PCAWorkflow
 
-# --- SEKCJA 1: Importowanie zależności ---
 using ..modHydroSim
 using Plots
 using Statistics
@@ -13,9 +10,13 @@ using DataFrames
 using CSV
 using HDF5
 using Dates
+using Interact
+using Blink
 
-export run_pca_workflow, calc_pca, pca_snapshot_plot, visualize_pca_from_file
 
+export run_full_pca_analysis, visualize_pca_from_file
+
+# --- SEKCJA 1: Struktury Danych ---
 
 """
     PCAResultAtTime
@@ -24,134 +25,180 @@ Przechowuje wyniki analizy PCA dla pojedynczego kroku czasowego `tau`.
 struct PCAResultAtTime
   tau::Float64
   transformed_data::Matrix{Float64}
-  explained_variance::Vector{Float64}
+  explained_variance_ratio::Vector{Float64}
+  # Dla Liniowego PCA, to są wektory własne.
+  # Dla Kernel PCA, to są wektory 'alpha' z dekompozycji jądra.
   principal_components::Matrix{Float64}
 end
 
 
-function pca_math(X::Matrix{Float64}, n_components::Int)
+
+"""
+    linear_pca(X, n_components; mode)
+Wykonuje LINIOWĄ analizę PCA, używając klasycznej metody opartej
+na dekompozycji własnej macierzy kowariancji.
+"""
+function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
   n_samples, n_features = size(X)
   if n_components > n_features
-    error("Liczba komponentów (k) nie może być większa niż liczba cech (p).")
+    error("Liczba komponentów ($n_components) nie może być większa niż liczba cech ($n_features).")
   end
 
-  # --------------------------------------------------------------------------
-  # Krok 1: Centrowanie i Skalowanie Danych (Standaryzacja)
-  #
-  # Cel: Przesunięcie danych tak, aby każda cecha miała średnią równą 0
-  #      i odchylenie standardowe równe 1.
-  # Wzór: x'_ij = (x_ij - miu_j) / sigma_j
-  #       gdzie miu_j to średnia, a sigma_j to odchylenie standardowe cechy j.
+  # Ten krok pozostaje bez zmian, ponieważ jest niezbędny przed obliczeniem kowariancji.
+  X_transformed = copy(X)
+  local X_scaled
+  if mode == :standardize
+    mean_vector = mean(X_transformed, dims=1)
+    std_vector = std(X_transformed, dims=1)
+    std_vector[std_vector.==0.0] .= 1.0
+    X_scaled = (X_transformed .- mean_vector) ./ std_vector
+  elseif mode == :center
+    mean_vector = mean(X_transformed, dims=1)
+    X_scaled = X_transformed .- mean_vector
+  elseif mode == :minmax
+    min_vals = minimum(X_transformed, dims=1)
+    max_vals = maximum(X_transformed, dims=1)
+    range_vals = max_vals .- min_vals
+    range_vals[range_vals.==0.0] .= 1.0
+    X_scaled = (X_transformed .- min_vals) ./ range_vals
+  elseif mode == :none
+    X_scaled = X_transformed
+  else
+    error("Nieznany tryb skalowania liniowego: $mode")
+  end
 
-  mean_vector = mean(X, dims=1)
-  X_centered = X .- mean_vector
+  # Wzór: C = (1 / (n - 1)) * X_scaled^T * X_scaled
+  # Gdzie n to liczba próbek (n_samples).
+  cov_matrix = (1 / (n_samples - 1)) * (X_scaled' * X_scaled)
 
-  # --- NOWY KROK: Skalowanie przez odchylenie standardowe ---
-  std_vector = std(X_centered, dims=1)
-  # Zabezpieczenie przed dzieleniem przez zero, jeśli jakaś cecha ma zerową wariancję
-  std_vector[std_vector.==0] .= 1.0
-  X_standardized = X_centered ./ std_vector
-  # -----------------------------------------------------------
-
-  # --------------------------------------------------------------------------
-  # Krok 2: Obliczenie macierzy kowariancji (teraz jest to macierz korelacji)
-  #
-  # Cel: Stworzenie macierzy, która opisuje współzmienność cech.
-  #      Dla danych wystandaryzowanych, macierz kowariancji jest tożsama
-  #      z macierzą korelacji oryginalnych danych.
-  # Wzór: C = (1 / (n-1)) * X_std' * X_std
-  # --------------------------------------------------------------------------
-  cov_matrix = cov(X_standardized) # Rozmiar (p x p)
-
-  # --------------------------------------------------------------------------
-  # Krok 3: Obliczenie wartości własnych i wektorów własnych
-  # --------------------------------------------------------------------------
+  # Rozwiązuje problem własny dla macierzy kowariancji.
+  # Wzór: C * v_i = λ_i * v_i
+  # Gdzie λ_i to wartości własne, a v_i to wektory własne.
   eigen_result = eigen(cov_matrix)
-  eigenvalues = eigen_result.values
-  eigenvectors = eigen_result.vectors
+  eigenvalues = eigen_result.values   # Wartości własne (λ)
+  eigenvectors = eigen_result.vectors # Wektory własne (v)
 
-  # --------------------------------------------------------------------------
-  # Krok 4: Sortowanie wektorów własnych i wybór głównych składowych
-  # --------------------------------------------------------------------------
+  # Sortuje wektory własne w kolejności malejącej, zgodnie z
+  # odpowiadającymi im wartościami własnymi.
   sorted_indices = sortperm(eigenvalues, rev=true)
   sorted_eigenvalues = eigenvalues[sorted_indices]
   sorted_eigenvectors = eigenvectors[:, sorted_indices]
+
+  # Tworzy macierz projekcji V, wybierając k pierwszych
+  # (najważniejszych) posortowanych wektorów własnych.
   projection_matrix = sorted_eigenvectors[:, 1:n_components]
 
-  # --------------------------------------------------------------------------
-  # Krok 5: Transformacja danych do nowej przestrzeni
-  #
-  # Cel: Rzutowanie oryginalnych, wystandaryzowanych danych na nową podprzestrzeń.
-  # Wzór: Y = X_std * W
-  # --------------------------------------------------------------------------
-  # Rzutujemy dane wystandaryzowane, a nie tylko scentrowane
-  transformed_X = X_standardized * projection_matrix # Rozmiar (n x k)
+  # Transformuje oryginalne, przeskalowane dane na nową podprzestrzeń.
+  # Wzór: Y = X_scaled * V
+  transformed_data = X_scaled * projection_matrix
 
-  # --------------------------------------------------------------------------
-  # Obliczenie wyjaśnionej wariancji -  teraz operuje na wartościach własnych macierzy korelacji.
-  # --------------------------------------------------------------------------
-  total_variance = sum(eigenvalues) # Suma wartości własnych macierzy korelacji jest równa liczbie cech (p)
+  # Wariancja wyjaśniona przez i-ty komponent to λ_i / sum(wszystkich λ).
+  total_variance = sum(eigenvalues)
   explained_variance_ratio = sorted_eigenvalues[1:n_components] ./ total_variance
 
-  return transformed_X, explained_variance_ratio, projection_matrix
+  return transformed_data, explained_variance_ratio, projection_matrix
 end
 """
-    calc_pca(sim_result::modHydroSim.SimResult; ...)
-Orkiestruje procesem analizy PCA dla całego zestawu symulacji w wielu krokach czasowych.
+    kernel_pca(X, n_components; gamma)
+Wykonuje JĄDROWĄ analizę PCA (Kernel PCA) od podstaw.
+"""
+function kernel_pca(X::Matrix{Float64}, n_components::Int; gamma::Float64)
+  n_samples, n_features = size(X)
+
+  # Karnel Gaussowski (Radial Basis Function, RBF):
+  # k(xi, xj) = exp(-gamma * ||xi - xj||^2)
+  # Macierz K ma wymiary (n_samples x n_samples). K_ij = k(x_i, x_j)
+  K = zeros(n_samples, n_samples)
+  for i in 1:n_samples
+    for j in i:n_samples
+      distance_sq = sum((X[i, :] .- X[j, :]) .^ 2)
+      K[i, j] = exp(-gamma * distance_sq)
+    end
+  end
+  K = Symmetric(K, :U)
+
+  # Wzór: K_c = K - 1n*K - K*1n + 1n*K*1n
+  # gdzie 1n to macierz (n x n) o wszystkich elementach równych 1/n.
+  ones_n = ones(n_samples, n_samples) ./ n_samples
+  K_centered = K - ones_n * K - K * ones_n + ones_n * K * ones_n
+
+  # Wzór: K_c * alpha_i = lambda_i * alpha_i
+  eigen_result = eigen(K_centered)
+  eigenvalues = real(eigen_result.values)
+  eigenvectors = real(eigen_result.vectors) # Wektory alpha
+
+  sorted_indices = sortperm(eigenvalues, rev=true)
+  sorted_lambdas = eigenvalues[sorted_indices]
+  sorted_alphas = eigenvectors[:, sorted_indices]
+
+  # Współrzędne oryginalnych danych w nowej przestrzeni są dane przez
+  # wektory własne pomnożone przez pierwiastek z wartości własnych.
+  selected_lambdas = sorted_lambdas[1:n_components]
+  selected_alphas = sorted_alphas[:, 1:n_components]
+  transformed_data = selected_alphas * diagm(sqrt.(max.(selected_lambdas, 0)))
+
+  # Proporcja wariancji: lambda_i / sum(all_lambdas).
+  total_variance = sum(max.(eigenvalues, 0))
+  explained_variance_ratio = max.(selected_lambdas, 0) ./ total_variance
+
+  return transformed_data, explained_variance_ratio, selected_alphas
+end
+
+
+
+"""
+    calc_pca(...)
+Orkiestruje procesem analizy PCA, wywołując odpowiednią funkcję (liniową lub jądrową).
 """
 function calc_pca(
   sim_result::modHydroSim.SimResult;
   feature_indices::Vector{Int},
   n_pca_steps::Int,
-  n_components::Int
+  n_components::Int,
+  pca_method_params::Dict
 )
+  method = pca_method_params[:method]
   println("\n--- Krok 3: Uruchamianie analizy PCA... ---")
-  println("Liczba kroków czasowych PCA: $n_pca_steps")
-  println("Liczba głównych komponentów: $n_components")
+  println("Wybrana metoda: $method")
 
   t_start, t_end = sim_result.settings.tspan
   sample_times = range(t_start, stop=t_end, length=n_pca_steps)
   pca_results_vector = PCAResultAtTime[]
 
-  # Pętla po każdym wybranym kroku czasowym
   for (i, tau) in enumerate(sample_times)
     print("\rPrzetwarzanie kroku czasowego: $i/$n_pca_steps (τ = $(round(tau, digits=2)) fm/c)")
 
-    # Pobranie "migawki" stanu systemu dla wszystkich symulacji w czasie tau
     all_data_vectors = modHydroSim.TA(sim_result, tau)
+    data_matrix = hcat([all_data_vectors[i] for i in feature_indices]...)
 
-    selected_vectors = [all_data_vectors[i] for i in feature_indices]
-    data_matrix = hcat(selected_vectors...) # Stworzenie macierzy (n_symulacji x p_cech)
-
-    # Usunięcie wierszy z wartościami NaN lub Inf, które mogły powstać w symulacji
-    valid_rows = all(isfinite, data_matrix, dims=2)
-    if count(valid_rows) < 2
+    valid_mask = vec(all(isfinite, data_matrix, dims=2))
+    if sum(valid_mask) < n_components
       println("\nOstrzeżenie: Zbyt mało prawidłowych danych w czasie τ=$tau. Pomijanie kroku.")
       continue
     end
 
-    # Wykonanie obliczeń PCA
-    transformed_data, explained_variance, principal_components = pca_math(data_matrix[vec(valid_rows), :], n_components)
+    filtered_matrix = data_matrix[valid_mask, :]
 
-    # Zapisanie wyników
-    push!(pca_results_vector, PCAResultAtTime(tau, transformed_data, explained_variance, principal_components))
+    local transformed_data, explained_ratio, components
+    if method == :kernel
+      gamma = pca_method_params[:gamma]
+      transformed_data, explained_ratio, components = kernel_pca(filtered_matrix, n_components, gamma=gamma)
+    else
+      transformed_data, explained_ratio, components = linear_pca(filtered_matrix, n_components, mode=method)
+    end
+
+    push!(pca_results_vector, PCAResultAtTime(tau, transformed_data, explained_ratio, components))
   end
   println("\nAnaliza PCA zakończona. Przetworzono $(length(pca_results_vector)) kroków czasowych.")
   return pca_results_vector
 end
 
 
-# --- SEKCJA 4: Interakcja z użytkownikiem ---
 
-"""
-    prompt_for_features(sim_result::modHydroSim.SimResult)
-Wyświetla dostępne cechy i prosi użytkownika o wybór tych do analizy.
-"""
 function prompt_for_features(sim_result::modHydroSim.SimResult)
-  # Definicja dostępnych cech na podstawie teorii
   if sim_result.settings.theory == :HJSW
     all_feature_names = ["T", "A", "Z", "dT/dτ", "dA/dτ", "dZ/dτ"]
-  else # BRSSS lub MIS
+  else
     all_feature_names = ["T", "A", "dT/dτ", "dA/dτ"]
   end
 
@@ -179,17 +226,72 @@ function prompt_for_features(sim_result::modHydroSim.SimResult)
 end
 
 
-# --- SEKCJA 5: Zapisywanie wyników ---
+function prompt_for_pca_settings()
+  println("\n--- Krok 2: Wybór metody PCA ---")
+  methods = [:standardize, :center, :minmax, :none, :kernel]
+  descriptions = [
+    "Liniowa PCA ze standaryzacją (średnia=0, odch. std.=1) - ZALECANE",
+    "Liniowa PCA z centrowaniem (odjęcie średniej)",
+    "Liniowa PCA z normalizacją Min-Max [0, 1]",
+    "Liniowa PCA bez skalowania (surowe dane)",
+    "Kernel PCA (Kernel PCA) z RBF (do nieliniowych zależności)"
+  ]
 
-"""
-    generate_output_filename_base(...)
-Tworzy opisową, unikalną nazwę bazową dla plików wyjściowych.
-"""
+  for (i, desc) in enumerate(descriptions)
+    println("  [$i] $(methods[i]) - $desc")
+  end
+
+  while true
+    print("Wybierz indeks metody (np. 1): ")
+    input = readline()
+    try
+      idx = parse(Int, input)
+      if 1 <= idx <= length(methods)
+        selected_mode = methods[idx]
+        println("Wybrano metodę: $selected_mode")
+        return selected_mode
+      else
+        println("Błąd: Podaj indeks z zakresu 1-$(length(methods)).")
+      end
+    catch e
+      println("Błąd: Nieprawidłowy format. Wprowadź jedną liczbę.")
+    end
+  end
+end
+
+function prompt_for_kernel_parameters(data_matrix::Matrix{Float64})
+  n_features = size(data_matrix, 2)
+  gamma_default = 1.0 / n_features
+  println("\n--- Konfiguracja Kernel PCA (Kernel PCA) ---")
+  println("KERNEL PCA używa kernel RBF: k(x,y) = exp(-gamma * ||x-y||^2)")
+
+  while true
+    print("Podaj wartość parametru gamma [domyślnie: $(round(gamma_default, digits=4))]: ")
+    input = readline()
+    if isempty(input)
+      println("Użyto domyślnej wartości gamma = $gamma_default")
+      return Dict(:gamma => gamma_default)
+    end
+    try
+      gamma = parse(Float64, input)
+      if gamma > 0
+        println("Ustawiono gamma = $gamma")
+        return Dict(:gamma => gamma)
+      else
+        println("Błąd: gamma musi być wartością dodatnią.")
+      end
+    catch e
+      println("Błąd: Nieprawidłowy format. Wprowadź liczbę.")
+    end
+  end
+end
+
+
+
 function generate_output_filename_base(ic_filepath::String, theory::Symbol, selected_features::Vector{String})
   ic_name = splitext(basename(ic_filepath))[1]
   features_str = join(selected_features, "-")
   timestamp = Dates.format(now(), "YYYYmmdd_HHMMSS")
-
   return "pca_results_$(ic_name)_theory_$(theory)_features_$(features_str)_t_$(timestamp)"
 end
 
@@ -198,17 +300,24 @@ function save_pca_results(
   pca_results::Vector{PCAResultAtTime},
   sim_result::modHydroSim.SimResult,
   selected_feature_names::Vector{String},
-  ic_filepath::String  # <--- DODANY ARGUMENT
+  ic_filepath::String,
+  pca_method_params::Dict
 )
-  println("\n--- Krok 5: Zapisywanie wyników... ---")
+  println("\n--- Krok 4: Zapisywanie wyników... ---")
 
-  # --- Zapis do pliku CSV ---
   csv_path = filename_base * ".csv"
-  df_rows = []
-  initial_states = collect(hcat([sol.u[1] for sol in sim_result.solutions]...)')
+  println("Trwa przygotowywanie danych do zapisu w formacie CSV...")
 
+  df_rows = []
+
+  initial_states = collect(hcat([sol.u[1] for sol in sim_result.solutions]...)')
   for result in pca_results
     tau = result.tau
+    if size(result.transformed_data, 1) != size(initial_states, 1)
+      @warn "Niezgodność liczby symulacji dla tau = $tau. Pomijanie zapisu do CSV dla tego kroku."
+      continue
+    end
+
     for i in 1:size(result.transformed_data, 1)
       row = (
         tau=tau,
@@ -216,15 +325,19 @@ function save_pca_results(
         T_0=initial_states[i, 1],
         A_0=initial_states[i, 2],
       )
+
       if size(initial_states, 2) > 2
         row = merge(row, (Z_0=initial_states[i, 3],))
       end
+
       for j in 1:size(result.transformed_data, 2)
         row = merge(row, (Symbol("PC$j") => result.transformed_data[i, j],))
       end
-      for j in 1:length(result.explained_variance)
-        row = merge(row, (Symbol("ExplainedVariance_$j") => result.explained_variance[j],))
+
+      for j in 1:length(result.explained_variance_ratio)
+        row = merge(row, (Symbol("ExplainedVariance_$j") => result.explained_variance_ratio[j],))
       end
+
       push!(df_rows, row)
     end
   end
@@ -233,240 +346,282 @@ function save_pca_results(
   CSV.write(csv_path, df)
   println("📁 Zapisano wyniki w formacie CSV do: $csv_path")
 
-  # --- Zapis do pliku HDF5 ---
   h5_path = filename_base * ".h5"
   h5open(h5_path, "w") do file
-    # Metadane
     attrs(file)["description"] = "Wyniki analizy PCA dla symulacji hydrodynamicznej."
-    # POPRAWKA: Używamy przekazanej nazwy pliku, a nie pola .seed
     attrs(file)["source_ic_file"] = basename(ic_filepath)
     attrs(file)["theory"] = string(sim_result.settings.theory)
     attrs(file)["selected_features"] = join(selected_feature_names, ", ")
+    attrs(file)["pca_method"] = string(pca_method_params[:method])
+    if pca_method_params[:method] == :kernel
+      attrs(file)["kernel_gamma"] = pca_method_params[:gamma]
+    end
     attrs(file)["timestamp"] = string(now())
 
-    # Dane
-    g = create_group(file, "pca_results")
+    g = create_group(file, "data")
     g["tau"] = [res.tau for res in pca_results]
-    transformed_data_3d = permutedims(cat([res.transformed_data for res in pca_results]..., dims=3), (3, 1, 2))
+    transformed_data_3d = cat([res.transformed_data for res in pca_results]...; dims=3)
     g["transformed_data"] = transformed_data_3d
-
-    explained_variance_matrix = collect(hcat([res.explained_variance for res in pca_results]...)')
+    explained_variance_matrix = collect(hcat([res.explained_variance_ratio for res in pca_results]...)')
     g["explained_variance"] = explained_variance_matrix
 
-    principal_components_3d = permutedims(cat([res.principal_components for res in pca_results]..., dims=3), (3, 1, 2))
     g_pc = create_group(g, "principal_components")
-    g_pc["axes"] = principal_components_3d
-    attrs(g_pc)["description"] = "Osie głównych komponentów (wektory własne) dla każdego kroku czasowego. Wymiary: (czas, cechy, komponenty)."
+    principal_components_3d = cat([res.principal_components for res in pca_results]...; dims=3)
+    g_pc["values"] = principal_components_3d
   end
   println("🗄️ Zapisano wyniki w formacie HDF5 do: $h5_path")
 end
 
-"""
-    p_explained_variance(pca_results, prefix)
-Tworzy wykres wariancji wyjaśnionej przez komponenty w funkcji czasu.
-"""
-function p_explained_variance(pca_results::Vector{PCAResultAtTime}; prefix=" ")
-  times = [res.tau for res in pca_results]
-  n_components = length(pca_results[1].explained_variance)
+function prompt_for_plot_count()
+  println("\n--- Krok 5: Konfiguracja wizualizacji ---")
+  while true
+    print("Ile statycznych wykresów PCA chcesz wygenerować? (np. 6): ")
+    input = readline()
+    try
+      count = parse(Int, input)
+      if count > 0
+        println("Zostanie wygenerowanych $count wykresów w równych odstępach czasu.")
+        return count
+      else
+        println("Błąd: Liczba wykresów musi być dodatnia.")
+      end
+    catch e
+      println("Błąd: Nieprawidłowy format. Wprowadź liczbę całkowitą.")
+    end
+  end
+end
 
-  p = plot(title="Wariancja wyjaśniona przez komponenty PCA\n[Cechy: $(prefix)]",
-    xlabel="Czas τ [fm/c]", ylabel="Proporcja wyjaśnionej wariancji",
-    legend=:best)
+function plot_explained_variance_evolution(
+  pca_results::Vector{PCAResultAtTime};
+  source_file::String,
+  feature_names::Vector{String},
+  pca_method_params::Dict
+)
+  println("\n--- Generowanie wykresu ewolucji wariancji wyjaśnionej... ---")
 
-  # Rysuj wariancję dla każdego komponentu
+  if isempty(pca_results)
+    println("Brak wyników do narysowania wykresu wariancji.")
+    return
+  end
+
+  taus = [res.tau for res in pca_results]
+  n_components = length(pca_results[1].explained_variance_ratio)
+
+  method_info = "Metoda: $(pca_method_params[:method])"
+  if pca_method_params[:method] == :kernel
+    method_info *= " (gamma=$(round(pca_method_params[:gamma], digits=4)))"
+  end
+  settings_info = "Plik: $(basename(source_file)) | $method_info | Cechy: $(join(feature_names, ", "))"
+
+  # Inicjalizacja wykresu
+  p = plot(
+    title="Ewolucja wariancji wyjaśnionej przez komponenty PCA",
+    plot_title=settings_info,
+    xlabel="Czas τ [fm/c]",
+    ylabel="Proporcja wyjaśnionej wariancji",
+    legend=:best,
+    ylim=(0, 1.1)
+  )
+
   for i in 1:n_components
-    variance_data = [res.explained_variance[i] for res in pca_results]
-    plot!(p, times, variance_data, label="Komponent $i", linewidth=2)
-
+    variance_data = [res.explained_variance_ratio[i] for res in pca_results]
+    plot!(p, taus, variance_data, label="PC $i", linewidth=2)
   end
 
   if n_components > 1
-    cumulative_variance = [sum(res.explained_variance) for res in pca_results]
-    plot!(p, times, cumulative_variance, label="Suma", linestyle=:dash, color=:black, linewidth=2.5)
+    cumulative_variance = [sum(res.explained_variance_ratio) for res in pca_results]
+    plot!(p, taus, cumulative_variance, label="Suma", linestyle=:dash, color=:black)
   end
 
   hline!(p, [1.0], linestyle=:dot, color=:grey, label="", alpha=0.7)
+
+  display(p)
+  println("✅ Wykres wariancji gotowy.")
   return p
 end
 
-"""
-    p_pca_snapshot(pca_results, sim_result, target_tau)
-Tworzy wykres rozrzutu danych po transformacji PCA dla jednego punktu w czasie.
-"""
-function p_pca_snapshot(pca_results::Vector{PCAResultAtTime}, sim_result::modHydroSim.SimResult, target_tau::Float64)
-  _, idx = findmin(res -> abs(res.tau - target_tau), pca_results)
-  result = pca_results[idx]
+function visualize_pca_static_grid(
+  pca_results::Vector{PCAResultAtTime},
+  sim_result::modHydroSim.SimResult,
+  num_plots::Int;
+  source_file::String,
+  feature_names::Vector{String},
+  pca_method_params::Dict
+)
+  println("\n--- Generowanie siatki wykresów PCA ---")
 
   initial_temps = [sol.u[1][1] for sol in sim_result.solutions]
-  total_explained_var = sum(result.explained_variance) * 100
 
-  p = scatter(
-    result.transformed_data[:, 1],
-    result.transformed_data[:, 2],
-    marker_z=initial_temps,
-    title="PCA dla τ = $(round(result.tau, digits=2)) (Wariancja: $(round(total_explained_var, digits=2))%)",
-    xlabel="Komponent PCA 1", ylabel="Komponent PCA 2",
-    label="", markersize=5, alpha=0.8,
-    color=:plasma, colorbar_title="  Temp. początkowa [MeV]",
-    xlims=(minimum(result.transformed_data[:, 1]) - 0.1, maximum(result.transformed_data[:, 1]) + 0.1),
-    ylims=(minimum(result.transformed_data[:, 2]) - 0.1, maximum(result.transformed_data[:, 2]))
+  method_info = "Metoda: $(pca_method_params[:method])"
+  if pca_method_params[:method] == :kernel
+    method_info *= " (gamma=$(round(pca_method_params[:gamma], digits=4)))"
+  end
+  settings_info = "Plik: $(basename(source_file)) | $method_info | Cechy: $(join(feature_names, ", "))"
+
+  total_steps = length(pca_results)
+  indices_to_plot = unique(round.(Int, range(1, stop=total_steps, length=num_plots)))
+
+  plots_array = [] # Tablica do przechowywania pojedynczych wykresów
+  # wyliczanie stałych osi
+  all_pc1 = vcat([res.transformed_data[:, 1] for res in pca_results]...)
+  all_pc2 = vcat([res.transformed_data[:, 2] for res in pca_results]...)
+
+  min_pc1, max_pc1 = minimum(all_pc1), maximum(all_pc1)
+  min_pc2, max_pc2 = minimum(all_pc2), maximum(all_pc2)
+
+  x_margin = (max_pc1 - min_pc1) * 0.05
+  y_margin = (max_pc2 - min_pc2) * 0.05
+
+  x_margin = x_margin > 0 ? x_margin : 1.0
+  y_margin = y_margin > 0 ? y_margin : 1.0
+
+  global_xlims = (min_pc1 - x_margin, max_pc1 + x_margin)
+  global_ylims = (min_pc2 - y_margin, max_pc2 + y_margin)
+
+  for idx in indices_to_plot
+    result = pca_results[idx]
+    current_tau = result.tau
+    total_explained_var = sum(result.explained_variance_ratio) * 100
+
+    p = scatter(
+      result.transformed_data[:, 1],
+      result.transformed_data[:, 2],
+      marker_z=initial_temps,
+      title="τ = $(round(current_tau, digits=2)) fm/c (Var: $(round(total_explained_var, digits=1))%)",
+      xlabel="PC 1",
+      ylabel="PC 2",
+      label="",
+      ## mozna wyłączyć
+      xlims=global_xlims,
+      ylim=global_ylims,
+      ## stałe osie
+      markersize=4,
+      alpha=0.8,
+      color=:plasma,
+      colorbar=false,
+      legend=false
+    )
+    push!(plots_array, p)
+  end
+
+  layout_cols = ceil(Int, sqrt(length(plots_array)))
+  layout_rows = ceil(Int, length(plots_array) / layout_cols)
+
+  println("✅ Tworzenie siatki $(layout_rows)x$(layout_cols) wykresów...")
+
+  final_grid = plot(plots_array...,
+    layout=(layout_rows, layout_cols),
+    plot_title=settings_info,
+    size=(350 * layout_cols, 300 * layout_rows)
   )
-  return p
+
+  display(final_grid)
+  println("Gotowe. Wykres jest juz chyba w przeglądarce")
+
+  return final_grid
 end
 
 
-function run_pca_workflow(
-  ic_filepath::String;
-  theory::Symbol,
-  tspan::Tuple{Float64,Float64}=(0.22, 2.0),
-  n_pca_steps::Int=50,
-  n_components::Int=2
+function plot_loadings_evolution(
+  pca_results::Vector{PCAResultAtTime},
+  selected_feature_names::Vector{String};
+  source_file::String,
+  pca_method_params::Dict
 )
-  println("="^60)
-  println(" Rozpoczynanie przepływu pracy analizy PCA")
-  println(" Plik z warunkami początkowymi: $ic_filepath")
-  println(" Teoria: $theory")
-  println("="^60)
 
-  println("\n--- Krok 1: Uruchamianie symulacji hydro... ---")
-  settings = modHydroSim.SimSettings(theory=theory, tspan=tspan)
-  sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
-  if isempty(sim_result.solutions)
-    println("Błąd krytyczny: Symulacja nie zwróciła żadnych wyników. Przerwanie analizy.")
+  if isempty(pca_results) || pca_method_params[:method] == :kernel
+    println("EVR NIE DZIAŁA DLA KERNEL.")
     return
   end
+
+  taus = [res.tau for res in pca_results]
+  n_features, n_components = size(pca_results[1].principal_components)
+
+  method_info = "Metoda: $(pca_method_params[:method])"
+  main_title_info = "Plik: $(basename(source_file)) | $method_info"
+
+  for i in 1:n_components
+    p = plot(
+      title="Ewolucja ładunków dla PC$i",
+      plot_title=main_title_info,
+      xlabel="Czas τ [fm/c]",
+      ylabel="Wartość ładunku (Loading)",
+      legend=:outerright,
+      ylim=(-1.1, 1.1) # Ładunki są znormalizowane, więc mieszczą się w [-1, 1]
+    )
+
+    for j in 1:n_features
+      # Wyciąga j-ty ładunek (dla j-tej cechy) z i-tego wektora własnego
+      # na przestrzeni wszystkich kroków czasowych
+      loading_data = [res.principal_components[j, i] for res in pca_results]
+
+      feature_name = selected_feature_names[j]
+      plot!(p, taus, loading_data, label=feature_name, linewidth=2)
+    end
+
+    hline!(p, [0.0], linestyle=:dot, color=:grey, label="", alpha=0.7)
+
+    display(p)
+  end
+
+  println("✅ Wykresy  gotowe. Uwaga: Nagłe 'odbicia lustrzane' (zmiany znaku)")
+end
+
+function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::String)
+  println("--- Uruchamianie pełnego przepływu pracy analizy PCA ---")
 
   feature_indices, selected_feature_names = prompt_for_features(sim_result)
+  selected_method = prompt_for_pca_settings()
+  pca_params = Dict{Symbol,Any}(:method => selected_method)
 
-  pca_results = calc_pca(sim_result, feature_indices=feature_indices, n_pca_steps=n_pca_steps, n_components=n_components)
+  if selected_method == :kernel
+    tau_sample = sim_result.settings.tspan[1]
+    sample_data = hcat([modHydroSim.TA(sim_result, tau_sample)[i] for i in feature_indices]...)
+    kernel_params = prompt_for_kernel_parameters(sample_data)
+    merge!(pca_params, kernel_params)
+  end
+
+  n_pca_steps = 50
+  n_components = 2
+
+  pca_results = calc_pca(
+    sim_result;
+    feature_indices=feature_indices,
+    n_pca_steps=n_pca_steps,
+    n_components=n_components,
+    pca_method_params=pca_params
+  )
+
   if isempty(pca_results)
-    println("Błąd krytyczny: Analiza PCA nie zwróciła żadnych wyników. Przerwanie analizy.")
+    println("\nBłąd: Nie udało się wygenerować wyników PCA. Przerywanie pracy.")
     return
   end
 
-  # --- Krok 4: Generowanie wizualizacji ---
-  println("\n--- Krok 4: Generowanie wizualizacji... ---")
-  variance_plot = p_explained_variance(pca_results, prefix=join(selected_feature_names, ", "))
-  display(variance_plot)
-
-
-  mid_time = tspan[1] + (tspan[2] - tspan[1]) / 2
-  pca_1 = p_pca_snapshot(pca_results, sim_result, mid_time)
-  display(pca_1)
-  display(p_pca_snapshot(pca_results, sim_result, 0.20))
-
-  display(p_pca_snapshot(pca_results, sim_result, 0.25))
-  display(p_pca_snapshot(pca_results, sim_result, 0.30))
-  display(p_pca_snapshot(pca_results, sim_result, 0.64))
-  pca_2 = p_pca_snapshot(pca_results, sim_result, 0.74)
-  display(pca_2)
-  pca_snapshot_plot = p_pca_snapshot(pca_results, sim_result, mid_time * 0.8)
-  display(pca_snapshot_plot)
-
-  filename_base = generate_output_filename_base(ic_filepath, theory, selected_feature_names)
-  save_pca_results(filename_base, pca_results, sim_result, selected_feature_names, ic_filepath)
-
-  println("\n✅ Analiza zakończona pomyślnie.")
-  return sim_result, pca_results
-end
-
-
-
-
-function visualize_pca_from_file(filepath::String; color_by::Symbol=:T_0)
-  println("--- Wczytywanie wyników PCA z pliku: $filepath ---")
-
-  local df::DataFrame
-  local metadata = Dict()
-
-  # --- Krok 1: Wczytanie danych w zależności od typu pliku ---
-  if endswith(lowercase(filepath), ".csv")
-    df = CSV.read(filepath, DataFrame)
-    println("Pomyślnie wczytano dane z pliku CSV.")
-    metadata["theory"] = "N/A (z CSV)"
-    metadata["selected_features"] = "N/A (z CSV)"
-
-  elseif endswith(lowercase(filepath), ".h5")
-    h5open(filepath, "r") do file
-      # Wczytanie metadanych
-      metadata["theory"] = read(attrs(file)["theory"])
-      metadata["selected_features"] = read(attrs(file)["selected_features"])
-
-      # Wczytanie danych
-      taus = read(file["data/tau"])
-      transformed_data = read(file["data/transformed_data"]) # Wymiary: (czas, symulacja, komponent)
-      initial_conditions = read(file["initial_conditions/values"])
-      ic_names = read(attrs(file["initial_conditions"])["column_names"])
-
-      # Złożenie danych w jeden DataFrame (analogicznie do formatu CSV)
-      rows = []
-      for (i, tau) in enumerate(taus)
-        for j in 1:size(transformed_data, 2)
-          row = (tau=tau, simulation_id=j)
-          # Dodanie warunków początkowych
-          for (k, name) in enumerate(ic_names)
-            row = merge(row, (Symbol(name) => initial_conditions[j, k],))
-          end
-          # Dodanie komponentów PCA
-          for k in 1:size(transformed_data, 3)
-            row = merge(row, (Symbol("PC$k") => transformed_data[i, j, k],))
-          end
-          push!(rows, row)
-        end
-      end
-      df = DataFrame(rows)
-    end
-    println("Pomyślnie wczytano dane z pliku HDF5.")
-  else
-    error("Nieobsługiwany format pliku: '$filepath'. Użyj .csv lub .h5.")
-  end
-
-  if !hasproperty(df, color_by)
-    println("Ostrzeżenie: Wybrana kolumna do kolorowania ':$color_by' nie istnieje. Używam :T_0.")
-    color_by = :T_0
-    if !hasproperty(df, :T_0)
-      error("Brak kolumny ':T_0' w danych. Nie można pokolorować wykresu.")
-    end
-  end
-
-  # --- Krok 2: Interaktywny wybór kroku czasowego ---
-  unique_taus = sort(unique(df.tau))
-  println("\nDostępne kroki czasowe (τ) w pliku:")
-  for (i, tau) in enumerate(unique_taus)
-    println("  [$i] $(round(tau, digits=3))")
-  end
-
-  local selected_tau
-  while true
-    print("Wybierz indeks kroku czasowego do wizualizacji: ")
-    input = readline()
-    try
-      idx = parse(Int, input)
-      if 1 <= idx <= length(unique_taus)
-        selected_tau = unique_taus[idx]
-        break
-      else
-        println("Błąd: Podaj indeks z zakresu 1-$(length(unique_taus)).")
-      end
-    catch
-      println("Błąd: Nieprawidłowy format. Wprowadź liczbę.")
-    end
-  end
-
-  # --- Krok 3: Filtrowanie danych i generowanie wykresu ---
-  snapshot_df = filter(row -> row.tau == selected_tau, df)
-
-  p = scatter(
-    snapshot_df.PC1,
-    snapshot_df.PC2,
-    marker_z=snapshot_df[!, color_by],
-    title="PCA dla τ = $(round(selected_tau, digits=2))\nTeoria: $(metadata["theory"]), Cechy: $(metadata["selected_features"])",
-    xlabel="Komponent PCA 1", ylabel="Komponent PCA 2",
-    label="", markersize=5, alpha=0.8,
-    color=:plasma, colorbar_title="  $(string(color_by))"
+  plot_explained_variance_evolution(
+    pca_results;
+    source_file=ic_filepath,
+    feature_names=selected_feature_names,
+    pca_method_params=pca_params
   )
-  display(p)
-  println("\n✅ Wykres został wygenerowany.")
-  return p
+
+  plot_loadings_evolution(
+    pca_results,
+    selected_feature_names;
+    source_file=ic_filepath,
+    pca_method_params=pca_params
+  )
+
+  num_plots_to_generate = prompt_for_plot_count()
+  visualize_pca_static_grid(
+    pca_results, sim_result, num_plots_to_generate;
+    source_file=ic_filepath,
+    feature_names=selected_feature_names,
+    pca_method_params=pca_params
+  )
+
+  println("\n--- Zakończono przepływ pracy PCA ---")
 end
-end # Koniec modułu PCAWorkflow
+
+
+
+end
