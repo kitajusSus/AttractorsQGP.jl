@@ -1,4 +1,19 @@
 # Thesis
+```bash
+git clone {repo html}
+cd Atractors-in-QGP
+cd src
+./run_julia.sh
+# firstly do tests
+# I use Revise thats why `includet` not `include`
+includet("run_tests.jl")
+
+# later on you are free to use pca.jl
+includet("pca.jl")
+using .modHydroSim
+using .PCAWorkflow
+```
+
 
 
 ## Hydrodynamic Attractors in Phase Space
@@ -211,6 +226,11 @@ false
 
 
 ```
+Narazie jeszcze nie moge dodawać zdjęć przez neovim do readme wiec zostawie to na potem
+Wszelkie odkładniejsze opisy tych zjawisk znalezionych tutaj od teraz będe umieszczał w odpowiednim
+pliku na overleaf
+
+
 
 # Citation
 ```tex

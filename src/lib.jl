@@ -175,7 +175,7 @@ function load_ics(filepath::String, theory::Symbol)
     println("Loading of initial_conditions : $filepath")
 
     if endswith(filepath, ".csv")
-        df = CSV.read(filepath, DataFrame)
+        df = CSV.read(filepath, DataFrame, comment="#")
     elseif endswith(filepath, ".h5")
         df = h5open(filepath, "r") do file
             g = file["initial_conditions"]
@@ -248,6 +248,118 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=
 
     println("Simulation ended, generated $(length(solutions)) trajectories.")
     return SimResult(solutions, settings)
+end
+
+function load_settings_from_csv(filepath::String)
+    config = Dict{Symbol, Any}()
+    param_config = Dict{Symbol, Any}()
+
+    for line in eachline(filepath)
+        !startswith(line, "#") && break
+
+        local parts
+        if startswith(line, "#   ") # Theory parameters
+            line_content = strip(line[5:end])
+            parts = split(line_content, " = ")
+            length(parts) != 2 && continue
+            key, value_str = parts[1], parts[2]
+            param_config[Symbol(key)] = parse(Float64, value_str)
+        elseif startswith(line, "# ") # Regular settings
+            line_content = strip(line[3:end])
+            parts = split(line_content, " = ")
+            length(parts) != 2 && continue
+            key, value_str = parts[1], parts[2]
+            key_sym = Symbol(key)
+            if key_sym == :theory
+                config[key_sym] = Symbol(value_str)
+            elseif key_sym in [:n_points, :seed]
+                config[key_sym] = parse(Int, value_str)
+            elseif key_sym in [:tspan, :T_range, :A_range, :Z_range]
+                val = eval(Meta.parse(value_str))
+                config[key_sym] = val
+            end
+        end
+    end
+
+    theory = config[:theory]
+    local params, ode
+    if theory == :BRSSS || theory == :MIS
+        params = BRSSSParams(param_config[:C_τπ], param_config[:C_η], param_config[:C_λ1])
+        ode = ode_brsss!
+    elseif theory == :HJSW
+        params = HJSWParams(param_config[:C_η], param_config[:C_σ], param_config[:Ω_R], param_config[:Ω_I])
+        ode = ode_hjsw!
+    else
+        error("Unknown theory $theory during CSV load.")
+    end
+
+    !haskey(config, :Z_range) && (config[:Z_range] = (-20.0, 20.0))
+
+    return SimSettings(
+        theory, params, ode,
+        config[:tspan], config[:n_points], config[:T_range],
+        config[:A_range], config[:Z_range], config[:seed]
+    )
+end
+
+function load_settings_from_h5(filepath::String)
+    config = Dict{Symbol, Any}()
+    param_config = Dict{Symbol, Any}()
+
+    h5open(filepath, "r") do file
+        g = file["settings"]
+        for key in keys(attrs(g))
+            value = read(attrs(g)[key])
+            if startswith(key, "param_")
+                param_key = Symbol(replace(key, "param_" => ""))
+                param_config[param_key] = value
+            else
+                key_sym = Symbol(key)
+                if key_sym == :theory
+                    config[key_sym] = Symbol(value)
+                elseif isa(value, Vector) && length(value) == 2
+                    config[key_sym] = tuple(value...)
+                else
+                    config[key_sym] = value
+                end
+            end
+        end
+    end
+
+    theory = config[:theory]
+    local params, ode
+    if theory == :BRSSS || theory == :MIS
+        params = BRSSSParams(param_config[:C_τπ], param_config[:C_η], param_config[:C_λ1])
+        ode = ode_brsss!
+    elseif theory == :HJSW
+        params = HJSWParams(param_config[:C_η], param_config[:C_σ], param_config[:Ω_R], param_config[:Ω_I])
+        ode = ode_hjsw!
+    else
+        error("Unknown theory $theory during H5 load.")
+    end
+
+    !haskey(config, :Z_range) && (config[:Z_range] = (-20.0, 20.0))
+
+    return SimSettings(
+        theory, params, ode,
+        config[:tspan], config[:n_points], config[:T_range],
+        config[:A_range], config[:Z_range], config[:seed]
+    )
+end
+
+"""
+Wczytuje `SimSettings` z pliku danych (CSV lub H5).
+"""
+function load_settings(filepath::String)
+    println("Wczytywanie ustawień z pliku: $filepath")
+
+    if endswith(filepath, ".csv")
+        return load_settings_from_csv(filepath)
+    elseif endswith(filepath, ".h5")
+        return load_settings_from_h5(filepath)
+    else
+        error("Nieobsługiwany typ pliku: $filepath. Użyj .csv lub .h5")
+    end
 end
 
 # --- SEKCJA 4: ANALIZA I VIZUALIZACJA ---
@@ -387,28 +499,84 @@ function wykres_Aw(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
 end
 # ---Section 5 - Generating data ---
 
-function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC_",
-)
+"""
+Serializuje `SimSettings` do nagłówka tekstowego dla plików CSV.
+"""
+function settings_to_header(settings::SimSettings)
+    header = "# SIMULATION SETTINGS\n"
+    header *= "# =====================\n"
+    for field in fieldnames(typeof(settings))
+        value = getfield(settings, field)
+        if field == :params
+            header *= "# Parameters for $(settings.theory):\n"
+            for p_field in fieldnames(typeof(value))
+                p_value = getfield(value, p_field)
+                header *= "#   $(p_field) = $(p_value)\n"
+            end
+        elseif field != :ode # Pomijamy funkcje, których nie da się zapisać
+            header *= "# $(field) = $(value)\n"
+        end
+    end
+    header *= "# =====================\n"
+    return header
+end
+
+
+function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC_")
     rng = Xoshiro(settings.seed)
     df = DataFrame(
         Run_ID=1:settings.n_points,
-        # UWAGA: Temperatura jest zapisywana w pliku w jednostkach MeV
         T_0=rand(rng, Uniform(settings.T_range...), settings.n_points),
         A_0=rand(rng, Uniform(settings.A_range...), settings.n_points),
-        Z_0=rand(rng, Uniform(settings.Z_range...), settings.n_points),
     )
-    nazwa = CSV.write("$(output_filename_base)_$(settings.T_range)_$(settings.A_range)_$(settings.n_points)_t_$(settings.tspan).csv", df)
-    println("Zapisano warunki początkowe do $(nazwa)")
-    h5open("$(output_filename_base).h5", "w") do file
-        g = create_group(file, "initial_conditions")
-        for col in names(df)
-            g[col] = df[!, col]
-        end
-        attrs(g)["description"] = "Zestaw losowych warunków początkowych (T, A, Z)."
-        attrs(g)["seed"], attrs(g)["n_points"], attrs(g)["timestamp"] =
-            settings.seed, settings.n_points, string(now())
+    if settings.theory == :HJSW
+        df.Z_0 = rand(rng, Uniform(settings.Z_range...), settings.n_points)
     end
-    println("Zapisano warunki początkowe do $(output_filename_base).h5")
+
+    # --- Zapis do CSV z nagłówkiem ---
+    csv_filename = "$(output_filename_base)_$(settings.T_range)_$(settings.A_range)_$(settings.n_points)_t_$(settings.tspan).csv"
+    header = settings_to_header(settings)
+    open(csv_filename, "w") do f
+        write(f, header)
+        CSV.write(f, df, append=true, writeheader=true)
+    end
+    println("Zapisano warunki początkowe do: $csv_filename")
+
+    # --- Zapis do HDF5 z atrybutami ---
+    h5_filename = "$(output_filename_base).h5"
+    h5open(h5_filename, "w") do file
+        # Zapis danych
+        g_data = create_group(file, "initial_conditions")
+        for col in names(df)
+            g_data[col] = df[!, col]
+        end
+        attrs(g_data)["description"] = "Zestaw losowych warunków początkowych."
+        attrs(g_data)["timestamp"] = string(now())
+
+        # Zapis ustawień jako atrybuty
+        g_settings = create_group(file, "settings")
+        attrs(g_settings)["description"] = "Ustawienia symulacji użyte do wygenerowania danych."
+        for field in fieldnames(typeof(settings))
+            value = getfield(settings, field)
+            s_field = string(field)
+            if field == :params
+                for p_field in fieldnames(typeof(value))
+                    attrs(g_settings)["param_$(p_field)"] = getfield(value, p_field)
+                end
+            elseif field != :ode
+                # Konwersja typów niekompatybilnych z HDF5 (krotki, symbole)
+                attr_value = if isa(value, Tuple)
+                    [value...]
+                elseif isa(value, Symbol)
+                    string(value)
+                else
+                    value
+                end
+                attrs(g_settings)[s_field] = attr_value
+            end
+        end
+    end
+    println("Zapisano warunki początkowe do: $h5_filename")
     return df
 end
 

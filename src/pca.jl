@@ -14,7 +14,7 @@ using Interact
 using Blink
 
 
-export run_full_pca_analysis, visualize_pca_from_file
+export run_full_pca_analysis, visualize_pca_from_file, run_pca_workflow_from_file
 
 # --- SEKCJA 1: Struktury Danych ---
 
@@ -621,6 +621,29 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
 
   println("\n--- Zakończono przepływ pracy PCA ---")
 end
+
+
+"""
+Główna funkcja orkiestrująca, która wczytuje dane i ustawienia z pliku,
+uruchamia symulację, a następnie pełną analizę PCA.
+"""
+function run_pca_workflow_from_file(ic_filepath::String)
+  println("="^60)
+  println(" Rozpoczynanie analizy PCA z pliku: $ic_filepath")
+  println("="^60)
+
+  # Krok 1: Wczytaj ustawienia z pliku
+  settings = modHydroSim.load_settings(ic_filepath)
+
+  # Krok 2: Uruchom symulację na podstawie wczytanych ustawień
+  sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
+
+  # Krok 3: Przekaż wyniki do istniejącego potoku analizy PCA
+  run_full_pca_analysis(sim_result, ic_filepath)
+
+  println("\n\nAnaliza PCA zakończona pomyślnie.")
+end
+
 
 
 
