@@ -42,7 +42,6 @@ function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standar
     error("Liczba komponentów ($n_components) nie może być większa niż liczba cech ($n_features).")
   end
 
-  # Ten krok pozostaje bez zmian, ponieważ jest niezbędny przed obliczeniem kowariancji.
   X_transformed = copy(X)
   local X_scaled
   if mode == :standardize
