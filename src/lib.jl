@@ -24,6 +24,7 @@ using CSV
 using DataFrames
 using HDF5
 using Dates
+
 # --- Początek modułu ---
 module modHydroSim
 using Base: annotate!
@@ -31,7 +32,6 @@ using DifferentialEquations
 using Random
 using Distributions
 using Plots
-plotly()
 using CSV
 using DataFrames
 using HDF5
@@ -63,6 +63,7 @@ export AbstractHydroParams,
 # --- Definitions ---
 const fm = 1.0       #  1 fm
 const MeV = 1 / (197.0 * fm)
+const PLOTS_DIR = "plots"
 
 # --- SECTION 1 --
 
@@ -409,13 +410,17 @@ function kadr(simres::SimResult, t::Float64)
         ylims=(simres.settings.A_range[1] - 1, simres.settings.A_range[2] + 1),
     )
     scatter!(p, Ts_MeV, As, markersize=2, markerstrokewidth=0, alpha=0.7)
-    display(p)
+    
+    mkpath(PLOTS_DIR)
+    filename = "kadr_$(simres.settings.theory)_tau_$(τ_str).png"
+    savefig(p, joinpath(PLOTS_DIR, filename))
+    println("Saved plot to: $(joinpath(PLOTS_DIR, filename))")
 end
 
 
 function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
     settings = simres.settings
-    color_max = settings.A_range[2] # Użyj górnego limitu z ustawień symulacji
+    color_max = settings.A_range[2]
 
     p = plot(
         title="Ewolution A(τ) for Theory  $(settings.theory).  Settings: A range = $(settings.A_range),T range = $(settings.T_range), n points= $(settings.n_points)",
@@ -441,12 +446,12 @@ function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
         end
         A_values = getindex.(sol.u, 2)
         plot!(p, sol.t, A_values, lw=lw, alpha=0.4, color=line_color)
-
     end
 
-
-    #    display(p)
-    gui()
+    mkpath(PLOTS_DIR)
+    filename = "ewolucja_A_tau_$(settings.theory).png"
+    savefig(p, joinpath(PLOTS_DIR, filename))
+    println("Saved plot to: $(joinpath(PLOTS_DIR, filename))")
 end
 
 
@@ -495,7 +500,10 @@ function wykres_Aw(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
         )
     end
 
-    display(p)
+    mkpath(PLOTS_DIR)
+    filename = "ewolucja_A_w_$(settings.theory).png"
+    savefig(p, joinpath(PLOTS_DIR, filename))
+    println("Saved plot to: $(joinpath(PLOTS_DIR, filename))")
 end
 # ---Section 5 - Generating data ---
 
@@ -513,7 +521,7 @@ function settings_to_header(settings::SimSettings)
                 p_value = getfield(value, p_field)
                 header *= "#   $(p_field) = $(p_value)\n"
             end
-        elseif field != :ode # Pomijamy funkcje, których nie da się zapisać
+        elseif field != :ode
             header *= "# $(field) = $(value)\n"
         end
     end
@@ -533,7 +541,6 @@ function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC
         df.Z_0 = rand(rng, Uniform(settings.Z_range...), settings.n_points)
     end
 
-    # --- Zapis do CSV z nagłówkiem ---
     csv_filename = "$(output_filename_base)_$(settings.T_range)_$(settings.A_range)_$(settings.n_points)_t_$(settings.tspan).csv"
     header = settings_to_header(settings)
     open(csv_filename, "w") do f
@@ -542,10 +549,8 @@ function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC
     end
     println("Zapisano warunki początkowe do: $csv_filename")
 
-    # --- Zapis do HDF5 z atrybutami ---
     h5_filename = "$(output_filename_base).h5"
     h5open(h5_filename, "w") do file
-        # Zapis danych
         g_data = create_group(file, "initial_conditions")
         for col in names(df)
             g_data[col] = df[!, col]
@@ -553,7 +558,6 @@ function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC
         attrs(g_data)["description"] = "Zestaw losowych warunków początkowych."
         attrs(g_data)["timestamp"] = string(now())
 
-        # Zapis ustawień jako atrybuty
         g_settings = create_group(file, "settings")
         attrs(g_settings)["description"] = "Ustawienia symulacji użyte do wygenerowania danych."
         for field in fieldnames(typeof(settings))
@@ -564,7 +568,6 @@ function generate_and_save_ics(; settings::SimSettings, output_filename_base="IC
                     attrs(g_settings)["param_$(p_field)"] = getfield(value, p_field)
                 end
             elseif field != :ode
-                # Konwersja typów niekompatybilnych z HDF5 (krotki, symbole)
                 attr_value = if isa(value, Tuple)
                     [value...]
                 elseif isa(value, Symbol)

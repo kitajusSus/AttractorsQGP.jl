@@ -10,8 +10,6 @@ using DataFrames
 using CSV
 using HDF5
 using Dates
-using Interact
-using Blink
 
 
 export run_full_pca_analysis, visualize_pca_from_file, run_pca_workflow_from_file
@@ -413,7 +411,6 @@ function plot_explained_variance_evolution(
   end
   settings_info = "Plik: $(basename(source_file)) | $method_info | Cechy: $(join(feature_names, ", "))"
 
-  # Inicjalizacja wykresu
   p = plot(
     title="Ewolucja wariancji wyjaśnionej przez komponenty PCA",
     plot_title=settings_info,
@@ -435,9 +432,10 @@ function plot_explained_variance_evolution(
 
   hline!(p, [1.0], linestyle=:dot, color=:grey, label="", alpha=0.7)
 
-  display(p)
-  println("✅ Wykres wariancji gotowy.")
-  return p
+  mkpath("plots")
+  filename = "pca_explained_variance_evolution.png"
+  savefig(p, joinpath("plots", filename))
+  println("Saved plot to: $(joinpath("plots", filename))")
 end
 
 function visualize_pca_static_grid(
@@ -461,8 +459,7 @@ function visualize_pca_static_grid(
   total_steps = length(pca_results)
   indices_to_plot = unique(round.(Int, range(1, stop=total_steps, length=num_plots)))
 
-  plots_array = [] # Tablica do przechowywania pojedynczych wykresów
-  # wyliczanie stałych osi
+  plots_array = []
   all_pc1 = vcat([res.transformed_data[:, 1] for res in pca_results]...)
   all_pc2 = vcat([res.transformed_data[:, 2] for res in pca_results]...)
 
@@ -491,10 +488,8 @@ function visualize_pca_static_grid(
       xlabel="PC 1",
       ylabel="PC 2",
       label="",
-      ## mozna wyłączyć
       xlims=global_xlims,
-      ylim=global_ylims,
-      ## stałe osie
+      ylims=global_ylims,
       markersize=4,
       alpha=0.8,
       color=:plasma,
@@ -515,10 +510,10 @@ function visualize_pca_static_grid(
     size=(350 * layout_cols, 300 * layout_rows)
   )
 
-  display(final_grid)
-  println("Gotowe. Wykres jest juz chyba w przeglądarce")
-
-  return final_grid
+  mkpath("plots")
+  filename = "pca_static_grid.png"
+  savefig(final_grid, joinpath("plots", filename))
+  println("Saved plot to: $(joinpath("plots", filename))")
 end
 
 
@@ -547,21 +542,21 @@ function plot_loadings_evolution(
       xlabel="Czas τ [fm/c]",
       ylabel="Wartość ładunku (Loading)",
       legend=:outerright,
-      ylim=(-1.1, 1.1) # Ładunki są znormalizowane, więc mieszczą się w [-1, 1]
+      ylim=(-1.1, 1.1)
     )
 
     for j in 1:n_features
-      # Wyciąga j-ty ładunek (dla j-tej cechy) z i-tego wektora własnego
-      # na przestrzeni wszystkich kroków czasowych
       loading_data = [res.principal_components[j, i] for res in pca_results]
-
       feature_name = selected_feature_names[j]
       plot!(p, taus, loading_data, label=feature_name, linewidth=2)
     end
 
     hline!(p, [0.0], linestyle=:dot, color=:grey, label="", alpha=0.7)
 
-    display(p)
+    mkpath("plots")
+    filename = "pca_loadings_evolution_pc$(i).png"
+    savefig(p, joinpath("plots", filename))
+    println("Saved plot to: $(joinpath("plots", filename))")
   end
 
   println("✅ Wykresy  gotowe. Uwaga: Nagłe 'odbicia lustrzane' (zmiany znaku)")
@@ -632,19 +627,11 @@ function run_pca_workflow_from_file(ic_filepath::String)
   println(" Rozpoczynanie analizy PCA z pliku: $ic_filepath")
   println("="^60)
 
-  # Krok 1: Wczytaj ustawienia z pliku
   settings = modHydroSim.load_settings(ic_filepath)
-
-  # Krok 2: Uruchom symulację na podstawie wczytanych ustawień
   sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
-
-  # Krok 3: Przekaż wyniki do istniejącego potoku analizy PCA
   run_full_pca_analysis(sim_result, ic_filepath)
 
   println("\n\nAnaliza PCA zakończona pomyślnie.")
 end
-
-
-
 
 end
