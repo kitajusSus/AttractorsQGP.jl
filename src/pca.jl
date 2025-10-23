@@ -36,7 +36,7 @@ end
 Wykonuje LINIOWĄ analizę PCA, używając klasycznej metody opartej
 na dekompozycji własnej macierzy kowariancji.
 """
-function linear_pca(X::Matrix{FUNat64}, n_components::Int; mode::Symbol=:standardize)
+function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
   n_samples, n_features = size(X)
   if n_components > n_features
     error("Liczba komponentów ($n_components) nie może być większa niż liczba cech ($n_features).")
@@ -567,7 +567,6 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
   feature_indices, selected_feature_names = prompt_for_features(sim_result)
   selected_method = prompt_for_pca_settings()
   pca_params = Dict{Symbol,Any}(:method => selected_method)
-  num_plots_to_generate = prompt_for_plot_count()
 
   if selected_method == :kernel
     tau_sample = sim_result.settings.tspan[1]
