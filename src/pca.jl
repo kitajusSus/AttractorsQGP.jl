@@ -590,7 +590,7 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
     println("\nBłąd: Nie udało się wygenerować wyników PCA. Przerywanie pracy.")
     return
   end
-
+  num_plots_to_generate = prompt_for_plot_count()
   plot_explained_variance_evolution(
     pca_results;
     source_file=ic_filepath,
@@ -605,7 +605,7 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
     pca_method_params=pca_params
   )
 
-  num_plots_to_generate = prompt_for_plot_count()
+
   visualize_pca_static_grid(
     pca_results, sim_result, num_plots_to_generate;
     source_file=ic_filepath,
