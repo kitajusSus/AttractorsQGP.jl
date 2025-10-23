@@ -36,7 +36,7 @@ end
 Wykonuje LINIOWĄ analizę PCA, używając klasycznej metody opartej
 na dekompozycji własnej macierzy kowariancji.
 """
-function linear_pca(X::Matrix{FUNat64}, n_components::Int; mode::Symbol=:standardize)
+function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
   n_samples, n_features = size(X)
   if n_components > n_features
     error("Liczba komponentów ($n_components) nie może być większa niż liczba cech ($n_features).")
