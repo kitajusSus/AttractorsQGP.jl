@@ -58,7 +58,8 @@ export AbstractHydroParams,
     MeV,
     wykres,
     run_all_theories,
-    wykres_Aw
+    wykres_Aw,
+    wykres_fazowy
 
 # --- Definitions ---
 const fm = 1.0       #  1 fm
@@ -252,8 +253,8 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=
 end
 
 function load_settings_from_csv(filepath::String)
-    config = Dict{Symbol, Any}()
-    param_config = Dict{Symbol, Any}()
+    config = Dict{Symbol,Any}()
+    param_config = Dict{Symbol,Any}()
 
     for line in eachline(filepath)
         !startswith(line, "#") && break
@@ -304,8 +305,8 @@ function load_settings_from_csv(filepath::String)
 end
 
 function load_settings_from_h5(filepath::String)
-    config = Dict{Symbol, Any}()
-    param_config = Dict{Symbol, Any}()
+    config = Dict{Symbol,Any}()
+    param_config = Dict{Symbol,Any}()
 
     h5open(filepath, "r") do file
         g = file["settings"]
@@ -369,37 +370,45 @@ function TA(simres::SimResult, t::Float64)
     params, ode_func!, n_sols =
         simres.settings.params, simres.settings.ode, length(simres.solutions)
 
+    valid_mask = falses(n_sols)
+
     if simres.settings.theory == :HJSW
-        Ts, As, Zs = (zeros(n_sols) for _ = 1:3)
-        dTs, dAs, dZs = (zeros(n_sols) for _ = 1:3)
+        Ts, As, Zs = (fill(NaN, n_sols) for _ = 1:3)
+        dTs, dAs, dZs = (fill(NaN, n_sols) for _ = 1:3)
         du = [0.0, 0.0, 0.0]
         for (i, sol) in enumerate(simres.solutions)
             u = sol(t)
-            (any(!isfinite, u) || u[1] <= 0) && continue
+            if any(!isfinite, u) || u[1] <= 1e-9
+                continue
+            end
             ode_func!(du, u, params, t)
             Ts[i], As[i], Zs[i] = u
             dTs[i], dAs[i], dZs[i] = du
+            valid_mask[i] = true
         end
-        return (Ts, As, Zs, dTs, dAs, dZs)
+        return (Ts, As, Zs, dTs, dAs, dZs), valid_mask
     else # BRSSS or MIS
-        Ts, As = (zeros(n_sols) for _ = 1:2)
-        dTs, dAs = (zeros(n_sols) for _ = 1:2)
+        Ts, As = (fill(NaN, n_sols) for _ = 1:2)
+        dTs, dAs = (fill(NaN, n_sols) for _ = 1:2)
         du = [0.0, 0.0]
         for (i, sol) in enumerate(simres.solutions)
             u = sol(t)
-            (any(!isfinite, u) || u[1] <= 0) && continue
+            if any(!isfinite, u) || u[1] <= 1e-9
+                continue
+            end
             ode_func!(du, u, params, t)
             Ts[i], As[i] = u
             dTs[i], dAs[i] = du
+            valid_mask[i] = true
         end
-        return (Ts, As, dTs, dAs)
+        return (Ts, As, dTs, dAs), valid_mask
     end
 end
 
 function kadr(simres::SimResult, t::Float64)
-    states = TA(simres, t)
-    Ts_MeV = states[1] ./ MeV
-    As = states[2]
+    states, valid_mask = TA(simres, t)
+    Ts_MeV = states[1][valid_mask] ./ MeV
+    As = states[2][valid_mask]
     τ_str = round(t, digits=2)
     p = plot(
         title="Phase space  (T, A) for  τ = $(τ_str) fm/c [$(simres.settings.theory)]",
@@ -410,7 +419,7 @@ function kadr(simres::SimResult, t::Float64)
         ylims=(simres.settings.A_range[1] - 1, simres.settings.A_range[2] + 1),
     )
     scatter!(p, Ts_MeV, As, markersize=2, markerstrokewidth=0, alpha=0.7)
-    
+
     mkpath(PLOTS_DIR)
     filename = "kadr_$(simres.settings.theory)_tau_$(τ_str).png"
     savefig(p, joinpath(PLOTS_DIR, filename))
@@ -418,12 +427,12 @@ function kadr(simres::SimResult, t::Float64)
 end
 
 
-function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
+function wykres(simres::SimResult; lw=1.5, size=(1920, 1080), color_min=-12.0)
     settings = simres.settings
     color_max = settings.A_range[2]
 
     p = plot(
-        title="Ewolution A(τ) for Theory  $(settings.theory).  Settings: A range = $(settings.A_range),T range = $(settings.T_range), n points= $(settings.n_points)",
+        title="Ewolution A(τ) for Theory$(settings.theory). Settings: Arange=$(settings.A_range),Trange=$(settings.T_range), npoints=$(settings.n_points)",
         xlabel="Czas własny τ [fm/c]",
         ylabel="Anizotropia A",
         size=size,
@@ -433,8 +442,6 @@ function wykres(simres::SimResult; lw=1.5, size=(1200, 750), color_min=-12.0)
         colorbar=true,
         colorbar_title="Initial Anisotropy  A_0",
     )
-
-    grad = cgrad(:viridis)
 
     for sol in simres.solutions
         A0 = sol.u[1][2]
@@ -675,6 +682,56 @@ function run_all_theories(ic_file::String; tspan=(0.2, 1.2))
     return results
 end
 
+"""
+Tworzy prosty wykres w przestrzeni fazowej (τ₀T, τ₀Ṫ).
+"""
+function wykres_fazowy(simres::SimResult; tau::Float64=0.5, markersize::Int=3)
+    settings = simres.settings
+
+    tau_0 = settings.tspan[1]
+
+    tau0_T_points = Float64[]
+    tau0_T_dot_points = Float64[]
+
+    for sol in simres.solutions
+        if tau < sol.t[1] || tau > sol.t[end]
+            continue
+        end
+
+        T_at_tau = sol(tau)[1]
+
+        dt = 1e-3
+        if tau + dt <= sol.t[end] && tau - dt >= sol.t[1]
+            T_plus = sol(tau + dt)[1]
+            T_minus = sol(tau - dt)[1]
+            T_dot_at_tau = (T_plus - T_minus) / (2 * dt)
+        else
+            continue
+        end
+
+        push!(tau0_T_points, 0.22 * T_at_tau)
+        push!(tau0_T_dot_points, 0.22^2 * T_dot_at_tau)
+    end
+
+    p = scatter(
+        tau0_T_points,
+        tau0_T_dot_points,
+        title="Phase space (τ₀T, τ₀^2Ṫ) at τ = $(round(tau, digits=2)) fm/c [$(settings.theory)]",
+        xlabel="τ₀T",
+        ylabel="τ₀2Ṫ",
+        markersize=markersize,
+        alpha=0.6,
+        legend=false,
+        color=:viridis
+    )
+
+    mkpath(PLOTS_DIR)
+    filename = "wykres_fazowy_$(settings.theory)_tau_$(round(tau, digits=2)).png"
+    savefig(p, joinpath(PLOTS_DIR, filename))
+    println("Saved phase space plot to: $(joinpath(PLOTS_DIR, filename))")
+
+    return p
+end
 
 
 
