@@ -10,32 +10,17 @@ using DataFrames
 using CSV
 using HDF5
 using Dates
+using MultivariateStats # <-- DODANE
 
+export run_full_pca_analysis, visualize_pca_from_file, run_pca_workflow_from_file, run_pca_at_time
 
-export run_full_pca_analysis, visualize_pca_from_file, run_pca_workflow_from_file
-
-# --- SEKCJA 1: Struktury Danych ---
-
-"""
-    PCAResultAtTime
-Przechowuje wyniki analizy PCA dla pojedynczego kroku czasowego `tau`.
-"""
 struct PCAResultAtTime
   tau::Float64
   transformed_data::Matrix{Float64}
   explained_variance_ratio::Vector{Float64}
-  # Dla Liniowego PCA, to są wektory własne.
-  # Dla Kernel PCA, to są wektory 'alpha' z dekompozycji jądra.
   principal_components::Matrix{Float64}
 end
 
-
-
-"""
-    linear_pca(X, n_components; mode)
-Wykonuje LINIOWĄ analizę PCA, używając klasycznej metody opartej
-na dekompozycji własnej macierzy kowariancji.
-"""
 function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
   n_samples, n_features = size(X)
   if n_components > n_features
@@ -64,89 +49,65 @@ function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standar
     error("Nieznany tryb skalowania liniowego: $mode")
   end
 
-  # Wzór: C = (1 / (n - 1)) * X_scaled^T * X_scaled
-  # Gdzie n to liczba próbek (n_samples).
-  cov_matrix = (1 / (n_samples - 1)) * (X_scaled' * X_scaled)
+  # Przekazuje X_scaled' (features x samples)
+  # Wyłącza wbudowane skalowanie w fit(),
+  X_transposed = X_scaled'
+  M_linear = fit(PCA, X_transposed;
+    ncomps=n_components,
+    standardize=false,
+    mean=nothing)
 
-  # Rozwiązuje problem własny dla macierzy kowariancji.
-  # Wzór: C * v_i = λ_i * v_i
-  # Gdzie λ_i to wartości własne, a v_i to wektory własne.
-  eigen_result = eigen(cov_matrix)
-  eigenvalues = eigen_result.values   # Wartości własne (λ)
-  eigenvectors = eigen_result.vectors # Wektory własne (v)
+  # Krok 3: Ekstrakcja wyników w wymaganym formacie
 
-  # Sortuje wektory własne w kolejności malejącej, zgodnie z
-  # odpowiadającymi im wartościami własnymi.
-  sorted_indices = sortperm(eigenvalues, rev=true)
-  sorted_eigenvalues = eigenvalues[sorted_indices]
-  sorted_eigenvectors = eigenvectors[:, sorted_indices]
+  transformed_data = MultivariateStats.transform(M_linear, X_transposed)'
 
-  # Tworzy macierz projekcji V, wybierając k pierwszych
-  # (najważniejszych) posortowanych wektorów własnych.
-  projection_matrix = sorted_eigenvectors[:, 1:n_components]
+  # principalratio() zwraca wektor proporcji wariancji
+  explained_variance_ratio = principalratio(M_linear)
 
-  # Transformuje oryginalne, przeskalowane dane na nową podprzestrzeń.
-  # Wzór: Y = X_scaled * V
-  transformed_data = X_scaled * projection_matrix
-
-  # Wariancja wyjaśniona przez i-ty komponent to λ_i / sum(wszystkich λ).
-  total_variance = sum(eigenvalues)
-  explained_variance_ratio = sorted_eigenvalues[1:n_components] ./ total_variance
+  # projection() zwraca macierz projekcji (features x components)
+  projection_matrix = projection(M_linear)
 
   return transformed_data, explained_variance_ratio, projection_matrix
 end
-"""
-    kernel_pca(X, n_components; gamma)
-Wykonuje JĄDROWĄ analizę PCA (Kernel PCA) od podstaw.
-"""
+
 function kernel_pca(X::Matrix{Float64}, n_components::Int; gamma::Float64)
   n_samples, n_features = size(X)
 
-  # Karnel Gaussowski (Radial Basis Function, RBF):
-  # k(xi, xj) = exp(-gamma * ||xi - xj||^2)
-  # Macierz K ma wymiary (n_samples x n_samples). K_ij = k(x_i, x_j)
-  K = zeros(n_samples, n_samples)
-  for i in 1:n_samples
-    for j in i:n_samples
-      distance_sq = sum((X[i, :] .- X[j, :]) .^ 2)
-      K[i, j] = exp(-gamma * distance_sq)
-    end
+  # Krok 1: Przygotowanie danych i jądra dla MultivariateStats.jl
+  # Oczekuje (features x samples)
+  X_transposed = X'
+
+  kpca_kernel = (x, y) -> exp(-gamma * norm(x - y)^2.0)
+
+  # Krok 2: Dopasowanie modelu KernelPCA
+  M_kernel = fit(KernelPCA, X_transposed;
+    kernel=kpca_kernel,
+    maxoutdim=n_components)
+
+
+  transformed_data = MultivariateStats.transform(M_kernel, X_transposed)'
+
+  # Ręczne obliczenie proporcji wariancji
+  all_eigenvalues = eigvals(M_kernel)
+  total_variance = sum(all_eigenvalues)
+
+  local explained_variance_ratio
+  # Zapobiegamy dzieleniu przez zero, jeśli wariancja jest 0
+  if total_variance <= 1e-10 # Bezpieczniejsze porównanie z zerem
+    explained_variance_ratio = zeros(n_components)
+  else
+    #  tylko 'n_components' pierwszych wariancji
+    # Zakładam, że eigvals zwraca je posortowane malejąco
+    explained_variance_ratio = all_eigenvalues[1:n_components] ./ total_variance
   end
-  K = Symmetric(K, :U)
 
-  # Wzór: K_c = K - 1n*K - K*1n + 1n*K*1n
-  # gdzie 1n to macierz (n x n) o wszystkich elementach równych 1/n.
-  ones_n = ones(n_samples, n_samples) ./ n_samples
-  K_centered = K - ones_n * K - K * ones_n + ones_n * K * ones_n
-
-  # Wzór: K_c * alpha_i = lambda_i * alpha_i
-  eigen_result = eigen(K_centered)
-  eigenvalues = real(eigen_result.values)
-  eigenvectors = real(eigen_result.vectors) # Wektory alpha
-
-  sorted_indices = sortperm(eigenvalues, rev=true)
-  sorted_lambdas = eigenvalues[sorted_indices]
-  sorted_alphas = eigenvectors[:, sorted_indices]
-
-  # Współrzędne oryginalnych danych w nowej przestrzeni są dane przez
-  # wektory własne pomnożone przez pierwiastek z wartości własnych.
-  selected_lambdas = sorted_lambdas[1:n_components]
-  selected_alphas = sorted_alphas[:, 1:n_components]
-  transformed_data = selected_alphas * diagm(sqrt.(max.(selected_lambdas, 0)))
-
-  # Proporcja wariancji: lambda_i / sum(all_lambdas).
-  total_variance = sum(max.(eigenvalues, 0))
-  explained_variance_ratio = max.(selected_lambdas, 0) ./ total_variance
+  # projection() zwraca wektory alpha (samples x components)
+  # To jest to, co oryginalna funkcja zwracała jako 'components'
+  selected_alphas = projection(M_kernel)
 
   return transformed_data, explained_variance_ratio, selected_alphas
 end
 
-
-
-"""
-    calc_pca(...)
-Orkiestruje procesem analizy PCA, wywołując odpowiednią funkcję (liniową lub jądrową).
-"""
 function calc_pca(
   sim_result::modHydroSim.SimResult;
   feature_indices::Vector{Int},
@@ -169,28 +130,37 @@ function calc_pca(
     data_matrix = hcat([all_data_vectors[i] for i in feature_indices]...)
 
     valid_mask = vec(all(isfinite, data_matrix, dims=2))
-    if sum(valid_mask) < n_components
-      println("\nOstrzeżenie: Zbyt mało prawidłowych danych w czasie τ=$tau. Pomijanie kroku.")
+    if size(unique(data_matrix[valid_mask, :], dims=1), 1) < n_components
+      println("\nOstrzeżenie: Zbyt mało unikalnych/prawidłowych danych w czasie τ=$tau. Pomijanie kroku.")
       continue
     end
 
     filtered_matrix = data_matrix[valid_mask, :]
 
     local transformed_data, explained_ratio, components
-    if method == :kernel
-      gamma = pca_method_params[:gamma]
-      transformed_data, explained_ratio, components = kernel_pca(filtered_matrix, n_components, gamma=gamma)
-    else
-      transformed_data, explained_ratio, components = linear_pca(filtered_matrix, n_components, mode=method)
-    end
+    try
+      if method == :kernel
+        gamma = pca_method_params[:gamma]
+        transformed_data, explained_ratio, components = kernel_pca(filtered_matrix, n_components, gamma=gamma)
+      else
+        transformed_data, explained_ratio, components = linear_pca(filtered_matrix, n_components, mode=method)
+      end
 
-    push!(pca_results_vector, PCAResultAtTime(tau, transformed_data, explained_ratio, components))
+      if any(isnan, transformed_data) || any(isnan, explained_ratio)
+        println("\nOstrzeżenie: Wynik PCA dla τ=$tau zawiera NaN. Pomijanie kroku.")
+        continue
+      end
+
+      push!(pca_results_vector, PCAResultAtTime(tau, transformed_data, explained_ratio, components))
+
+    catch e
+      println("\nBłąd podczas przetwarzania PCA w czasie τ=$tau. Pomijanie kroku. Błąd: $e")
+      continue #  do następnego kroku czasowego
+    end
   end
   println("\nAnaliza PCA zakończona. Przetworzono $(length(pca_results_vector)) kroków czasowych.")
   return pca_results_vector
 end
-
-
 
 function prompt_for_features(sim_result::modHydroSim.SimResult)
   if sim_result.settings.theory == :HJSW
@@ -221,7 +191,6 @@ function prompt_for_features(sim_result::modHydroSim.SimResult)
     end
   end
 end
-
 
 function prompt_for_pca_settings()
   println("\n--- Krok 2: Wybór metody PCA ---")
@@ -283,8 +252,6 @@ function prompt_for_kernel_parameters(data_matrix::Matrix{Float64})
   end
 end
 
-
-
 function generate_output_filename_base(ic_filepath::String, theory::Symbol, selected_features::Vector{String})
   ic_name = splitext(basename(ic_filepath))[1]
   features_str = join(selected_features, "-")
@@ -307,9 +274,53 @@ function save_pca_results(
 
   df_rows = []
 
-  initial_states = collect(hcat([sol.u[1] for sol in sim_result.solutions]...)')
+  # Pobierz stany początkowe tylko raz
+  initial_states_raw = [sol.u[1] for sol in sim_result.solutions]
+
+  if isempty(pca_results)
+    println("Brak wyników PCA do zapisania.")
+    return
+  end
+
+  n_samples_pca = size(pca_results[1].transformed_data, 1)
+  n_samples_initial = length(initial_states_raw)
+
+  local initial_states
+
+  if n_samples_pca == n_samples_initial
+    initial_states = collect(hcat(initial_states_raw...)')
+    # else
+    #   @warn "Niezgodność liczby próbek PCA ($n_samples_pca) i stanów początkowych ($n_samples_initial). Zapis CSV może zawierać nieprawidłowe stany początkowe."
+    #
+    #   tau_sample = pca_results[1].tau
+    #   feature_indices = [findfirst(==(n), ["T", "A", "Z", "dT/dτ", "dA/dτ", "dZ/dτ"]) for n in selected_feature_names if findfirst(==(n), ["T", "A", "Z", "dT/dτ", "dA/dτ", "dZ/dτ"]) !== nothing] # Przybliżenie
+    #
+    #   if isempty(feature_indices) # Fallback dla teorii bez HJSW
+    #     feature_indices = [findfirst(==(n), ["T", "A", "dT/dτ", "dA/dτ"]) for n in selected_feature_names if findfirst(==(n), ["T", "A", "dT/dτ", "dA/dτ"]) !== nothing]
+    #   end
+    #
+    #   if !isempty(feature_indices)
+    #     all_data_vectors = modHydroSim.TA(sim_result, tau_sample)
+    #     data_matrix = hcat([all_data_vectors[i] for i in feature_indices]...)
+    #     valid_mask = vec(all(isfinite, data_matrix, dims=2))
+    #
+    #     if sum(valid_mask) == n_samples_pca
+    #       initial_states = collect(hcat(initial_states_raw[valid_mask]...)')
+    #       println("Info: Pomyślnie dopasowano stany początkowe przy użyciu maski.")
+    #     else
+    #       @warn "Nie udało się dopasować stanów początkowych. Używam pierwszych $n_samples_pca stanów."
+    #       initial_states = collect(hcat(initial_states_raw[1:n_samples_pca]...)')
+    #     end
+    #   else
+    #     @warn "Nie udało się odtworzyć indeksów cech. Używam pierwszych $n_samples_pca stanów."
+    #     initial_states = collect(hcat(initial_states_raw[1:n_samples_pca]...)')
+    #   end
+  end
+
+
   for result in pca_results
     tau = result.tau
+
     if size(result.transformed_data, 1) != size(initial_states, 1)
       @warn "Niezgodność liczby symulacji dla tau = $tau. Pomijanie zapisu do CSV dla tego kroku."
       continue
@@ -394,7 +405,7 @@ function plot_explained_variance_evolution(
   feature_names::Vector{String},
   pca_method_params::Dict
 )
-  println("\n--- Generowanie wykresu ewolucji wariancji wyjaśnionej... ---")
+  println("\n--- Generowanie wykresu ewolucji explained variance (EVR)... ---")
 
   if isempty(pca_results)
     println("Brak wyników do narysowania wykresu wariancji.")
@@ -447,7 +458,47 @@ function visualize_pca_static_grid(
 )
   println("\n--- Generowanie siatki wykresów PCA ---")
 
-  initial_temps = [sol.u[1][1] for sol in sim_result.solutions]
+  if isempty(pca_results)
+    println("Brak wyników PCA do wizualizacji.")
+    return
+  end
+
+  n_samples_pca = size(pca_results[1].transformed_data, 1)
+  initial_states_raw = [sol.u[1] for sol in sim_result.solutions]
+  n_samples_initial = length(initial_states_raw)
+
+  local initial_temps
+
+  if n_samples_pca == n_samples_initial
+    initial_temps = [s[1] for s in initial_states_raw]
+  else
+    @warn "Niezgodność liczby próbek PCA ($n_samples_pca) i stanów początkowych ($n_samples_initial) dla wizualizacji."
+
+    tau_sample = pca_results[1].tau
+    feature_indices = [findfirst(==(n), ["T", "A", "Z", "dT/dτ", "dA/dτ", "dZ/dτ"]) for n in feature_names if findfirst(==(n), ["T", "A", "Z", "dT/dτ", "dA/dτ", "dZ/dτ"]) !== nothing]
+
+    if isempty(feature_indices)
+      feature_indices = [findfirst(==(n), ["T", "A", "dT/dτ", "dA/dτ"]) for n in feature_names if findfirst(==(n), ["T", "A", "dT/dτ", "dA/dτ"]) !== nothing]
+    end
+
+    if !isempty(feature_indices)
+      all_data_vectors = modHydroSim.TA(sim_result, tau_sample)
+      data_matrix = hcat([all_data_vectors[i] for i in feature_indices]...)
+      valid_mask = vec(all(isfinite, data_matrix, dims=2))
+
+      if sum(valid_mask) == n_samples_pca
+        initial_temps = [s[1] for s in initial_states_raw[valid_mask]]
+        println("Info: Pomyślnie dopasowano temperatury początkowe dla wizualizacji.")
+      else
+        @warn "Nie udało się dopasować temperatur. Używam pierwszych $n_samples_pca stanów."
+        initial_temps = [s[1] for s in initial_states_raw[1:n_samples_pca]]
+      end
+    else
+      @warn "Nie udało się odtworzyć indeksów cech. Używam pierwszych $n_samples_pca stanów."
+      initial_temps = [s[1] for s in initial_states_raw[1:n_samples_pca]]
+    end
+  end
+
 
   method_info = "Metoda: $(pca_method_params[:method])"
   if pca_method_params[:method] == :kernel
@@ -459,8 +510,21 @@ function visualize_pca_static_grid(
   indices_to_plot = unique(round.(Int, range(1, stop=total_steps, length=num_plots)))
 
   plots_array = []
-  all_pc1 = vcat([res.transformed_data[:, 1] for res in pca_results]...)
-  all_pc2 = vcat([res.transformed_data[:, 2] for res in pca_results]...)
+
+  # Globalne limity osi
+  all_pc1 = try
+    vcat([res.transformed_data[:, 1] for res in pca_results]...)
+  catch e
+    println("Błąd przy zbieraniu PC1: $e. Przerywanie wizualizacji.")
+    return
+  end
+
+  all_pc2 = try
+    vcat([res.transformed_data[:, 2] for res in pca_results]...)
+  catch e
+    println("Błąd przy zbieraniu PC2: $e. Przerywanie wizualizacji.")
+    return
+  end
 
   min_pc1, max_pc1 = minimum(all_pc1), maximum(all_pc1)
   min_pc2, max_pc2 = minimum(all_pc2), maximum(all_pc2)
@@ -476,13 +540,24 @@ function visualize_pca_static_grid(
 
   for idx in indices_to_plot
     result = pca_results[idx]
+
+    # Sprawdzenie, czy liczba temperatur pasuje do liczby punktów danych
+    if length(initial_temps) != size(result.transformed_data, 1)
+      @warn "Niezgodność liczby punktów danych i temperatur dla tau=$(result.tau). Używam domyślnego koloru."
+      marker_z_data = nothing
+      color_data = :blue
+    else
+      marker_z_data = initial_temps
+      color_data = :plasma
+    end
+
     current_tau = result.tau
     total_explained_var = sum(result.explained_variance_ratio) * 100
 
     p = scatter(
       result.transformed_data[:, 1],
       result.transformed_data[:, 2],
-      marker_z=initial_temps,
+      marker_z=marker_z_data,
       title="τ = $(round(current_tau, digits=2)) fm/c (Var: $(round(total_explained_var, digits=1))%)",
       xlabel="PC 1",
       ylabel="PC 2",
@@ -491,8 +566,8 @@ function visualize_pca_static_grid(
       ylims=global_ylims,
       markersize=4,
       alpha=0.8,
-      color=:plasma,
-      colorbar=false,
+      color=color_data,
+      colorbar=(marker_z_data !== nothing), # Pokaż colorbar tylko jeśli mamy dane
       legend=false
     )
     push!(plots_array, p)
@@ -506,7 +581,7 @@ function visualize_pca_static_grid(
   final_grid = plot(plots_array...,
     layout=(layout_rows, layout_cols),
     plot_title=settings_info,
-    size=(350 * layout_cols, 300 * layout_rows)
+    size=(350 * layout_cols, 350 * layout_rows) # Zwiększono wysokość dla colorbar
   )
 
   mkpath("plots")
@@ -514,7 +589,6 @@ function visualize_pca_static_grid(
   savefig(final_grid, joinpath("plots", filename))
   println("Saved plot to: $(joinpath("plots", filename))")
 end
-
 
 function plot_loadings_evolution(
   pca_results::Vector{PCAResultAtTime},
@@ -524,12 +598,20 @@ function plot_loadings_evolution(
 )
 
   if isempty(pca_results) || pca_method_params[:method] == :kernel
-    println("EVR NIE DZIAŁA DLA KERNEL.")
+    println("Wykres 'loadings' nie jest dostępny dla Kernel PCA.")
     return
   end
 
   taus = [res.tau for res in pca_results]
+
+  # Sprawdzenie wymiarów
+  n_features_expected = length(selected_feature_names)
   n_features, n_components = size(pca_results[1].principal_components)
+
+  if n_features != n_features_expected
+    @warn "Niezgodność liczby cech w wynikach PCA ($n_features) i na liście nazw ($n_features_expected). Pomijanie wykresu ładunków."
+    return
+  end
 
   method_info = "Metoda: $(pca_method_params[:method])"
   main_title_info = "Plik: $(basename(source_file)) | $method_info"
@@ -558,8 +640,107 @@ function plot_loadings_evolution(
     println("Saved plot to: $(joinpath("plots", filename))")
   end
 
-  println("✅ Wykresy  gotowe. Uwaga: Nagłe 'odbicia lustrzane' (zmiany znaku)")
+  println("✅ Wykresy ładunków gotowe. Uwaga: Nagłe 'odbicia lustrzane' (zmiany znaku) są normalne.")
 end
+
+function run_pca_at_time(
+  filepath::String,
+  tau::Float64;
+  feature_names::Vector{String},
+  n_components::Int,
+  pca_method_params::Dict
+)
+  method = pca_method_params[:method]
+  println("\n--- Uruchamianie analizy PCA z pliku dla τ = $tau fm/c ---")
+  println("Wybrana metoda: $method")
+
+  local data_matrix::Matrix{Float64}
+
+  try
+    if !(endswith(filepath, ".csv") || endswith(filepath, ".h5"))
+      println("Błąd: Nieobsługiwany format pliku. Użyj .csv lub .h5")
+      return nothing
+    end
+
+    println("Wczytywanie pliku: $filepath ...")
+
+    local df_tau::DataFrame
+    if endswith(filepath, ".csv")
+      df_all = CSV.read(filepath, DataFrame)
+      df_tau = filter(row -> isapprox(row.tau, tau), df_all)
+    elseif endswith(filepath, ".h5")
+      println("Tryb HDF5: Wczytywanie...")
+      df_h5 = h5open(filepath, "r") do file
+        all_feature_names = unique(vcat(feature_names, "tau"))
+        data_cols = []
+        col_names = []
+        for name in all_feature_names
+          if haskey(file, name)
+            push!(data_cols, read(file[name]))
+            push!(col_names, name)
+          else
+            println("Błąd: Brakdatasetu '$name' w pliku HDF5.")
+            return nothing
+          end
+        end
+        DataFrame(data_cols, col_names)
+      end
+
+      if isnothing(df_h5)
+        return nothing
+      end
+
+      df_tau = filter(row -> isapprox(row.tau, tau), df_h5)
+    end
+
+    if isempty(df_tau)
+      println("Błąd: Nie znaleziono w pliku żadnych danych dla τ ≈ $tau.")
+      return nothing
+    end
+
+    println("Znaleziono $(nrow(df_tau)) próbek dla τ ≈ $tau.")
+
+    data_matrix = Matrix(df_tau[!, feature_names])
+
+  catch e
+    println("Błąd podczas wczytywania lub filtrowania danych: $e")
+    println("Upewnij się, że plik istnieje i zawiera kolumnę 'tau' (lub dataset) oraz cechy: $feature_names")
+    return nothing
+  end
+
+  valid_mask = vec(all(isfinite, data_matrix, dims=2))
+  if size(unique(data_matrix[valid_mask, :], dims=1), 1) < n_components
+    println("\nOstrzeżenie: Zbyt mało unikalnych/prawidłowych danych w czasie τ=$tau. Nie można wykonać PCA.")
+    return nothing
+  end
+
+  filtered_matrix = data_matrix[valid_mask, :]
+  if size(filtered_matrix, 1) < n_components
+    println("\nOstrzeżenie: Po filtrowaniu zostało zbyt mało danych ($size(filtered_matrix, 1)) w czasie τ=$tau.")
+    return nothing
+  end
+
+
+  local transformed_data, explained_ratio, components
+  try
+    if method == :kernel
+      gamma = pca_method_params[:gamma]
+      transformed_data, explained_ratio, components = kernel_pca(filtered_matrix, n_components, gamma=gamma)
+    else
+      transformed_data, explained_ratio, components = linear_pca(filtered_matrix, n_components, mode=method)
+    end
+
+
+    println("Analiza PCA dla τ=$tau zakończona pomyślnie.")
+    return PCAResultAtTime(tau, transformed_data, explained_ratio, components)
+
+  catch e
+    println("\nBłąd podczas przetwarzania PCA w czasie τ=$tau. Błąd: $e")
+    return nothing
+  end
+end
+
+
 
 function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::String)
   println("--- Uruchamianie pełnego przepływu pracy analizy PCA ---")
@@ -570,12 +751,16 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
 
   if selected_method == :kernel
     tau_sample = sim_result.settings.tspan[1]
-    sample_data = hcat([modHydroSim.TA(sim_result, tau_sample)[i] for i in feature_indices]...)
-    kernel_params = prompt_for_kernel_parameters(sample_data)
+    all_data_vectors = modHydroSim.TA(sim_result, tau_sample)
+    sample_data = hcat([all_data_vectors[i] for i in feature_indices]...)
+    valid_mask = vec(all(isfinite, sample_data, dims=2))
+
+    kernel_params = prompt_for_kernel_parameters(sample_data[valid_mask, :])
     merge!(pca_params, kernel_params)
   end
 
-  n_pca_steps = 50
+  num_plots_to_generate = prompt_for_plot_count()
+  n_pca_steps = 10
   n_components = 2
 
   pca_results = calc_pca(
@@ -587,9 +772,21 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
   )
 
   if isempty(pca_results)
-    println("\nBłąd: Nie udało się wygenerować wyników PCA. Przerywanie pracy.")
+    println("\nBłąd: Nie udało się wygenerować żadnych wyników PCA. Przerywanie pracy.")
     return
   end
+
+  # Zapisz wyniki przed generowaniem wykresów
+  filename_base = generate_output_filename_base(ic_filepath, sim_result.settings.theory, selected_feature_names)
+  save_pca_results(
+    filename_base,
+    pca_results,
+    sim_result,
+    selected_feature_names,
+    ic_filepath,
+    pca_params
+  )
+
   plot_explained_variance_evolution(
     pca_results;
     source_file=ic_filepath,
@@ -612,14 +809,9 @@ function run_full_pca_analysis(sim_result::modHydroSim.SimResult, ic_filepath::S
     pca_method_params=pca_params
   )
 
-  println("\n--- Zakończono przepływ pracy PCA ---")
+  println("\n--- Zakończono prace funkcji run_full_pca_analysis  ---")
 end
 
-
-"""
-Główna funkcja orkiestrująca, która wczytuje dane i ustawienia z pliku,
-uruchamia symulację, a następnie pełną analizę PCA.
-"""
 function run_pca_workflow_from_file(ic_filepath::String)
   println("="^60)
   println(" Rozpoczynanie analizy PCA z pliku: $ic_filepath")
@@ -633,3 +825,4 @@ function run_pca_workflow_from_file(ic_filepath::String)
 end
 
 end
+
