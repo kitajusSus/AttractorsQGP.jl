@@ -24,6 +24,7 @@ using CSV
 using DataFrames
 using HDF5
 using Dates
+using Printf
 
 # --- Początek modułu ---
 module modHydroSim
@@ -36,7 +37,7 @@ using CSV
 using DataFrames
 using HDF5
 using Dates
-
+using Printf
 # --- Publiczny interfejs modułu ---
 export AbstractHydroParams,
     BRSSSParams,
@@ -683,7 +684,7 @@ function run_all_theories(ic_file::String; tspan=(0.2, 1.2))
 end
 
 """
-Tworzy prosty wykres w przestrzeni fazowej (τ₀T, τ₀Ṫ).
+Tworzy prosty wykres w przestrzeni fazowej (τ₀T, τ₀^2Ṫ).
 """
 function wykres_fazowy(simres::SimResult; tau::Float64=0.5, markersize::Int=3)
     settings = simres.settings
@@ -709,8 +710,8 @@ function wykres_fazowy(simres::SimResult; tau::Float64=0.5, markersize::Int=3)
             continue
         end
 
-        push!(tau0_T_points, 0.22 * T_at_tau)
-        push!(tau0_T_dot_points, 0.22^2 * T_dot_at_tau)
+        push!(tau0_T_points, tau_0[0] * T_at_tau)
+        push!(tau0_T_dot_points, tau_0[0]^2T_dot_at_tau)
     end
 
     p = scatter(
@@ -727,11 +728,93 @@ function wykres_fazowy(simres::SimResult; tau::Float64=0.5, markersize::Int=3)
 
     mkpath(PLOTS_DIR)
     filename = "wykres_fazowy_$(settings.theory)_tau_$(round(tau, digits=2)).png"
-    savefig(p, joinpath(PLOTS_DIR, filename))
+    # savefig(p, joinpath(PLOTS_DIR, filename))
+    display(p)
     println("Saved phase space plot to: $(joinpath(PLOTS_DIR, filename))")
 
     return p
 end
+
+
+function test(
+    df::DataFrame;
+    output_gif::String="phase_space_animation.gif",
+    fps::Int=20,
+    xlims::Tuple{Float64,Float64}=(maximum(df.T), 800.0),
+    ylims::Tuple{Float64,Float64}=(-1.5, 5.5)
+)
+    println("\n" * "="^60)
+    println(" Tworzenie animacji z DataFrame")
+    println("="^60)
+
+    df_cols = Symbol.(names(df))
+    unique_taus = sort(unique(df.tau))
+    n_frames = length(unique_taus)
+    println("Znaleziono $n_frames unikalnych kroków czasowych do animacji.")
+
+    grouped_data = groupby(df, :Run_ID)
+
+    println("Rozpoczynam generowanie animacji...")
+    theme(:dark)
+
+    anim = @animate for (i, τ_current) in enumerate(unique_taus)
+        print("\rGenerowanie klatki $i / $n_frames (τ = $(round(τ_current, digits=2)))")
+        p = plot(
+            title=@sprintf("Ewolucja do atraktora (τ = %.2f fm/c)", τ_current),
+            xlabel="τ dotT",
+            ylabel="tau T",
+            xlims=xlims,
+            ylims=ylims,
+            legend=false,
+            framestyle=:box,
+            size=(1200, 1200)
+        )
+
+        # for group in grouped_data
+        #     path_data = filter(row -> row.tau <= τ_current, group)
+        #     if nrow(path_data) > 1
+        #         line_color_value = path_data.T_0[1]
+        #         plot!(p, path_data.T_at_tau, path_data.A_at_tau,
+        #             linewidth=1,
+        #             alpha=0.6,
+        #             line_z=fill(line_color_value, nrow(path_data)),
+        #             c=:plasma,
+        #             label=""
+        #         )
+        #     end
+        # end
+        #
+        head_data = filter(row -> row.tau == τ_current, df)
+        if !isempty(head_data)
+            scatter!(p, head_data.T_at_tau, head_data.A_at_tau,
+                markersize=2.5,
+                markerstrokewidth=0,
+                zcolor=head_data.T_0,
+                c=:plasma,
+                colorbar_title="\n  T₀ [MeV]",
+                label=""
+            )
+        end
+        if isapprox(τ_current, 0.515, atol=0.01)
+            println("pokazuje sztuczke, wyswietlanie wyrkesu Kliknij enter by kontynuować ")
+            display(p)
+
+            readline()
+        end
+
+        p
+    end
+    println("\n\nZapisywanie animacji do pliku '$output_gif'...")
+    mkpath(PLOTS_DIR)
+    output_path = joinpath(PLOTS_DIR, output_gif)
+    gif(anim, output_path, fps=fps)
+
+    println("✅ Gotowe! Animacja: $output_path")
+    println("="^60)
+
+    return output_path
+end
+
 
 
 

@@ -12,7 +12,14 @@ using HDF5
 using Dates
 using MultivariateStats
 
-export run_full_pca_analysis, visualize_pca_from_file, run_pca_workflow_from_file, run_pca_at_time, run_SpalHel
+export run_full_pca_analysis,
+  visualize_pca_from_file,
+  run_pca_workflow_from_file,
+  run_pca_at_time,
+  run_SpalHel, generate_trajectory_data,
+  run_trajectory_animation
+
+
 
 struct PCAResultAtTime
   tau::Float64
@@ -790,5 +797,90 @@ function run_SpalHel(ic_filepath::String; tau_list::Vector{Float64}=[0.3, 0.4, 0
 end
 
 
+function generate_trajectory_data(
+  ic_filepath::String;
+  n_time_steps::Int=50
+)
+  println("+"^60)
+  println(" Generowanie danych trajektorii z pliku: $ic_filepath")
+  println("+"^60)
 
+  settings = modHydroSim.load_settings(ic_filepath)
+  sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
+
+  println("\n--- Ekstrakcja danych trajektorii ---")
+
+  tspan = settings.tspan
+  time_points = range(tspan[1], stop=tspan[2], length=n_time_steps)
+
+  rows = []
+  for sol in sim_result.solutions
+    run_id = findfirst(x -> x === sol, sim_result.solutions)
+    T_0 = sol.u[1][1] / modHydroSim.MeV  # Temperatura początkowa w MeV
+    A_0 = sol.u[1][2]                     # Anizotropia początkowa
+
+    for t in time_points
+      if t >= sol.t[1] && t <= sol.t[end]
+        state = sol(t)
+        T_at_t = state[1] / modHydroSim.MeV
+        A_at_t = state[2]
+
+        push!(rows, (
+          tau=t,
+          Run_ID=run_id,
+          T_0=T_0,
+          A_0=A_0,
+          T_at_tau=T_at_t,
+          A_at_tau=A_at_t
+        ))
+      end
+    end
+  end
+
+  df = DataFrame(rows)
+  println("✅ Wygenerowano dane trajektorii w pamięci")
+  println("✅ Liczba trajektorii: $(length(unique(df.Run_ID)))")
+  println("✅ Liczba kroków czasowych: $(length(unique(df.tau)))")
+
+  return df
+end
+
+
+function run_trajectory_animation(
+  ic_filepath::String;
+  output_gif::String="trajectory_animation.gif",
+  n_time_steps::Int=25,
+  fps::Int=5,
+  xlims::Union{Nothing,Tuple{Float64,Float64}}=nothing,
+  ylims::Union{Nothing,Tuple{Float64,Float64}}=nothing
+)
+  println("+"^60)
+  println(" WORKFLOW ANIMACJI TRAJEKTORII")
+  println("+"^60)
+
+  df = generate_trajectory_data(
+    ic_filepath,
+    n_time_steps=n_time_steps
+  )
+
+  if xlims === nothing
+    xlims = (minimum(df.T_0) * 1.02, maximum(df.T_0) * 1.02)
+  end
+  if ylims === nothing
+    ylims = (minimum(df.T_at_tau) * 1.01, maximum(df.T_at_tau) * 1.02)
+  end
+
+  println("\n--- Generowanie animacji ---")
+  modHydroSim.test(
+    df;
+    output_gif=output_gif,
+    fps=fps,
+    xlims=xlims,
+    ylims=ylims
+  )
+
+  println("\n✅ Zakończono workflow animacji trajektorii")
+
+  return df
+end
 end
