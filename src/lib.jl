@@ -21,6 +21,7 @@ using Random
 using Distributions
 using Plots
 using CSV
+using LaTeXStrings
 using DataFrames
 using HDF5
 using Dates
@@ -33,6 +34,8 @@ using DifferentialEquations
 using Random
 using Distributions
 using Plots
+gr()
+using LaTeXStrings
 using CSV
 using DataFrames
 using HDF5
@@ -60,15 +63,24 @@ export AbstractHydroParams,
     wykres,
     run_all_theories,
     wykres_Aw,
-    wykres_fazowy
-
+    wykres_fazowy,
+    NAMESPACES,
+    Namespaces
 # --- Definitions ---
 const fm = 1.0       #  1 fm
 const MeV = 1 / (197.0 * fm)
 const PLOTS_DIR = "plots"
 
-# --- SECTION 1 --
 
+struct Namespaces
+    datasets::String
+    plots_tex::String
+    plots::String
+    label::String
+end
+const NAMESPACES = Namespaces("datasets", "plots_tex", "plots", "Eksperyment_1")
+
+# --- SECTION 1 --
 abstract type AbstractHydroParams end
 
 
@@ -421,14 +433,14 @@ function kadr(simres::SimResult, t::Float64)
     )
     scatter!(p, Ts_MeV, As, markersize=2, markerstrokewidth=0, alpha=0.7)
 
-    mkpath(PLOTS_DIR)
-    filename = "kadr_$(simres.settings.theory)_tau_$(τ_str).png"
+    mkpath(NAMESPACES.plots)
+    filename = "$(NAMESPACES.label)_kadr_$(simres.settings.theory)_tau_$(τ_str).png"
     savefig(p, joinpath(PLOTS_DIR, filename))
     println("Saved plot to: $(joinpath(PLOTS_DIR, filename))")
 end
 
 
-function wykres(simres::SimResult; lw=1.5, size=(1920, 1080), color_min=-12.0)
+function wykres(simres::SimResult; lw=1.5, size=(1200, 1080), color_min=-12.0)
     settings = simres.settings
     color_max = settings.A_range[2]
 
@@ -457,7 +469,7 @@ function wykres(simres::SimResult; lw=1.5, size=(1920, 1080), color_min=-12.0)
     end
 
     mkpath(PLOTS_DIR)
-    filename = "ewolucja_A_tau_$(settings.theory).png"
+    filename = "$(NAMESPACES.label)_ewolucja_A_tau_$(settings.theory).png"
     savefig(p, joinpath(PLOTS_DIR, filename))
     println("Saved plot to: $(joinpath(PLOTS_DIR, filename))")
 end
@@ -710,24 +722,24 @@ function wykres_fazowy(simres::SimResult; tau::Float64=0.5, markersize::Int=3)
             continue
         end
 
-        push!(tau0_T_points, tau_0[0] * T_at_tau)
-        push!(tau0_T_dot_points, tau_0[0]^2T_dot_at_tau)
+        push!(tau0_T_points, tau_0 * T_at_tau)
+        push!(tau0_T_dot_points, tau_0^2 * T_dot_at_tau)
     end
 
     p = scatter(
         tau0_T_points,
         tau0_T_dot_points,
         title="Phase space (τ₀T, τ₀^2Ṫ) at τ = $(round(tau, digits=2)) fm/c [$(settings.theory)]",
-        xlabel="τ₀T",
-        ylabel="τ₀2Ṫ",
+        xlab=L"τ₀T",
+        ylab=L"τ₀^2Ṫ",
         markersize=markersize,
         alpha=0.6,
         legend=false,
         color=:viridis
     )
 
-    mkpath(PLOTS_DIR)
-    filename = "wykres_fazowy_$(settings.theory)_tau_$(round(tau, digits=2)).png"
+    mkpath(NAMESPACES.plots)
+    filename = "$(NAMESPACES.label)_wykres_fazowy_$(settings.theory)_tau_$(round(tau, digits=2)).png"
     # savefig(p, joinpath(PLOTS_DIR, filename))
     display(p)
     println("Saved phase space plot to: $(joinpath(PLOTS_DIR, filename))")
@@ -740,8 +752,8 @@ function test(
     df::DataFrame;
     output_gif::String="phase_space_animation.gif",
     fps::Int=20,
-    xlims::Tuple{Float64,Float64}=(maximum(df.T), 800.0),
-    ylims::Tuple{Float64,Float64}=(-1.5, 5.5)
+    xlims::Tuple{Float64,Float64}=nothing,
+    ylims::Tuple{Float64,Float64}=nothing
 )
     println("\n" * "="^60)
     println(" Tworzenie animacji z DataFrame")
@@ -755,19 +767,30 @@ function test(
     grouped_data = groupby(df, :Run_ID)
 
     println("Rozpoczynam generowanie animacji...")
-    theme(:dark)
+    theme(:wong)
+    println("Podaj wartości τ, dla których chcesz zatrzymać animację (np. 0.2 0.5 1.0):")
+    input_line = readline()
+
+    tau_snapshots = try
+        parse.(Float64, split(input_line, keepempty=false))
+    catch e
+        println("Błędne wejście. Nie będą wyświetlane żadne dodatkowe wykresy. (Błąd: $e)")
+        Float64[]
+    end
+
+    println("OK. Wykresy zostaną wyświetlone dla τ ≈ $tau_snapshots")
+
+
 
     anim = @animate for (i, τ_current) in enumerate(unique_taus)
         print("\rGenerowanie klatki $i / $n_frames (τ = $(round(τ_current, digits=2)))")
         p = plot(
             title=@sprintf("Ewolucja do atraktora (τ = %.2f fm/c)", τ_current),
-            xlabel="τ dotT",
-            ylabel="tau T",
+            xlab=L"\tau T",
+            ylab=L"\tau^2  \dot{T}",
             xlims=xlims,
             ylims=ylims,
             legend=false,
-            framestyle=:box,
-            size=(1200, 1200)
         )
 
         # for group in grouped_data
@@ -784,31 +807,33 @@ function test(
         #     end
         # end
         #
+
         head_data = filter(row -> row.tau == τ_current, df)
         if !isempty(head_data)
             scatter!(p, head_data.T_at_tau, head_data.A_at_tau,
                 markersize=2.5,
                 markerstrokewidth=0,
-                zcolor=head_data.T_0,
-                c=:plasma,
-                colorbar_title="\n  T₀ [MeV]",
+                zcolor=head_data.T_0,      # Dane do kolorowania
+                c=:plasma,                 # Użyj palety :plasma (zamiast :blue)
+                colorbar_title=L"\n  T₀ [MeV]",
                 label=""
             )
         end
-        if isapprox(τ_current, 0.515, atol=0.01)
-            println("pokazuje sztuczke, wyswietlanie wyrkesu Kliknij enter by kontynuować ")
-            display(p)
 
-            readline()
+        if any(τ_snap -> isapprox(τ_current, τ_snap, atol=0.02), tau_snapshots)
+            println("\nZatrzymano na wybranej wartości τ ≈ $(round(τ_current, digits=2)). Kliknij Enter, by kontynuować...")
+
+            png(p, joinpath(NAMESPACES.plots, "$(τ_current)_wykres.png"))
         end
 
-        p
+
+
+
     end
     println("\n\nZapisywanie animacji do pliku '$output_gif'...")
-    mkpath(PLOTS_DIR)
-    output_path = joinpath(PLOTS_DIR, output_gif)
+    mkpath(NAMESPACES.plots)
+    output_path = joinpath(NAMESPACES.plots, output_gif)
     gif(anim, output_path, fps=fps)
-
     println("✅ Gotowe! Animacja: $output_path")
     println("="^60)
 

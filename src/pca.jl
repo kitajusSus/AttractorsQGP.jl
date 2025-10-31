@@ -4,10 +4,17 @@ module PCAWorkflow
 
 using ..modHydroSim
 using Plots
+gr()
+
+# using PlotlyJS
+# plotlyjs()
+#
+# theme(thm=:vibrant)
 using Statistics
 using LinearAlgebra
 using DataFrames
 using CSV
+using LaTeXStrings
 using HDF5
 using Dates
 using MultivariateStats
@@ -18,6 +25,10 @@ export run_full_pca_analysis,
   run_pca_at_time,
   run_SpalHel, generate_trajectory_data,
   run_trajectory_animation
+
+#  localizacje folderów
+#
+
 
 
 
@@ -57,19 +68,15 @@ function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standar
     error("Nieznany tryb skalowania liniowego: $mode")
   end
 
-  # Przekazujemy X_scaled' (features x samples) zgodnie z oczekiwaniami MultivariateStats
+  # Przekazuje X_scaled' (features x samples) zgodnie z oczekiwaniami MultivariateStats
   X_transposed = X_scaled'
 
-  # Nowa składnia dla MultivariateStats.jl (wersja 0.10+)
   M_linear = fit(PCA, X_transposed; maxoutdim=n_components, pratio=1.0)
 
-  # Transformacja danych
   transformed_data = MultivariateStats.transform(M_linear, X_transposed)'
 
-  # Proporcje wyjaśnionej wariancji
   explained_variance_ratio = principalvars(M_linear) ./ var(M_linear)
 
-  # Główne składowe (loadings)
   projection_matrix = projection(M_linear)
 
   return transformed_data, explained_variance_ratio, projection_matrix
@@ -82,12 +89,10 @@ function kernel_pca(X::Matrix{Float64}, n_components::Int; gamma::Float64)
 
   kpca_kernel = (x, y) -> exp(-gamma * norm(x - y)^2.0)
 
-  # Nowa składnia dla KernelPCA
   M_kernel = fit(KernelPCA, X_transposed; kernel=kpca_kernel, maxoutdim=n_components)
 
   transformed_data = MultivariateStats.transform(M_kernel, X_transposed)'
 
-  # Ręczne obliczenie proporcji wariancji
   all_eigenvalues = eigvals(M_kernel)
   total_variance = sum(all_eigenvalues)
 
@@ -774,7 +779,7 @@ end
 
 
 """
-Uruchamia symulację i tworzy wykres fazowy w stylu Spalińskiego-Hellera.
+Uruchamia symulację i tworzy wykres fazowy w stylu
 """
 function run_SpalHel(ic_filepath::String; tau_list::Vector{Float64}=[0.3, 0.4, 0.5])
   println("+"^60)
@@ -801,7 +806,7 @@ function generate_trajectory_data(
   ic_filepath::String;
   n_time_steps::Int=50
 )
-  println("+"^60)
+  println("function generate_trajectory_data")
   println(" Generowanie danych trajektorii z pliku: $ic_filepath")
   println("+"^60)
 
@@ -883,4 +888,7 @@ function run_trajectory_animation(
 
   return df
 end
-end
+
+
+
+end # skibiidi
