@@ -785,12 +785,12 @@ function test(
     anim = @animate for (i, τ_current) in enumerate(unique_taus)
         print("\rGenerowanie klatki $i / $n_frames (τ = $(round(τ_current, digits=2)))")
         p = plot(
-            title=@sprintf("Ewolucja do atraktora (τ = %.2f fm/c)", τ_current),
-            xlab=L"\tau T",
-            ylab=L"\tau^2  \dot{T}",
+            # title=@sprintf("Ewolucja (τ = %.2f fm/c)", τ_current),
+            xlab=L"\tau_0 T ",
+            ylab=L"\tau_{0}^2  \dot{T}",
             xlims=xlims,
             ylims=ylims,
-            legend=false,
+            legend=false
         )
 
         # for group in grouped_data
@@ -810,7 +810,7 @@ function test(
 
         head_data = filter(row -> row.tau == τ_current, df)
         if !isempty(head_data)
-            scatter!(p, head_data.T_at_tau, head_data.A_at_tau,
+            scatter!(p, head_data.T_at_tau, head_data.dT_dtau,
                 markersize=2.5,
                 markerstrokewidth=0,
                 zcolor=head_data.T_0,      # Dane do kolorowania
@@ -821,8 +821,10 @@ function test(
         end
 
         if any(τ_snap -> isapprox(τ_current, τ_snap, atol=0.02), tau_snapshots)
+
             println("\nZatrzymano na wybranej wartości τ ≈ $(round(τ_current, digits=2)). Kliknij Enter, by kontynuować...")
 
+            display(p)
             png(p, joinpath(NAMESPACES.plots, "$(τ_current)_wykres.png"))
         end
 

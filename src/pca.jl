@@ -26,9 +26,6 @@ export run_full_pca_analysis,
   run_SpalHel, generate_trajectory_data,
   run_trajectory_animation
 
-#  localizacje folderów
-#
-
 
 
 
@@ -824,11 +821,19 @@ function generate_trajectory_data(
     T_0 = sol.u[1][1] / modHydroSim.MeV  # Temperatura początkowa w MeV
     A_0 = sol.u[1][2]                     # Anizotropia początkowa
 
+
+
+
     for t in time_points
       if t >= sol.t[1] && t <= sol.t[end]
         state = sol(t)
         T_at_t = state[1] / modHydroSim.MeV
         A_at_t = state[2]
+
+        derivatives = sol(t, Val{1})
+
+        dT_dtau = derivatives[1] / modHydroSim.MeV
+        dA_dtau = derivatives[2]
 
         push!(rows, (
           tau=t,
@@ -836,20 +841,22 @@ function generate_trajectory_data(
           T_0=T_0,
           A_0=A_0,
           T_at_tau=T_at_t,
-          A_at_tau=A_at_t
-        ))
+          A_at_tau=A_at_t,
+          dT_dtau=dT_dtau,
+          dA_dtau=dA_dtau
+        )
+        )
       end
     end
+
+    df = DataFrame(rows)
+    println("✅ Wygenerowano dane trajektorii w pamięci")
+    println("✅ Liczba trajektorii: $(length(unique(df.Run_ID)))")
+    println("✅ Liczba kroków czasowych: $(length(unique(df.tau)))")
+
+    return df
   end
-
-  df = DataFrame(rows)
-  println("✅ Wygenerowano dane trajektorii w pamięci")
-  println("✅ Liczba trajektorii: $(length(unique(df.Run_ID)))")
-  println("✅ Liczba kroków czasowych: $(length(unique(df.tau)))")
-
-  return df
 end
-
 
 function run_trajectory_animation(
   ic_filepath::String;
@@ -869,10 +876,10 @@ function run_trajectory_animation(
   )
 
   if xlims === nothing
-    xlims = (minimum(df.T_0) * 1.02, maximum(df.T_0) * 1.02)
+    xlims = (minimum(df.T_at_tau) * 1.02, maximum(df.T_at_tau) * 1.02)
   end
   if ylims === nothing
-    ylims = (minimum(df.T_at_tau) * 1.01, maximum(df.T_at_tau) * 1.02)
+    ylims = (minimum(df.dT_dtau) * 1.01, maximum(df.dT_dtau) * 1.02)
   end
 
   println("\n--- Generowanie animacji ---")
@@ -891,4 +898,9 @@ end
 
 
 
-end # skibiidi
+
+end # end of module
+
+
+
+
