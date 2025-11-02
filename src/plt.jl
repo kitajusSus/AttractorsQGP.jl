@@ -187,8 +187,8 @@ function test_animation(
     df::DataFrame;
     output_gif::String="phase_space_animation.gif",
     fps::Int=20,
-    xlims::Tuple{Float64,Float64},
-    ylims::Tuple{Float64,Float64}
+    xlims::Tuple{Float64,Float64}=nothing,
+    ylims::Tuple{Float64,Float64}=nothing
 )
     println("\n" * "="^60)
     println(" Tworzenie animacji z DataFrame")
@@ -216,30 +216,24 @@ function test_animation(
 
     println("OK. Wykresy zostaną wyświetlone dla τ ≈ $tau_snapshots")
 
-    tau_0 = unique_taus[1]
+
+
     anim = @animate for (i, τ_current) in enumerate(unique_taus)
         print("\rGenerowanie klatki $i / $n_frames (τ = $(round(τ_current, digits=2)))")
-
-
-        head_data = filter(row -> row.tau == τ_current, df)
-        T_points = head_data.T * tau_0
-        dT_points = head_data.dTdtau * tau_0^2
-
         p = plot(
-            xlab=L"\tau_{0} T",
-            ylab=L"\tau_{0}^{2} \dot{T} \quad [dT/d\tau]",
+            xlab=L"\tau_0 T",
+            ylab=L"\tau_0^2 \dot{T}",
             xlims=xlims,
             ylims=ylims,
             legend=false
         )
 
-
-
+        head_data = filter(row -> row.tau == τ_current, df)
         if !isempty(head_data)
-            scatter!(p, T_points, dT_points,
+            scatter!(p, head_data.plot_x_axis, head_data.plot_y_axis,
                 markersize=2.5,
                 markerstrokewidth=0,
-                zcolor=head_data.T_0 ./ modHydroSim.MeV, # Konwertuj T_0 do MeV dla legendy
+                zcolor=head_data.T_0_MeV,
                 c=:plasma,
                 colorbar_title=L"\n T₀ [MeV]",
                 label=""

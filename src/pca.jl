@@ -617,7 +617,6 @@ function generate_trajectory_data(
   println("\n--- Ekstrakcja danych trajektorii ---")
 
   tspan = settings.tspan
-  tau_0 = settings.tspan[1]
   time_points = range(tspan[1], stop=tspan[2], length=n_time_steps)
 
   rows = []
@@ -682,12 +681,12 @@ function run_trajectory_animation(
   tau_0 = settings.tspan[1]
 
   df_scaled_for_plot = DataFrame(
-      tau = df_raw.tau,
-      Run_ID = df_raw.Run_ID,
-      T_0_MeV = df_raw.T_0 ./ modHydroSim.MeV,
-      A_0 = df_raw.A_0,
-      plot_x_axis = tau_0 .* df_raw.T,
-      plot_y_axis = (tau_0^2) .* df_raw.dTdtau
+    tau=df_raw.tau,
+    Run_ID=df_raw.Run_ID,
+    T_0_MeV=df_raw.T_0 ./ modHydroSim.MeV,
+    A_0=df_raw.A_0,
+    plot_x_axis=tau_0 .* df_raw.T,
+    plot_y_axis=(tau_0^2) .* df_raw.dTdtau
   )
 
   auto_xlims = if xlims === nothing && !isempty(df_scaled_for_plot.plot_x_axis)
@@ -717,7 +716,7 @@ function run_trajectory_animation(
     output_gif=output_gif,
     fps=fps,
     xlims=auto_xlims,
-    ylims=auto_ylims
+    ylims=(-2.0, 2.0)
   )
 
   println("\n✅ Zakończono
@@ -728,4 +727,4 @@ end
 
 end
 
-end
+
