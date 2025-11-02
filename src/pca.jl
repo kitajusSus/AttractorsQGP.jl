@@ -673,39 +673,59 @@ function run_trajectory_animation(
   println(" WORKFLOW ANIMACJI TRAJEKTORII")
   println("+"^60)
 
-  df = generate_trajectory_data(
+  df_raw = generate_trajectory_data(
     ic_filepath,
     n_time_steps=n_time_steps
   )
 
-  tau_initialization = df.tau[1]
+  settings = modHydroSim.load_settings(ic_filepath)
+  tau_0 = settings.tspan[1]
 
-  if xlims === nothing && !isempty(df.T)
-    xlims = (minimum(df.T .* tau_initialization) * 1.02, maximum(df.T .* tau_initialization) * 1.02)
-  elseif isempty(df.T)
-    xlims = (0.0, 1.0)
+  df_scaled_for_plot = DataFrame(
+      tau = df_raw.tau,
+      Run_ID = df_raw.Run_ID,
+      T_0_MeV = df_raw.T_0 ./ modHydroSim.MeV,
+      A_0 = df_raw.A_0,
+      plot_x_axis = tau_0 .* df_raw.T,
+      plot_y_axis = (tau_0^2) .* df_raw.dTdtau
+  )
+
+  auto_xlims = if xlims === nothing && !isempty(df_scaled_for_plot.plot_x_axis)
+    min_x, max_x = minimum(df_scaled_for_plot.plot_x_axis), maximum(df_scaled_for_plot.plot_x_axis)
+    padding_x = (max_x - min_x) * 0.05
+    (min_x - padding_x, max_x + padding_x)
+  elseif isempty(df_scaled_for_plot.plot_x_axis)
+    (0.0, 1.0)
+  else
+    xlims
   end
 
-  if ylims === nothing && !isempty(df.dTdtau)
-    ylims = (minimum(df.dTdtau .* tau_initialization^2) * 1.01, maximum(df.dTdtau .* tau_initialization^2) * 1.02)
-  elseif isempty(df.dTdtau)
-    ylims = (0.0, 1.0)
+  auto_ylims = if ylims === nothing && !isempty(df_scaled_for_plot.plot_y_axis)
+    min_y, max_y = minimum(df_scaled_for_plot.plot_y_axis), maximum(df_scaled_for_plot.plot_y_axis)
+    padding_y = (max_y - min_y) * 0.05
+    (min_y - padding_y, max_y + padding_y)
+  elseif isempty(df_scaled_for_plot.plot_y_axis)
+    (0.0, 1.0)
+  else
+    ylims
   end
 
 
   println("\n--- Generowanie animacji ---")
   modPlots.test_animation(
-    df;
+    df_scaled_for_plot;
     output_gif=output_gif,
     fps=fps,
-    xlims=xlims,
-    ylims=ylims
+    xlims=auto_xlims,
+    ylims=auto_ylims
   )
 
   println("\n✅ Zakończono
  workflow animacji trajektorii")
 
-  return df
+  return df_scaled_for_plot
+end
+
 end
 
 end

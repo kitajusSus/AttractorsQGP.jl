@@ -187,8 +187,8 @@ function test_animation(
     df::DataFrame;
     output_gif::String="phase_space_animation.gif",
     fps::Int=20,
-    xlims::Tuple{Float64,Float64}=nothing,
-    ylims::Tuple{Float64,Float64}=nothing
+    xlims::Tuple{Float64,Float64},
+    ylims::Tuple{Float64,Float64}
 )
     println("\n" * "="^60)
     println(" Tworzenie animacji z DataFrame")
@@ -206,15 +206,6 @@ function test_animation(
     println("Podaj wartości τ, dla których chcesz zatrzymać animację (np. 0.2 0.5 1.0):")
     input_line = readline()
 
-    xlims = (minimum(df.T) * 1.02, maximum(df.T) * 1.02)
-    if isempty(df.T)
-        xlims = (0.0, 1.0)
-    end
-
-    ylims = (minimum(df.dTdtau) * 1.01, maximum(df.dTdtau) * 1.02)
-    if isempty(df.dTdtau)
-        ylims = (0.0, 1.0)
-    end
 
     tau_snapshots = try
         parse.(Float64, split(input_line, keepempty=false))
@@ -233,6 +224,7 @@ function test_animation(
         head_data = filter(row -> row.tau == τ_current, df)
         T_points = head_data.T * tau_0
         dT_points = head_data.dTdtau * tau_0^2
+
         p = plot(
             xlab=L"\tau_{0} T",
             ylab=L"\tau_{0}^{2} \dot{T} \quad [dT/d\tau]",
