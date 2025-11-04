@@ -26,8 +26,8 @@ function plot_phase_space_snapshot(simres::SimResult, t::Float64)
     T_vals = u_vals[1][mask]
     dT_vals = du_vals[1][mask]
 
-    x_data = t0 .* T_vals
-    y_data = (t0^2) .* dT_vals
+    x_data = t .* T_vals
+    y_data = (t^2) .* dT_vals
 
     fig = Figure(size=(800, 600))
     ax = Axis(
@@ -35,8 +35,8 @@ function plot_phase_space_snapshot(simres::SimResult, t::Float64)
         title="Phase Space at τ = $(round(t, digits=2)) fm/c [$(simres.settings.theory)]",
         xlabel=L"\tau_0 T",
         ylabel=L"\tau_0^2 \dot{T}",
-        xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+        xticklabelsize=14,  # Zwiększa cyfry na osi X
+        yticklabelsize=14   # Zwiększa cyfry na osi Y
     )
 
     scatter!(ax, x_data, y_data, markersize=4, strokewidth=0, alpha=0.7)
@@ -51,8 +51,8 @@ function plot_anisotropy_evolution(simres::SimResult)
         title="Anisotropy Evolution A(τ) for $(settings.theory)",
         xlabel=L"\tau \text{ [fm/c]}",
         ylabel=L"A(\tau)",
-        xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+        xticklabelsize=14,  # Zwiększa cyfry na osi X
+        yticklabelsize=14   # Zwiększa cyfry na osi Y
     )
 
     for sol in simres.solutions
@@ -132,9 +132,9 @@ function animate_phase_space_evolution(
         xlabel=L"\tau_0 T",
         ylabel=L"\tau_0^2 \dot{T}",
         limits=(xlims, ylims),
-        title = ax_title
-        xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+        title=ax_title,
+        xticklabelsize=14,  # Zwiększa cyfry na osi X
+        yticklabelsize=14   # Zwiększa cyfry na osi Y
     )
 
     points = @lift begin
@@ -171,7 +171,7 @@ function plot_explained_variance_evolution(
         @warn "Brak wyników PCA do narysowania wykresu wariancji."
         return Figure()
     end
-
+    # Zwiększa cyfry na osi Y
     taus = [res.tau for res in pca_results]
     n_components = maximum(length(res.explained_variance_ratio) for res in pca_results)
 
@@ -181,10 +181,10 @@ function plot_explained_variance_evolution(
         title="Ewolucja wariancji wyjaśnionej przez komponenty PCA",
         subtitle=info_text,
         xlabel=L"\tau \text{ [fm/c]}",
-        ylabel="Proporcja wyjaśnionej wariancji",
+        ylabel="Proporcja wyjaśnionej wariancji//Explained Variance EVR",
         limits=(nothing, (0, 1.1)),
-        xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+        xticklabelsize=14,  # Zwiększa cyfry na osi X
+        yticklabelsize=14   # Zwiększa cyfry na osi Y
     )
 
     for i = 1:n_components
@@ -228,7 +228,7 @@ function plot_pca_snapshot!(
     data = pca_result.transformed_data
 
     if size(data, 2) < 2
-        text!(ax, "Zbyt mało komponentów (N < 2)", position=(0,0), align=(:center, :center))
+        text!(ax, "Zbyt mało komponentów (N < 2)", position=(0, 0), align=(:center, :center))
         @warn "Pominięto rysowanie dla tau=$(pca_result.tau), liczba komponentów < 2"
         return
     end
@@ -297,15 +297,15 @@ function plot_pca_snapshot(
 
     fig = Figure(size=(800, 700))
     fig[1, 1] = Label(fig, "Wizualizacja PCA (pojedynczy czas)", fontsize=24, tellwidth=false)
-    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0,0,5,10))
+    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
 
     ax = Axis(
         fig[3, 1],
         title=ax_title,
         xlabel="PC 1",
-        ylabel="PC 2"
-        xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+        ylabel="PC 2",
+        xticklabelsize=16,  # Zwiększa cyfry na osi X
+        yticklabelsize=16   # Zwiększa cyfry na osi Y
     )
 
     plot_pca_snapshot!(ax, pca_result, valid_initial_temps)
@@ -341,7 +341,7 @@ function visualize_pca_static_grid(
 
     fig = Figure(size=(500 * n_cols, 450 * n_rows))
     fig[1, 1:n_cols] = Label(fig, "Wizualizacja PCA w przestrzeni komponentów", fontsize=24, tellwidth=false)
-    fig[2, 1:n_cols] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0,0,5,10))
+    fig[2, 1:n_cols] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
 
     all_pc1 = filter(isfinite, vcat([res.transformed_data[:, 1] for res in pca_results if size(res.transformed_data, 2) >= 1]...))
     all_pc2 = filter(isfinite, vcat([res.transformed_data[:, 2] for res in pca_results if size(res.transformed_data, 2) >= 2]...))
@@ -376,15 +376,15 @@ function visualize_pca_static_grid(
             xlabel="PC 1",
             ylabel="PC 2",
             limits=(global_xlims, global_ylims),
-            xtickfontsize=14,  # Zwiększa cyfry na osi X
-    ytickfontsize=14   # Zwiększa cyfry na osi Y
+            xticklabelsize=14,
+            yticklabelsize=14
         )
 
         plot_pca_snapshot!(ax, res, valid_initial_temps)
     end
 
     if length(all_initial_temps) > 0
-        Colorbar(fig[3:n_rows+2, n_cols + 1], colormap=:plasma, label=L"T_0 \text{ [MeV]}")
+        Colorbar(fig[3:n_rows+2, n_cols+1], colormap=:plasma, label=L"T_0 \text{ [MeV]}")
     end
 
     return fig
@@ -410,7 +410,7 @@ function plot_loadings_evolution(
 
     fig = Figure(size=(1000, 400 * n_components))
     fig[1, 1] = Label(fig, "Ewolucja ładunków (Loadings) PCA", fontsize=24, tellwidth=false)
-    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0,0,5,10))
+    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
 
     for i = 1:n_components
         ax = Axis(

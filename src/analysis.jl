@@ -229,18 +229,18 @@ end
 
 function main()
     # csv_file = "datasets/SPALHEL_(2.030456852791878, 7.614213197969542)_(-8.0, 20.0)_10000_t_(0.22, 1.0).csv"
-    csv_file = "datasets/DUZEDANE_(400.0, 2500.0)_(-8.0, 20.0)_10000_t_(0.22, 1.0).csv"
-
+    # csv_file = "datasets/DUZEDANE_(400.0, 2500.0)_(-8.0, 20.0)_10000_t_(0.22, 1.0).csv"
+    csv_file = "nowe_dane_.csv"
     # run_full_pca_analysis(csv_file)
 
-    # run_phase_space_analysis(csv_file, tau_list=[0.22, 0.35, 0.55, 0.6, 0.86])
+    run_phase_space_analysis(csv_file, tau_list=[0.22, 0.35, 0.55, 0.6, 0.86, 2, 5, 5.5])
 
     println("--- Ręczne generowanie pojedynczego wykresu PCA ---")
 
     settings = modHydroSim.load_simulation_settings(csv_file)
     sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
 
-    my_tau = 0.86
+    my_tau = 1.0
     my_features = [1, 3]
     my_feature_names = ["T", "dTdτ"]
     my_pca_params = Dict{Symbol,Any}(:method => :standardize)
@@ -256,6 +256,10 @@ function main()
 
     save("pca_snapshot_tau_$(my_tau).png", fig)
     println("Zapisano pojedynczy wykres PCA dla tau = $my_tau.")
+
+
+    modPlots.animate_phase_space_evolution(sim_result)
+
 
 end
 
