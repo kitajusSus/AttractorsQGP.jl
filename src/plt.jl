@@ -14,32 +14,116 @@ set_theme!(theme_latexfonts())
 export plot_phase_space_snapshot,
     plot_anisotropy_evolution,
     animate_phase_space_evolution,
+    plot_phase_space_grid,  # <-- DODANY EXPORT
     plot_explained_variance_evolution,
     visualize_pca_static_grid,
     plot_loadings_evolution,
     plot_pca_snapshot
 
-function plot_phase_space_snapshot(simres::SimResult, t::Float64)
-    t0 = simres.settings.tspan[1]
-    u_vals, du_vals, mask = extract_phase_space_slice(simres, t)
+"""
+Rysuje dane przestrzeni fazowej dla jednego momentu czasu `t`
+na podanej osi `ax`. Używa `extract_phase_space_slice` do pobrania danych.
+"""
+function plot_phase_space_snapshot!(
+    ax::Axis,
+    simres::modHydroSim.SimResult,
+    t::Float64,
+)
+    # Pobierz dane z `lib.jl`
+    u_vals, du_vals, mask = modHydroSim.extract_phase_space_slice(simres, t)
 
+    # Ustaw tytuł dla tej konkretnej osi
+    ax.title = "τ = $(round(t, digits=2)) fm/c"
+
+    if !any(mask)
+        text!(ax, "Brak danych", position=(0.5, 0.5), align=(:center, :center))
+        @warn "Brak poprawnych danych dla τ = $t. Oś będzie pusta."
+        return ax
+    end
+
+    t0 = simres.settings.tspan[1]
+
+    # Wyekstrahuj i oblicz punkty
     T_vals = u_vals[1][mask]
     dT_vals = du_vals[1][mask]
+    points = Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
 
-    x_data = t .* T_vals
-    y_data = (t^2) .* dT_vals
-
-    fig = Figure(size=(800, 600))
-    ax = Axis(
-        fig[1, 1],
-        title="Phase Space at τ = $(round(t, digits=2)) fm/c [$(simres.settings.theory)]",
-        xlabel=L"\tau_0 T",
-        ylabel=L"\tau_0^2 \dot{T}",
-        xticklabelsize=14,  # Zwiększa cyfry na osi X
-        yticklabelsize=14   # Zwiększa cyfry na osi Y
+    # Narysuj punkty
+    scatter!(
+        ax,
+        points,
+        markersize=4,
+        strokewidth=0,
+        alpha=0.7,
+        color=:blue,
     )
 
-    scatter!(ax, x_data, y_data, markersize=4, strokewidth=0, alpha=0.7)
+    return ax # Zwróć oś
+end
+
+"""
+Generuje siatkę statycznych wykresów przestrzeni fazowej
+dla podanej listy czasów `times`.
+
+Wywołuje `plot_phase_space_snapshot!` dla każdego wykresu.
+"""
+function plot_phase_space_grid(
+    simres::modHydroSim.SimResult,
+    times::AbstractVector{<:Real};
+    layout=nothing,
+    fig_size=(800, 700),
+)
+    println("plt.plot_phase_space_grid")
+
+    n_plots = length(times)
+    if isnothing(layout)
+        cols = ceil(Int, sqrt(n_plots))
+        rows = ceil(Int, n_plots / cols)
+        layout = (rows, cols)
+    end
+
+    fig = Figure(size=fig_size)
+    println("Obliczanie globalnych limitów dla siatki...")
+    xlims, ylims = _calculate_global_limits(simres, simres.settings.tspan)
+    if isnothing(xlims)
+        println("Warning: Nie można ustalić limitów.")
+        xlims = (nothing, nothing)
+        ylims = (nothing, nothing)
+    end
+
+    fig[0, 1:layout[2]] = Label(
+        fig,
+        "Phase Space Evolution [$(simres.settings.theory)]",
+        fontsize=18,
+        font=:bold
+    )
+
+    plot_count = 1
+    for r in 1:layout[1], c in 1:layout[2]
+        if plot_count > n_plots
+            break
+        end
+
+        t = times[plot_count]
+
+        ax = Axis(
+            fig[r+1, c], #
+            xlabel=(r == layout[1]) ? L"\tau_0 T" : "",
+            ylabel=(c == 1) ? L"\tau_0^2 \dot{T}" : "",
+            limits=(xlims, ylims),
+            xticklabelsize=12,
+            yticklabelsize=12,
+            xticklabelsvisible=(r == layout[1]),
+            yticklabelsvisible=(c == 1),
+        )
+
+        plot_phase_space_snapshot!(ax, simres, t)
+        # ==================================
+
+        plot_count += 1
+    end
+
+    println("Gotowe. Zwracam figurę.")
     return fig
 end
 
@@ -103,12 +187,17 @@ function _calculate_global_limits(simres::SimResult, t_range)
     )
 end
 
+
+
+
 function animate_phase_space_evolution(
     simres::SimResult;
     output_filename="phase_space_evolution.gif",
     t_steps=100,
     fps=20,
 )
+
+    println("plt.animate_phase_space_evolution")
     t_span = simres.settings.tspan
     t_range = range(t_span..., length=t_steps)
     t0 = t_span[1]
@@ -156,11 +245,127 @@ function animate_phase_space_evolution(
     println("Recording animation to $output_filename...")
     record(fig, output_filename, t_range; framerate=fps) do t
         t_observable[] = t
+        if t == 0.55
+            display(fig)
+            readline()
+        end
     end
 
     println("Animation saved successfully.")
     return fig
 end
+
+
+"""
+Rysuje dane przestrzeni fazowej dla jednego momentu czasu `t`
+na podanej osi `ax`.
+"""
+function plot_phase_space_at_time!(
+    ax::Axis,
+    simres::SimResult,
+    t::Float64,
+)
+    t0 = simres.settings.tspan[1]
+
+    # Ustaw tytuł dla tej konkretnej osi
+    ax.title = "τ = $(round(t, digits=2)) fm/c"
+
+    # Wyekstrahuj i oblicz punkty
+    u_vals, du_vals, mask = extract_phase_space_slice(simres, t)
+    T_vals = u_vals[1][mask]
+    dT_vals = du_vals[1][mask]
+    points = Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
+
+    # Narysuj punkty
+    scatter!(
+        ax,
+        points,
+        markersize=4,
+        strokewidth=0,
+        alpha=0.7,
+        color=:blue,
+    )
+
+    return ax # Zwróć oś
+end
+
+
+"""
+Generuje siatkę statycznych wykresów przestrzeni fazowej
+dla podanej listy czasów `times`.
+"""
+function plot_phase_space_grid(
+    simres::SimResult,
+    times::AbstractVector{<:Real};
+    layout=nothing, # np. (2, 2) dla 4 wykresów
+    fig_size=(800, 700),
+)
+    println("plt.plot_phase_space_grid")
+    t_span = simres.settings.tspan
+    t0 = t_span[1]
+
+    # --- Ustal układ siatki ---
+    n_plots = length(times)
+    if isnothing(layout)
+        # Automatycznie ustal układ (np. dąż do kwadratu)
+        cols = ceil(Int, sqrt(n_plots))
+        rows = ceil(Int, n_plots / cols)
+        layout = (rows, cols)
+    end
+
+    fig = Figure(size=fig_size)
+
+    # --- Oblicz globalne limity dla osi (używa istniejącej funkcji) ---
+    println("Obliczanie globalnych limitów dla siatki...")
+    xlims, ylims = _calculate_global_limits(simres, t_span)
+    if isnothing(xlims)
+        println("Warning: Nie można ustalić limitów. Wykresy mogą się różnić.")
+        xlims = (0, 1)
+        ylims = (-1, 1)
+    end
+
+    # --- Tytuł główny figury ---
+    fig[0, 1:layout[2]] = Label(
+        fig,
+        "Phase Space Evolution [$(simres.settings.theory)]",
+        fontsize=18,
+        font=:bold
+    )
+
+    # --- Tworzenie siatki wykresów ---
+    plot_count = 1
+    for r in 1:layout[1], c in 1:layout[2]
+        if plot_count > n_plots
+            break # Zakończ, jeśli narysowano wszystkie wykresy
+        end
+
+        t = times[plot_count]
+
+        # Stwórz oś (Axis)
+        ax = Axis(
+            fig[r+1, c], # +1 dla przesunięcia przez tytuł główny
+            xlabel=(r == layout[1]) ? L"\tau_0 T" : "", # Etykieta X tylko na dole
+            ylabel=(c == 1) ? L"\tau_0^2 \dot{T}" : "",  # Etykieta Y tylko po lewej
+            limits=(xlims, ylims),
+            xticklabelsize=12,
+            yticklabelsize=12,
+            xticklabelsvisible=(r == layout[1]), # Ukryj etykiety pośrednie
+            yticklabelsvisible=(c == 1),
+        )
+
+        # Użyj funkcji pomocniczej do narysowania danych
+        plot_phase_space_at_time!(ax, simres, t)
+
+        plot_count += 1
+    end
+
+    println("Gotowe. Zwracam figurę.")
+    return fig
+end
+
+# ==============================================================================
+# KONIEC NOWYCH FUNKCJI
+# ==============================================================================
 
 
 function plot_explained_variance_evolution(
@@ -437,4 +642,5 @@ function plot_loadings_evolution(
     return fig
 end
 
-end
+end # koniec modułu modPlots
+

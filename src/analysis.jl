@@ -1,5 +1,3 @@
-#  REPL: include("analysis.jl"); run_from_file("nazwa_pliku.csv")
-
 include("lib.jl")
 include("pca.jl")
 include("plt.jl")
@@ -26,6 +24,8 @@ function prompt_for_features()
         print("Wybierz indeksy cech (oddzielone przecinkami, np. 1,3): ")
         input = readline()
         try
+            # Zezwól na indeksy 1-based, ale funkcja PCA oczekuje 0-based
+            # Funkcja run_pca_over_time oczekuje indeksów 1-based [1,2,3,4]
             indices = [parse(Int, s) for s in split(input, ',')]
             if all(i -> 1 <= i <= length(ALL_FEATURE_NAMES), indices) && !isempty(indices)
                 selected_names = ALL_FEATURE_NAMES[indices]
@@ -117,6 +117,56 @@ function prompt_for_plot_count()
         end
     end
 end
+
+# ==============================================================================
+# NOWA FUNKCJA (ZGODNIE Z PROŚBĄ)
+# ==============================================================================
+"""
+Przeszukuje podany folder w poszukiwaniu plików .csv,
+wyświetla je i prosi użytkownika o wybór.
+Zwraca pełną ścieżkę do wybranego pliku lub `nothing`.
+"""
+function prompt_for_dataset(directory::String)
+    println("\n--- Wybierz zbiór danych ---")
+
+    if !isdir(directory)
+        println("⚠️  Ostrzeżenie: Folder '$directory' nie istnieje. Próbuję kontynuować...")
+        return nothing # Lub można tu rzucić błąd
+    end
+
+    # Znajdź pliki .csv (lub inne, np. .hdf5, jeśli potrzebujesz)
+    files = filter(f -> endswith(f, ".csv") || endswith(f, ".hdf5"), readdir(directory))
+
+    if isempty(files)
+        println("Błąd: Nie znaleziono żadnych plików .csv lub .hdf5 w folderze '$directory'.")
+        println("Upewnij się, że pliki z danymi znajdują się w odpowiednim miejscu.")
+        return nothing
+    end
+
+    println("Znaleziono następujące pliki w folderze '$directory':")
+    for (i, filename) in enumerate(files)
+        println("  [$i] $filename")
+    end
+
+    while true
+        print("Wybierz indeks pliku (np. 1): ")
+        input = readline()
+        try
+            idx = parse(Int, input)
+            if 1 <= idx <= length(files)
+                selected_file = files[idx]
+                filepath = joinpath(directory, selected_file)
+                println("Wybrano plik: $filepath")
+                return filepath
+            else
+                println("Błąd: Podaj indeks z zakresu 1-$(length(files)).")
+            end
+        catch e
+            println("Błąd: Nieprawidłowy format. Wprowadź jedną liczbę.")
+        end
+    end
+end
+# ==============================================================================
 
 function generate_output_filename_base(
     ic_filepath::String,
@@ -213,54 +263,81 @@ function run_phase_space_analysis(ic_filepath::String; tau_list::Vector{Float64}
     settings = modHydroSim.load_simulation_settings(ic_filepath)
     sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
 
-    println("\n--- Generowanie wykresów fazowych ---")
+    println("\n--- Generowanie wykresów fazowych (snapshoty) ---")
+
+    # Użyj nowej funkcji siatki
+    fig_grid = modPlots.plot_phase_space_grid(sim_result, tau_list)
+    filename = "phase_space_grid_$(basename(ic_filepath)).png"
+    save(filename, fig_grid)
+    println("Zapisano siatkę wykresów fazowych jako: $filename")
+
+    # Pętla poniżej jest teraz opcjonalna, jeśli chcesz mieć ODDZIELNE pliki
+    # (zostawiam ją, ale nowa funkcja siatki jest lepsza)
+    #=
     for (i, tau) in enumerate(tau_list)
         if tau >= settings.tspan[1] && tau <= settings.tspan[2]
             fig = modPlots.plot_phase_space_snapshot(sim_result, tau)
             filename = "phase_space_snapshot_tau_$(tau).png"
-            save(filename, fig)
+            save(filename, fig, dpi=300)
             println("Zapisano: $filename")
         else
             println("⚠️  Pominięto τ=$tau (poza zakresem symulacji $(settings.tspan))")
         end
     end
+    =#
+
     println("\n✅ Zakończono generowanie wykresów fazowych")
 end
 
+
+# ==============================================================================
+# ZMODYFIKOWANA FUNKCJA main()
+# ==============================================================================
 function main()
-    # csv_file = "datasets/SPALHEL_(2.030456852791878, 7.614213197969542)_(-8.0, 20.0)_10000_t_(0.22, 1.0).csv"
-    # csv_file = "datasets/DUZEDANE_(400.0, 2500.0)_(-8.0, 20.0)_10000_t_(0.22, 1.0).csv"
-    csv_file = "nowe_dane_.csv"
-    # run_full_pca_analysis(csv_file)
+    # Krok 1: Zapytaj o plik z danymi
+    csv_file = prompt_for_dataset("datasets")
 
-    run_phase_space_analysis(csv_file, tau_list=[0.22, 0.35, 0.55, 0.6, 0.86, 2, 5, 5.5])
+    if isnothing(csv_file)
+        println("Nie wybrano pliku. Zakończono działanie.")
+        return
+    end
 
-    println("--- Ręczne generowanie pojedynczego wykresu PCA ---")
+    # Krok 2: Zapytaj, co zrobić z plikiem
+    println("\n--- Wybierz akcję dla pliku: $(basename(csv_file)) ---")
+    println("  [1] Uruchom pełną analizę PCA")
+    println("  [2] Uruchom analizę przestrzeni fazowej (siatka snapshotów)")
+    println("  [3] Wygeneruj animację przestrzeni fazowej")
+    println("  [Inne] Zakończ")
 
-    settings = modHydroSim.load_simulation_settings(csv_file)
-    sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
+    print("\nWybór: ")
+    choice = readline()
 
-    my_tau = 1.0
-    my_features = [1, 3]
-    my_feature_names = ["T", "dTdτ"]
-    my_pca_params = Dict{Symbol,Any}(:method => :standardize)
-    my_info = "Plik: $(basename(csv_file)), Cechy: T, dTdτ"
+    if choice == "1"
+        # Uruchom pełną analizę PCA
+        run_full_pca_analysis(csv_file)
 
-    fig = modPlots.plot_pca_snapshot(
-        sim_result,
-        my_tau,
-        my_features,
-        my_pca_params;
-        info_text=my_info
-    )
+    elseif choice == "2"
+        tau_list_default = [0.22, 0.4, 0.7, 1.0, 2.0, 5.0]
+        println("Używam domyślnej listy czasów: $tau_list_default")
+        run_phase_space_analysis(csv_file, tau_list=tau_list_default)
 
-    save("pca_snapshot_tau_$(my_tau).png", fig)
-    println("Zapisano pojedynczy wykres PCA dla tau = $my_tau.")
+    elseif choice == "3"
+        println("--- Generowanie animacji przestrzeni fazowej ---")
+        settings = modHydroSim.load_simulation_settings(csv_file)
+        sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
 
+        output_name = "anim_$(splitext(basename(csv_file))[1]).gif"
+        modPlots.animate_phase_space_evolution(sim_result, output_filename=output_name)
+        println("Zapisano animację jako: $output_name")
 
-    modPlots.animate_phase_space_evolution(sim_result)
+    else
+        println("Zakończono.")
+    end
 
-
+    # println("--- Ręczne generowanie pojedynczego wykresu PCA ---")
+    # settings = modHydroSim.load_simulation_settings(csv_file)
+    # sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
+    # modPlots.animate_phase_space_evolution(sim_result)
 end
 
 main()
