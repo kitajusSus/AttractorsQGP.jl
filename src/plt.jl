@@ -14,7 +14,7 @@ set_theme!(theme_latexfonts())
 export plot_phase_space_snapshot,
     plot_anisotropy_evolution,
     animate_phase_space_evolution,
-    plot_phase_space_grid,  # <-- DODANY EXPORT
+    plot_phase_space_grid,
     plot_explained_variance_evolution,
     visualize_pca_static_grid,
     plot_loadings_evolution,
@@ -29,10 +29,8 @@ function plot_phase_space_snapshot!(
     simres::modHydroSim.SimResult,
     t::Float64,
 )
-    # Pobierz dane z `lib.jl`
     u_vals, du_vals, mask = modHydroSim.extract_phase_space_slice(simres, t)
 
-    # Ustaw tytuł dla tej konkretnej osi
     ax.title = "τ = $(round(t, digits=2)) fm/c"
 
     if !any(mask)
@@ -43,12 +41,10 @@ function plot_phase_space_snapshot!(
 
     t0 = simres.settings.tspan[1]
 
-    # Wyekstrahuj i oblicz punkty
     T_vals = u_vals[1][mask]
     dT_vals = du_vals[1][mask]
     points = Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
 
-    # Narysuj punkty
     scatter!(
         ax,
         points,
@@ -58,7 +54,7 @@ function plot_phase_space_snapshot!(
         color=:blue,
     )
 
-    return ax # Zwróć oś
+    return ax
 end
 
 """
@@ -118,7 +114,6 @@ function plot_phase_space_grid(
         )
 
         plot_phase_space_snapshot!(ax, simres, t)
-        # ==================================
 
         plot_count += 1
     end
@@ -135,8 +130,8 @@ function plot_anisotropy_evolution(simres::SimResult)
         title="Anisotropy Evolution A(τ) for $(settings.theory)",
         xlabel=L"\tau \text{ [fm/c]}",
         ylabel=L"A(\tau)",
-        xticklabelsize=14,  # Zwiększa cyfry na osi X
-        yticklabelsize=14   # Zwiększa cyfry na osi Y
+        xticklabelsize=14,
+        yticklabelsize=14
     )
 
     for sol in simres.solutions
