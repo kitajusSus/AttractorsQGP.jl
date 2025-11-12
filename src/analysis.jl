@@ -214,7 +214,7 @@ function run_full_pca_analysis(ic_filepath::String)
         pca_params, # Dict{Symbol, Any}
     )
 
-    if isempty(pca_results)
+    if isnothing(pca_results)
         println("\nBłąd: Nie udało się wygenerować żadnych wyników PCA. Przerywanie pracy.")
         return
     end
@@ -321,7 +321,7 @@ function kadr_pca(ic_filepath::String)
         pca_params,
     )
 
-    if isempty(pca_results)
+    if isnothing(pca_results)
         println("\nBłąd: Nie udało się wygenerować żadnych wyników PCA. Przerywanie pracy.")
         return
     end
@@ -348,7 +348,109 @@ function kadr_pca(ic_filepath::String)
     println("\n--- Analiza PCA zakończona pomyślnie ---")
 end
 
+function run_custom_pca_analysis(ic_filepath::String)
+    println("="^60)
+    println(" Rozpoczynanie niestandardowej analizy PCA z pliku: $ic_filepath")
+    println("="^60)
+    settings = modHydroSim.load_simulation_settings(ic_filepath)
+    sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
+    println("Symulacja zakończona.")
 
+    feature_indices, selected_feature_names = prompt_for_features()
+    selected_method = prompt_for_pca_settings()
+    pca_params = Dict{Symbol,Any}(:method => selected_method)
+    if selected_method == :kernel
+        pca_params[:gamma] = prompt_for_kernel_parameters()
+    end
+    n_components = 2
+    info_text = "Plik: $(basename(ic_filepath)), Metoda: $selected_method, Cechy: $(join(selected_feature_names, ", "))"
+
+    t_min, t_max = settings.tspan
+    println("\n--- Konfiguracja czasu analizy PCA ---")
+    println("Zakres czasu symulacji: [$(round(t_min, digits=2)), $(round(t_max, digits=2))] fm/c")
+
+    local pca_results
+    local analysis_mode::Symbol
+
+    while true
+        print("Wybierz tryb: [1] Analiza dla pojedynczego czasu τ, [2] Analiza dla zakresu czasu: ")
+        choice = readline()
+        if choice == "1"
+            analysis_mode = :single
+            while true
+                print("Podaj czas τ, w którym chcesz przeprowadzić analizę: ")
+                input = readline()
+                try
+                    tau = parse(Float64, input)
+                    if t_min <= tau <= t_max
+                        println("\n--- Obliczanie PCA dla τ=$tau ---")
+                        result = modPCA.run_pca_at_time(sim_result, tau, feature_indices, n_components, pca_params)
+                        pca_results = isnothing(result) ? [] : [result]
+                        break
+                    else
+                        println("Błąd: Czas τ=$tau jest poza zakresem symulacji.")
+                    end
+                catch e
+                    println("Błąd: Nieprawidłowy format. Wprowadź liczbę, np. 0.5.")
+                end
+            end
+            break
+        elseif choice == "2"
+            analysis_mode = :range
+            while true
+                try
+                    print("Podaj liczbę kroków czasowych do analizy (w pełnym zakresie symulacji): ")
+                    steps_input = readline()
+                    n_steps = parse(Int, steps_input)
+                    if n_steps > 1
+                        println("\n--- Obliczanie PCA dla $n_steps kroków ---")
+                        pca_results = modPCA.run_pca_over_time(sim_result, feature_indices, n_steps, n_components, pca_params)
+                        break
+                    else
+                        println("Błąd: Liczba kroków musi być większa od 1.")
+                    end
+                catch e
+                    println("Błąd: Nieprawidłowy format. Wprowadź liczbę całkowitą, np. 100.")
+                end
+            end
+            break
+        else
+            println("Nieprawidłowy wybór. Wpisz 1 lub 2.")
+        end
+    end
+
+    if isempty(pca_results)
+        println("\nBłąd: Nie udało się wygenerować żadnych wyników PCA. Przerywanie pracy.")
+        return
+    end
+
+    filename_base = generate_output_filename_base(ic_filepath, sim_result.settings.theory, selected_feature_names)
+    println("\n--- Zapisywanie wyników ---")
+
+    if analysis_mode == :single
+        fig_grid = modPlots.visualize_pca_static_grid(pca_results, sim_result, 1; info_text=info_text)
+        save("$(filename_base)_single_τ_grid.png", fig_grid)
+        println("Zapisano wykres PCA dla pojedynczego czasu.")
+    else # analysis_mode == :range
+        # Generowanie pełnego zestawu wykresów dla zakresu czasu
+        num_plots_to_generate = prompt_for_plot_count()
+
+        fig_ev = modPlots.plot_explained_variance_evolution(pca_results; info_text=info_text)
+        save("$(filename_base)_variance.png", fig_ev)
+        println("Zapisano wykres ewolucji wariancji.")
+
+        fig_grid = modPlots.visualize_pca_static_grid(pca_results, sim_result, num_plots_to_generate; info_text=info_text)
+        save("$(filename_base)_grid.png", fig_grid)
+        println("Zapisano siatkę wykresów PCA.")
+
+        if pca_params[:method] != :kernel
+            fig_loadings = modPlots.plot_loadings_evolution(pca_results, selected_feature_names; info_text=info_text)
+            save("$(filename_base)_loadings.png", fig_loadings)
+            println("Zapisano wykres ewolucji ładunków.")
+        end
+    end
+    println("\n--- Analiza zakończona pomyślnie ---")
+end
 
 function main()
     csv_file = prompt_for_dataset("datasets")
@@ -359,10 +461,10 @@ function main()
     end
 
     println("\n--- Wybierz akcję dla pliku: $(basename(csv_file)) ---")
-    print("[PCA] Tylko PCA dla wskazanych z input τ")
-    println("  [1] Uruchom pełną analizę PCA")
-    println("  [2] Uruchom analizę przestrzeni fazowej (siatka snapshotów)")
-    println("  [3] Wygeneruj animację przestrzeni fazowej")
+    println("  [1] Uruchom pełną analizę PCA (ewolucja w czasie, 100 kroków)")
+    println("  [2] Uruchom niestandardową analizę PCA (jeden czas lub wybrany zakres)")
+    println("  [3] Uruchom analizę przestrzeni fazowej (siatka snapshotów)")
+    println("  [4] Wygeneruj animację przestrzeni fazowej")
     println("  [Inne] Zakończ")
 
     print("\nWybór: ")
@@ -371,12 +473,15 @@ function main()
     if choice == "1"
         run_full_pca_analysis(csv_file)
 
+
     elseif choice == "2"
+        run_custom_pca_analysis(csv_file)
+    elseif choice == "3"
         tau_list_default = [0.22, 0.34, 0.4, 0.5, 0.7, 1.0, 2.0, 5.0, 9.0]
         println("Używam domyślnej listy czasów: $tau_list_default")
         run_phase_space_analysis(csv_file, tau_list=tau_list_default)
 
-    elseif choice == "3"
+    elseif choice == "4"
         println("--- Generowanie animacji przestrzeni fazowej ---")
         settings = modHydroSim.load_simulation_settings(csv_file)
         sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
@@ -384,13 +489,9 @@ function main()
         output_name = "anim_$(splitext(basename(csv_file))[1]).gif"
         modPlots.animate_phase_space_evolution(sim_result, output_filename=output_name)
         println("Zapisano animację jako: $output_name")
-    elseif choice == "PCA"
-        println("---- tryb Generowanie pca")
-        kadr_pca(csv_file)
     else
         println("Zakończono.")
     end
-
     # println("--- Ręczne generowanie pojedynczego wykresu PCA ---")
     # settings = modHydroSim.load_simulation_settings(csv_file)
     # sim_result = modHydroSim.run_simulation(settings=settings, ic_file=csv_file)
