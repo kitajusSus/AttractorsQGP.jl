@@ -67,7 +67,7 @@ function plot_phase_space_grid(
     simres::modHydroSim.SimResult,
     times::AbstractVector{<:Real};
     layout=nothing,
-    fig_size=(800, 700),
+    fig_size=(1200, 1200),
 )
     println("plt.plot_phase_space_grid")
 
@@ -609,7 +609,7 @@ function plot_loadings_evolution(
     n_features = length(selected_feature_names)
 
     fig = Figure(size=(1000, 400 * n_components))
-    fig[1, 1] = Label(fig, "Ewolucja ładunków (Loadings) PCA", fontsize=24, tellwidth=false)
+    fig[1, 1] = Label(fig, "Ewolucja (Loadings) PCA", fontsize=24, tellwidth=false)
     fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
 
     for i = 1:n_components

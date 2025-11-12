@@ -24,8 +24,6 @@ function prompt_for_features()
         print("Wybierz indeksy cech (oddzielone przecinkami, np. 1,3): ")
         input = readline()
         try
-            # Zezwól na indeksy 1-based, ale funkcja PCA oczekuje 0-based
-            # Funkcja run_pca_over_time oczekuje indeksów 1-based [1,2,3,4]
             indices = [parse(Int, s) for s in split(input, ',')]
             if all(i -> 1 <= i <= length(ALL_FEATURE_NAMES), indices) && !isempty(indices)
                 selected_names = ALL_FEATURE_NAMES[indices]
@@ -265,14 +263,11 @@ function run_phase_space_analysis(ic_filepath::String; tau_list::Vector{Float64}
 
     println("\n--- Generowanie wykresów fazowych (snapshoty) ---")
 
-    # Użyj nowej funkcji siatki
     fig_grid = modPlots.plot_phase_space_grid(sim_result, tau_list)
     filename = "phase_space_grid_$(basename(ic_filepath)).png"
     save(filename, fig_grid)
     println("Zapisano siatkę wykresów fazowych jako: $filename")
 
-    # Pętla poniżej jest teraz opcjonalna, jeśli chcesz mieć ODDZIELNE pliki
-    # (zostawiam ją, ale nowa funkcja siatki jest lepsza)
     #=
     for (i, tau) in enumerate(tau_list)
         if tau >= settings.tspan[1] && tau <= settings.tspan[2]
@@ -289,12 +284,73 @@ function run_phase_space_analysis(ic_filepath::String; tau_list::Vector{Float64}
     println("\n✅ Zakończono generowanie wykresów fazowych")
 end
 
+function kadr_pca(ic_filepath::String)
+    println("="^60)
+    println(" Rozpoczynanie analizy PCA z pliku: $ic_filepath")
+    println("="^60)
 
-# ==============================================================================
-# ZMODYFIKOWANA FUNKCJA main()
-# ==============================================================================
+    println("--- Krok 1: Uruchamianie symulacji ---")
+    settings = modHydroSim.load_simulation_settings(ic_filepath)
+    sim_result = modHydroSim.run_simulation(settings=settings, ic_file=ic_filepath)
+    println("Symulacja zakończona.")
+    println("\n--- Krok 2: Konfiguracja PCA ---")
+    feature_indices, selected_feature_names = prompt_for_features()
+    selected_method = prompt_for_pca_settings()
+
+
+    # Dict{Symbol, Any}
+    pca_params = Dict{Symbol,Any}(:method => selected_method)
+
+    if selected_method == :kernel
+        pca_params[:gamma] = prompt_for_kernel_parameters()
+    end
+
+
+    println("Dla jakiego czasu stworzyć wykres PCA?")
+    tau_input = readline()
+
+    n_components = 2
+
+    info_text = "Plik: $(basename(ic_filepath)), Metoda: $selected_method, Cechy: $(join(selected_feature_names, ", "))"
+
+    println("\n--- Krok 3: Obliczanie PCA ---")
+    pca_results = modPCA.run_pca_at_time(
+        sim_result,
+        parse(Float64, tau_input),
+        feature_indices, n_components,
+        pca_params,
+    )
+
+    if isempty(pca_results)
+        println("\nBłąd: Nie udało się wygenerować żadnych wyników PCA. Przerywanie pracy.")
+        return
+    end
+
+    filename_base = generate_output_filename_base(
+        ic_filepath,
+        sim_result.settings.theory,
+        selected_feature_names,
+    )
+
+    println("\n--- Krok 4: Zapisywanie wykresów ---")
+
+
+    fig_grid = modPlots.visualize_pca_static_grid(
+        pca_results,
+        sim_result,
+        1;
+        info_text=info_text,
+    )
+    save("$(filename_base)_grid.png", fig_grid)
+    println("Zapisano siatkę wykresów PCA.")
+
+
+    println("\n--- Analiza PCA zakończona pomyślnie ---")
+end
+
+
+
 function main()
-    # Krok 1: Zapytaj o plik z danymi
     csv_file = prompt_for_dataset("datasets")
 
     if isnothing(csv_file)
@@ -302,8 +358,8 @@ function main()
         return
     end
 
-    # Krok 2: Zapytaj, co zrobić z plikiem
     println("\n--- Wybierz akcję dla pliku: $(basename(csv_file)) ---")
+    print("[PCA] Tylko PCA dla wskazanych z input τ")
     println("  [1] Uruchom pełną analizę PCA")
     println("  [2] Uruchom analizę przestrzeni fazowej (siatka snapshotów)")
     println("  [3] Wygeneruj animację przestrzeni fazowej")
@@ -313,11 +369,10 @@ function main()
     choice = readline()
 
     if choice == "1"
-        # Uruchom pełną analizę PCA
         run_full_pca_analysis(csv_file)
 
     elseif choice == "2"
-        tau_list_default = [0.22, 0.4, 0.7, 1.0, 2.0, 5.0]
+        tau_list_default = [0.22, 0.34, 0.4, 0.5, 0.7, 1.0, 2.0, 5.0, 9.0]
         println("Używam domyślnej listy czasów: $tau_list_default")
         run_phase_space_analysis(csv_file, tau_list=tau_list_default)
 
@@ -329,7 +384,9 @@ function main()
         output_name = "anim_$(splitext(basename(csv_file))[1]).gif"
         modPlots.animate_phase_space_evolution(sim_result, output_filename=output_name)
         println("Zapisano animację jako: $output_name")
-
+    elseif choice == "PCA"
+        println("---- tryb Generowanie pca")
+        kadr_pca(csv_file)
     else
         println("Zakończono.")
     end

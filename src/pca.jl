@@ -1,5 +1,4 @@
 include("lib.jl")
-
 module modPCA
 
 using Statistics
@@ -17,7 +16,7 @@ struct PCAResultAtTime
     valid_mask::BitVector
 end
 
-function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol = :standardize)
+function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
     n_samples, n_features = size(X)
     if n_components > n_features
         error(
@@ -26,18 +25,18 @@ function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol = :stand
     end
 
     X_scaled = if mode == :standardize
-        mean_vector = mean(X, dims = 1)
-        std_vector = std(X, dims = 1)
-        std_vector[std_vector .== 0.0] .= 1.0
+        mean_vector = mean(X, dims=1)
+        std_vector = std(X, dims=1)
+        std_vector[std_vector.==0.0] .= 1.0
         (X .- mean_vector) ./ std_vector
     elseif mode == :center
-        mean_vector = mean(X, dims = 1)
+        mean_vector = mean(X, dims=1)
         X .- mean_vector
     elseif mode == :minmax
-        min_vals = minimum(X, dims = 1)
-        max_vals = maximum(X, dims = 1)
+        min_vals = minimum(X, dims=1)
+        max_vals = maximum(X, dims=1)
         range_vals = max_vals .- min_vals
-        range_vals[range_vals .== 0.0] .= 1.0
+        range_vals[range_vals.==0.0] .= 1.0
         (X .- min_vals) ./ range_vals
     elseif mode == :none
         copy(X)
@@ -46,7 +45,7 @@ function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol = :stand
     end
 
     X_transposed = X_scaled'
-    M_linear = fit(PCA, X_transposed; maxoutdim = n_components, pratio = 1.0)
+    M_linear = fit(PCA, X_transposed; maxoutdim=n_components, pratio=1.0)
     transformed_data = MultivariateStats.transform(M_linear, X_transposed)'
     explained_variance_ratio = principalvars(M_linear) ./ var(M_linear)
     projection_matrix = projection(M_linear)
@@ -58,7 +57,7 @@ function kernel_pca(X::Matrix{Float64}, n_components::Int; gamma::Float64)
     n_samples, n_features = size(X)
     X_transposed = X'
     kpca_kernel = (x, y) -> exp(-gamma * norm(x - y)^2.0)
-    M_kernel = fit(KernelPCA, X_transposed; kernel = kpca_kernel, maxoutdim = n_components)
+    M_kernel = fit(KernelPCA, X_transposed; kernel=kpca_kernel, maxoutdim=n_components)
     transformed_data = MultivariateStats.transform(M_kernel, X_transposed)'
     all_eigenvalues = eigvals(M_kernel)
     total_variance = sum(all_eigenvalues)
@@ -102,7 +101,7 @@ function run_pca_at_time(
 
     data_matrix = hcat([all_features[idx][valid_mask] for idx in feature_indices]...)
 
-    if size(unique(data_matrix, dims = 1), 1) < n_components
+    if size(unique(data_matrix, dims=1), 1) < n_components
         @warn "Zbyt mało unikalnych danych (znaleziono $(size(unique(data_matrix, dims=1), 1))) w czasie τ=$tau. Pomijanie kroku."
         return nothing
     end
@@ -112,10 +111,10 @@ function run_pca_at_time(
         if method == :kernel
             gamma = pca_method_params[:gamma]
             transformed_data, explained_ratio, components =
-                kernel_pca(data_matrix, n_components; gamma = gamma)
+                kernel_pca(data_matrix, n_components; gamma=gamma)
         else
             transformed_data, explained_ratio, components =
-                linear_pca(data_matrix, n_components; mode = method)
+                linear_pca(data_matrix, n_components; mode=method)
         end
 
         if any(isnan, transformed_data) || any(isnan, explained_ratio)
@@ -149,7 +148,7 @@ function run_pca_over_time(
     pca_method_params::Dict,
 )
     t_start, t_end = sim_result.settings.tspan
-    sample_times = range(t_start, stop = t_end, length = n_pca_steps)
+    sample_times = range(t_start, stop=t_end, length=n_pca_steps)
     pca_results_vector = PCAResultAtTime[]
 
     println("Uruchamianie analizy PCA dla $n_pca_steps kroków czasowych...")
