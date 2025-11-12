@@ -11,7 +11,8 @@ using DataFrames
 using CSV
 using HDF5
 
-export run_from_file, main
+export run_from_file, main, run_custom_pca_analysis
+
 const ALL_FEATURE_NAMES = ["T", "A", "dTdτ", "dAdτ"]
 
 function prompt_for_features()
