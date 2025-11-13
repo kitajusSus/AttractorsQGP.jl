@@ -473,8 +473,6 @@ function main()
 
     if choice == "1"
         run_full_pca_analysis(csv_file)
-
-
     elseif choice == "2"
         run_custom_pca_analysis(csv_file)
     elseif choice == "3"

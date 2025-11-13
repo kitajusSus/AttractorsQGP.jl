@@ -135,6 +135,146 @@ function run_pca_at_time(
     end
 end
 
+function calculate_slow_roll_features(
+    sim_result::modHydroSim.SimResult,
+    tau::Float64,
+)
+    # 1. Pobierz τ₀ jako czas startu symulacji
+    tau_0 = sim_result.settings.tspan[1]
+    tau_0_sq = tau_0^2
+
+    # 2. Wyciągnij surowe dane (T, A, dTdτ, dAdτ)
+    u_vals, du_vals, valid_mask = modHydroSim.extract_phase_space_slice(sim_result, tau)
+
+    if sum(valid_mask) == 0
+        return nothing, nothing
+    end
+
+    # 3. Wyodrębnij tylko prawidłowe dane T i dTdτ
+    T_vals = u_vals[1][valid_mask]
+    dTdτ_vals = du_vals[1][valid_mask]
+
+    # 4. Oblicz nowe cechy
+    feat1_vals = tau_0 .* T_vals
+    feat2_vals = tau_0_sq .* dTdτ_vals
+
+    # 5. Stwórz nową maskę dla skończonych wartości
+    finite_mask = isfinite.(feat1_vals) .& isfinite.(feat2_vals)
+
+    # 6. Zbuduj macierz danych tylko ze skończonych wartości
+    data_matrix = hcat(
+        feat1_vals[finite_mask],
+        feat2_vals[finite_mask],
+    )
+
+    # 7. Przemapuj maskę `finite_mask` (lokalną) z powrotem do globalnej `valid_mask`
+    original_indices = findall(valid_mask)
+    final_valid_indices = original_indices[finite_mask]
+
+    final_valid_mask = falses(length(valid_mask))
+    final_valid_mask[final_valid_indices] .= true
+
+    return data_matrix, final_valid_mask
+end
+
+
+"""
+[NOWA FUNKCJA]
+Uruchamia analizę PCA w przestrzeni [τ₀T, τ₀²Ṫ] dla pojedynczego kroku czasowego `tau`.
+"""
+function run_pca_at_time_slow_roll(
+    sim_result::modHydroSim.SimResult,
+    tau::Float64,
+    n_components::Int,
+    pca_method_params::Dict,
+)
+    method = pca_method_params[:method]
+
+    # Użyj nowej funkcji do pobrania cech
+    data_matrix, valid_mask = calculate_slow_roll_features(sim_result, tau)
+
+    # Sprawdzenia poprawności danych
+    if isnothing(data_matrix) || sum(valid_mask) < n_components
+        @warn "Zbyt mało prawidłowych danych (znaleziono $(isnothing(data_matrix) ? 0 : sum(valid_mask))) w czasie τ=$tau. Pomijanie kroku."
+        return nothing
+    end
+
+    if size(unique(data_matrix, dims=1), 1) < n_components
+        @warn "Zbyt mało unikalnych danych (znaleziono $(size(unique(data_matrix, dims=1), 1))) w czasie τ=$tau. Pomijanie kroku."
+        return nothing
+    end
+
+    # Przeprowadź PCA
+    local transformed_data, explained_ratio, components
+    try
+        if method == :kernel
+            gamma = pca_method_params[:gamma]
+            transformed_data, explained_ratio, components =
+                kernel_pca(data_matrix, n_components; gamma=gamma)
+        else
+            transformed_data, explained_ratio, components =
+                linear_pca(data_matrix, n_components; mode=method)
+        end
+
+        if any(isnan, transformed_data) || any(isnan, explained_ratio)
+            @warn "Wynik PCA dla τ=$tau zawiera NaN. Pomijanie kroku."
+            return nothing
+        end
+
+        return PCAResultAtTime(
+            tau,
+            transformed_data,
+            explained_ratio,
+            components,
+            valid_mask,
+        )
+    catch e
+        @warn "Błąd podczas przetwarzania PCA w czasie τ=$tau. Pomijanie kroku. Błąd: $e"
+        return nothing
+    end
+end
+
+
+"""
+Uruchamia analizę PCA w przestrzeni [τ₀T, τ₀²Ṫ] w pętli dla `n_pca_steps` kroków czasowych.
+"""
+function run_pca_over_time_slow_roll(
+    sim_result::modHydroSim.SimResult,
+    n_pca_steps::Int,
+    n_components::Int,
+    pca_method_params::Dict,
+)
+    t_start, t_end = sim_result.settings.tspan
+    sample_times = range(t_start, stop=t_end, length=n_pca_steps)
+    pca_results_vector = PCAResultAtTime[]
+
+    println("Uruchamianie analizy PCA (τ₀T, τ₀²Ṫ) dla $n_pca_steps kroków czasowych...")
+
+    for (i, tau) in enumerate(sample_times)
+        print(
+            "\rPrzetwarzanie kroku czasowego: $i/$n_pca_steps (τ = $(round(tau, digits=2)) fm/c)",
+        )
+
+        # Użyj nowej funkcji "at_time"
+        result = run_pca_at_time_slow_roll(
+            sim_result,
+            tau,
+            n_components,
+            pca_method_params,
+        )
+
+        if !isnothing(result)
+            push!(pca_results_vector, result)
+        end
+    end
+
+    println(
+        "\nAnaliza PCA (τ₀T, τ₀²Ṫ) zakończona. Przetworzono $(length(pca_results_vector)) pomyślnych kroków czasowych.",
+    )
+    return pca_results_vector
+end
+
+
 """
     run_pca_over_time(sim_result, feature_indices, n_pca_steps, n_components, pca_method_params)
 
