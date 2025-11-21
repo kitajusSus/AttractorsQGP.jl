@@ -92,7 +92,7 @@ end
 
 function evol(u0, settings::SimSettings)
     prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
-    return solve(prob, Rodas5(), save_everystep=false, dense=true, abstol=1e-8, reltol=1e-8)
+    return solve(prob, Rodas5(),  abstol=1e-6, reltol=1e-6)
 end
 
 function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=nothing)
@@ -253,6 +253,14 @@ function extract_phase_space_slice(simres::SimResult, t::Float64)
         valid[i] = true
     end
     return (u_vals, du_vals, valid) # Zwracamy poprawne zmienne
+end
+
+
+function Base.show(io::IO, sim::SimResult)
+    succ = count(s -> string(s.retcode) == "Success", sim.solutions)
+    n = length(sim.solutions)
+    println("skibidi")
+    print(io, "SimResult(theory=$(sim.settings.theory), $succ/$n sukcesów, zakres T=$(sim.settings.T_range))")
 end
 
 end
