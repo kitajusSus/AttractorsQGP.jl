@@ -6,128 +6,89 @@ using .modHydroSim
 using .modPCA
 using .modPlots
 using GLMakie
-using Dates
-using DataFrames
 using CSV
+using DataFrames
 
-# --- Mapowanie dla PCA ---
-const FEATURES_MAP = [
-    ("T", :T), ("A", :A),
-    ("dT", :dTdτ), ("dA", :dAdτ),
-    ("tau0*T", :tau0_T), ("tau0^2*dT", :tau0sq_dTdτ)
-]
+const FEATS = [("T",:T), ("A",:A), ("dT",:dTdτ), ("dA",:dAdτ), ("τ₀T",:tau0_T), ("τ₀²dT",:tau0sq_dTdτ)]
+const AXES = [(:T,"T"), (:A,"A"), (:dT,"dT"), (:dA,"dA"), (:tau0_T,"τ₀T"), (:tau0sq_dT,"τ₀²dT")]
 
-# --- Mapowanie dla Wykresów ---
-const PLOT_VARS = [
-    (:T, "T"), (:A, "A"),
-    (:dT, "dT"), (:dA, "dA"),
-    (:tau0_T, "tau0*T"), (:tau0sq_dT, "tau0^2*dT"),
-    (:tau_T, "tau*T")
-]
-
-function prompt_dataset(dir="datasets")
-    if !isdir(dir); println("Brak folderu $dir"); return nothing; end
-    files = filter(x->endswith(x, ".csv") || endswith(x, ".h5"), readdir(dir))
-    if isempty(files); println("Pusty folder."); return nothing; end
-    println("\n--- Wybierz plik ---")
+function prompt_file(dir="datasets")
+    !isdir(dir) && return nothing
+    files = readdir(dir)
     for (i,f) in enumerate(files); println("[$i] $f"); end
-    print("Wybór: ")
     try
-        idx = parse(Int, readline())
-        return joinpath(dir, files[idx])
+        return joinpath(dir, files[parse(Int64, readline())])
     catch
         return nothing
     end
 end
 
-function prompt_axis(txt)
-    println("\n$txt")
-    for (i, (sym, desc)) in enumerate(PLOT_VARS); println("[$i] $desc"); end
-    print("Wybór: ")
-    try
-        idx = parse(Int, readline())
-        return PLOT_VARS[idx][1]
-    catch
-        return :T
-    end
+function prompt_axis(lbl)
+    println(lbl)
+    for (i,v) in enumerate(AXES); println("[$i] $(v[2])"); end
+    return AXES[parse(Int64, readline())][1]
 end
 
-function save_simple_csv(simres, fname="ewolucja.csv")
-    println("Zapisuje dane do $fname ...")
-    data = DataFrame(Run=Int[], Tau=Float64[], T=Float64[], A=Float64[])
-
-    for (i, sol) in enumerate(simres.solutions)
-        if isempty(sol.t); continue; end
-        # Surowe dane
-        append!(data, DataFrame(Run=fill(i, length(sol.t)), Tau=sol.t, T=[u[1] for u in sol.u], A=[u[2] for u in sol.u]))
+function save_csv(simres, name)
+    df = DataFrame(Run=Int[], Tau=Float64[], T=Float64[], A=Float64[])
+    for (i,s) in enumerate(simres.solutions)
+        isempty(s.t) && continue
+        append!(df, DataFrame(Run=i, Tau=s.t, T=[u[1] for u in s.u], A=[u[2] for u in s.u]))
     end
-    CSV.write(fname, data)
-    println("Zapisano.")
+    CSV.write(name, df)
+    println("Saved $name")
 end
 
 function main()
-    file = prompt_dataset()
+    file = prompt_file()
     isnothing(file) && return
 
-    # Ładujemy raz na początku, żeby było prosto
     sets = load_simulation_settings(file)
     sim = run_simulation(settings=sets, ic_file=file)
 
     while true
-        println("\n=== MENU PROSTE ===")
-        println("[1] PCA Custom")
-        println("[2] Wykresy (Wybór osi)")
-        println("[3] Animacja (Wybór osi)")
-        println("[5] Ewolucja A, T + Chmura A vs T + CSV")
-        println("[q] Wyjście")
+        println("\n[1] PCA Custom")
+        println("[2] Wykresy Grid")
+        println("[3] Animacja")
+        println("[5] Ewolucja T,A + Chmura A vs T + CSV")
+        println("[q] Quit")
 
         c = readline()
-
         if c == "1"
-            println("Wybierz cechy (indeksy po przecinku):")
-            for (i, (n, _)) in enumerate(FEATURES_MAP); println("[$i] $n"); end
-            idxs = [parse(Int, x) for x in split(readline(), ",")]
-            feats = [FEATURES_MAP[i][2] for i in idxs]
+            println("Cechy (indeksy):")
+            for (i,f) in enumerate(FEATS); println("[$i] $(f[1])"); end
+            ids = [parse(Int64, x) for x in split(readline(), ",")]
+            fs = [FEATS[i][2] for i in ids]
 
-            println("Metoda (1:std, 2:center, 3:none): "); m_idx = parse(Int, readline())
-            m = [:standardize, :center, :none][m_idx]
-
-            println("Ile kroków czasu: "); n_steps = parse(Int, readline())
-            res = modPCA.run_pca_over_time(sim, feats, n_steps, 2, Dict(:method=>m))
+            println("Kroki: "); n = parse(Int64, readline())
+            res = modPCA.run_pca_over_time(sim, fs, n, 2, Dict(:method=>:standardize))
 
             save("pca_var.png", modPlots.plot_explained_variance_evolution(res))
             save("pca_grid.png", modPlots.visualize_pca_static_grid(res, sim, 6))
+            save("pca_load.png", modPlots.plot_loadings_evolution(res, [FEATS[i][1] for i in ids]))
 
         elseif c == "2"
-            x = prompt_axis("Oś X:")
-            y = prompt_axis("Oś Y:")
-            println("Czasy (np. 0.5 1.0): ")
-            ts = [parse(Float64, t) for t in split(readline())]
-
-            save("grid_$(x)_$(y).png", modPlots.plot_phase_space_grid(sim, ts, x, y))
+            x, y = prompt_axis("X:"), prompt_axis("Y:")
+            println("Czasy: "); ts = [parse(Float64,t) for t in split(readline())]
+            save("grid.png", modPlots.plot_phase_space_grid(sim, ts, x, y))
 
         elseif c == "3"
-            x = prompt_axis("Oś X:")
-            y = prompt_axis("Oś Y:")
-            modPlots.animate_phase_space_evolution(sim, x, y; output_filename="anim.gif")
+            x, y = prompt_axis("X:"), prompt_axis("Y:")
+            modPlots.animate_phase_space_evolution(sim, x, y)
 
         elseif c == "5"
-            # println("--- 1. Wykresy Trajektorii ---")
-            # fig = modPlots.plot_thermodynamics_evolution(sim)
-            # save("trajektorie_surowe.png", fig)
-            # println("Zapisano: trajektorie_surowe.png")
+            println("Rysuje trajektorie...")
+            save("traj.png", modPlots.plot_thermodynamics_evolution(sim))
 
-            println("--- 2. Zapis CSV ---")
-            save_simple_csv(sim, "dane_surowe.csv")
+            println("Zapisuje CSV...")
+            save_csv(sim, "data.csv")
 
-            println("--- 3. Chmura punktów A vs T ---")
-            println("(Oś X = T, Oś Y = A)")
-            print("Podaj czasy snapshotów: ")
+            println("Chmura A vs T. Czasy: ")
             ts = [parse(Float64, t) for t in split(readline())]
-
-            fig_cloud = modPlots.plot_phase_space_grid(sim, ts, :T, :A)
-            save("chmura_AvsT.png", fig_cloud)
-            println("Zapisano: chmura_AvsT.png")
+            save("cloud_grid.png", modPlots.plot_phase_space_grid(sim, ts, :T, :A))
+            for t in ts
+                save("cloud_$t.png", modPlots.plot_phase_space_snapshot(sim, t, :T, :A))
+            end
 
         elseif c == "q"
             break

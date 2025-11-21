@@ -10,230 +10,143 @@ using ..modPCA
 
 set_theme!(theme_latexfonts())
 
-export plot_phase_space_snapshot, plot_phase_space_grid,
+export plot_phase_space_grid, plot_phase_space_snapshot,
+       plot_thermodynamics_evolution, animate_phase_space_evolution,
        plot_explained_variance_evolution, visualize_pca_static_grid,
-       plot_loadings_evolution, plot_pca_snapshot, animate_phase_space_evolution,
-       plot_thermodynamics_evolution,
-       AVAILABLE_PLOT_KEYS, get_axis_label
+       plot_loadings_evolution
 
-# --- Definitions of available variables ---
-const AVAILABLE_PLOT_KEYS = Dict(
-    :T => (label=L"T \text{ [MeV]}", desc="Temperatura (MeV)"),
-    :A => (label=L"A", desc="Anizotropia"),
-    :dT => (label=L"\dot{T}", desc="Pochodna Temp."),
-    :dA => (label=L"\dot{A}", desc="Pochodna Aniz."),
-    :tau0_T => (label=L"\tau_0 T", desc="Skalowana Temp. (Attractor)"),
-    :tau0sq_dT => (label=L"\tau_0^2 \dot{T}", desc="Skalowana Poch. (Attractor)"),
-    :tau_T => (label=L"\tau T", desc="w = tau * T")
+const PLOT_KEYS = Dict(
+    :T => (L"T", u->u[1], (u,du,t,t0)->u[1]),
+    :A => (L"A", u->u[2], (u,du,t,t0)->u[2]),
+    :dT => (L"\dot{T}", nothing, (u,du,t,t0)->du[1]),
+    :dA => (L"\dot{A}", nothing, (u,du,t,t0)->du[2]),
+    :tau0_T => (L"\tau_0 T", nothing, (u,du,t,t0)->t0*u[1]),
+    :tau0sq_dT => (L"\tau_0^2 \dot{T}", nothing, (u,du,t,t0)->t0^2*du[1]),
+    :tau_T => (L"\tau T", nothing, (u,du,t,t0)->t*u[1])
 )
 
-function get_axis_label(key::Symbol)
-    return haskey(AVAILABLE_PLOT_KEYS, key) ? AVAILABLE_PLOT_KEYS[key].label : string(key)
-end
-
-# Helper to get values for a specific key
-function _get_values_for_key(simres, t, key::Symbol)
+function get_data(simres, t, key)
     u, du, mask = modHydroSim.extract_phase_space_slice(simres, t)
-    if !any(mask)
-        return Float64[], mask
-    end
-
+    if !any(mask); return Float64[], mask; end
     t0 = simres.settings.tspan[1]
-    MeV_conversion = 197.327
 
-    vals = if key == :T
-        u[1] .* MeV_conversion
-    elseif key == :A
-        u[2]
-    elseif key == :dT
-        du[1] .* MeV_conversion
-    elseif key == :dA
-        du[2]
-    elseif key == :tau0_T
-        t0 .* u[1]
-    elseif key == :tau0sq_dT
-        (t0^2) .* du[1]
-    elseif key == :tau_T
-        t .* u[1]
-    else
-        error("Unknown plot key: $key")
-    end
-
+    func = PLOT_KEYS[key][3]
+    vals = func(u, du, t, t0)
     return vals, mask
 end
 
-function _calc_limits(simres, trange, x_key, y_key)
-    all_x, all_y = Float64[], Float64[]
-    steps = range(trange..., length=15)
-
-    for t in steps
-        vx, mx = _get_values_for_key(simres, t, x_key)
-        vy, my = _get_values_for_key(simres, t, y_key)
+function _limits(simres, ts, kx, ky)
+    X, Y = Float64[], Float64[]
+    for t in range(ts..., length=10)
+        vx, mx = get_data(simres, t, kx)
+        vy, my = get_data(simres, t, ky)
         if any(mx)
-            append!(all_x, vx[mx])
-            append!(all_y, vy[my])
+            append!(X, vx[mx])
+            append!(Y, vy[my])
         end
     end
-
-    if isempty(all_x) || isempty(all_y)
-        return (nothing, nothing)
-    end
-    return (minimum(all_x), maximum(all_x)), (minimum(all_y), maximum(all_y))
+    isempty(X) ? (nothing, nothing) : ((minimum(X), maximum(X)), (minimum(Y), maximum(Y)))
 end
 
-# --- Snapshot Drawing ---
-function plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
-    vx, mx = _get_values_for_key(simres, t, x_key)
-    vy, my = _get_values_for_key(simres, t, y_key)
-
-    if !any(mx)
-        text!(ax, "Brak danych", position=(0,0))
-        return
-    end
-
-    scatter!(ax, vx[mx], vy[my],
-             markersize=4, color=:blue, alpha=0.6)
-end
-
-function plot_phase_space_grid(simres, times, x_key, y_key; layout=nothing)
+function plot_phase_space_grid(simres, times, kx, ky)
     n = length(times)
-    cols = ceil(Int, sqrt(n))
-    rows = ceil(Int, n/cols)
-    fig = Figure(size=(400*cols, 350*rows))
+    c = ceil(Int, sqrt(n))
+    r = ceil(Int, n/c)
+    fig = Figure(size=(400*c, 350*r))
 
-    xlims, ylims = _calc_limits(simres, simres.settings.tspan, x_key, y_key)
-    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
-
-    Label(fig[0, :], "Ewolucja chmury punktów: $yl vs $xl", fontsize=20, font=:bold)
+    xl, yl = _limits(simres, simres.settings.tspan, kx, ky)
+    lbl_x, lbl_y = PLOT_KEYS[kx][1], PLOT_KEYS[ky][1]
 
     for (i, t) in enumerate(times)
-        r, c = (i-1) ÷ cols + 1, (i-1) % cols + 1
-        ax = Axis(fig[r, c], title="τ=$(round(t, digits=2)) fm/c", xlabel=xl, ylabel=yl)
+        row, col = (i-1)÷c + 1, (i-1)%c + 1
+        ax = Axis(fig[row, col], title="τ=$(round(t, digits=2))", xlabel=lbl_x, ylabel=lbl_y)
+        !isnothing(xl) && limits!(ax, xl, yl)
 
-        if !isnothing(xlims)
-            wx, wy = xlims[2]-xlims[1], ylims[2]-ylims[1]
-            limits!(ax, xlims[1]-0.05wx, xlims[2]+0.05wx, ylims[1]-0.05wy, ylims[2]+0.05wy)
-        end
-        plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
+        vx, mx = get_data(simres, t, kx)
+        vy, my = get_data(simres, t, ky)
+        any(mx) && scatter!(ax, vx[mx], vy[my], markersize=4, color=:blue, alpha=0.6)
     end
     return fig
 end
 
-function plot_phase_space_snapshot(simres, t, x_key, y_key)
-    fig = Figure(size=(800, 600))
-    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
-    ax = Axis(fig[1,1], title="Snapshot τ=$(round(t, digits=2)) fm/c", xlabel=xl, ylabel=yl)
-    plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
+function plot_phase_space_snapshot(simres, t, kx, ky)
+    fig = Figure()
+    ax = Axis(fig[1,1], title="τ=$t", xlabel=PLOT_KEYS[kx][1], ylabel=PLOT_KEYS[ky][1])
+    vx, mx = get_data(simres, t, kx)
+    vy, my = get_data(simres, t, ky)
+    any(mx) && scatter!(ax, vx[mx], vy[my], markersize=4, color=:blue)
     return fig
 end
 
-# --- Animation ---
-function animate_phase_space_evolution(simres, x_key, y_key; output_filename="anim.gif", fps=20)
-    times = range(simres.settings.tspan..., length=100)
-    xlims, ylims = _calc_limits(simres, simres.settings.tspan, x_key, y_key)
-    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
+function animate_phase_space_evolution(simres, kx, ky; out="anim.gif")
+    ts = range(simres.settings.tspan..., length=100)
+    xl, yl = _limits(simres, simres.settings.tspan, kx, ky)
+    fig = Figure()
+    ax = Axis(fig[1,1], title="Ewolucja", xlabel=PLOT_KEYS[kx][1], ylabel=PLOT_KEYS[ky][1])
+    !isnothing(xl) && limits!(ax, xl, yl)
 
-    fig = Figure(size=(800, 600))
-    ax = Axis(fig[1,1], title="Ewolucja", xlabel=xl, ylabel=yl)
-    if !isnothing(xlims)
-        wx, wy = xlims[2]-xlims[1], ylims[2]-ylims[1]
-        limits!(ax, xlims[1]-0.05wx, xlims[2]+0.05wx, ylims[1]-0.05wy, ylims[2]+0.05wy)
-    end
-
-    t_obs = Observable(times[1])
+    t_node = Observable(ts[1])
     pts = @lift begin
-        vx, mx = _get_values_for_key(simres, $t_obs, x_key)
-        vy, my = _get_values_for_key(simres, $t_obs, y_key)
-        Point2f.(vx[mx], vy[mx])
+        vx, mx = get_data(simres, $t_node, kx)
+        vy, my = get_data(simres, $t_node, ky)
+        Point2f.(vx[mx], vy[my])
     end
-
     scatter!(ax, pts, color=:blue, markersize=4)
-    record(fig, output_filename, times; framerate=fps) do t
-        t_obs[] = t
-    end
-    println("Zapisano: $output_filename")
+    record(fig, out, ts) do t; t_node[] = t; end
 end
 
-# --- Thermo Evolution Plot (Option 5) ---
 function plot_thermodynamics_evolution(simres)
-    fig = Figure(size=(1200, 600))
-
-    ax_T = Axis(fig[1, 1], title="Ewolucja Temperatury T(τ) (Wszystkie punkty)", xlabel=L"\tau \text{ [fm/c]}", ylabel=L"T \text{ [MeV]}")
-    ax_A = Axis(fig[1, 2], title="Ewolucja Anizotropii A(τ) (Wszystkie punkty)", xlabel=L"\tau \text{ [fm/c]}", ylabel=L"A")
-
-    # Plot ALL trajectories (no step skipping)
+    fig = Figure(size=(1000, 500))
+    ax1 = Axis(fig[1,1], title="T(τ)", xlabel=L"\tau", ylabel=L"T")
+    ax2 = Axis(fig[1,2], title="A(τ)", xlabel=L"\tau", ylabel=L"A")
 
     for sol in simres.solutions
-        if isempty(sol.t) || any(isnan, sol.u[end]); continue; end
-        ts = sol.t
-        Ts = [u[1] for u in sol.u]
-        As = [u[2] for u in sol.u]
-
-        lines!(ax_T, ts, Ts, alpha=0.3, linewidth=0.5, color=(:red, 0.5))
-        lines!(ax_A, ts, As, alpha=0.3, linewidth=0.5, color=(:blue, 0.5))
+        isempty(sol.t) && continue
+        lines!(ax1, sol.t, [u[1] for u in sol.u], alpha=0.3, color=(:red, 0.5))
+        lines!(ax2, sol.t, [u[2] for u in sol.u], alpha=0.3, color=(:blue, 0.5))
     end
     return fig
 end
 
-# --- PCA Functions ---
-function plot_explained_variance_evolution(results; info_text="")
-    fig = Figure(size=(800,500))
-    ax = Axis(fig[1,1], title="Wariancja wyjaśniona $info_text", xlabel=L"\tau", ylabel="EVR")
-    taus = [r.tau for r in results]
-    if isempty(taus); return fig; end
-    n_comp = length(results[1].explained_variance_ratio)
-    for i in 1:n_comp
-        lines!(ax, taus, [r.explained_variance_ratio[i] for r in results], label="PC$i")
+function plot_explained_variance_evolution(res)
+    fig = Figure()
+    ax = Axis(fig[1,1], title="PCA Variance", xlabel=L"\tau", ylabel="EVR")
+    ts = [r.tau for r in res]
+    for i in 1:length(res[1].explained_variance_ratio)
+        lines!(ax, ts, [r.explained_variance_ratio[i] for r in res], label="PC$i")
     end
-    lines!(ax, taus, [sum(r.explained_variance_ratio) for r in results], label="Suma", linestyle=:dash)
     axislegend(ax)
     return fig
 end
 
-function visualize_pca_static_grid(results, simres, n_plots; info_text="")
-    idxs = round.(Int, range(1, length(results), length=n_plots))
-    cols = ceil(Int, sqrt(n_plots))
-    rows = ceil(Int, n_plots/cols)
-    fig = Figure(size=(300*cols, 300*rows))
-    Label(fig[0, :], info_text, fontsize=14)
-    t0_temps = [sol.u[1][1] for sol in simres.solutions]
-    for (i, idx) in enumerate(idxs)
-        res = results[idx]
-        r, c = (i-1)÷cols + 1, (i-1)%cols + 1
-        ax = Axis(fig[r,c], title="τ=$(round(res.tau, digits=2))", xlabel="PC1", ylabel="PC2")
-        if size(res.transformed_data, 2) >= 2
-            colors = t0_temps[res.valid_mask]
-            scatter!(ax, res.transformed_data[:,1], res.transformed_data[:,2],
-                     color=colors, colormap=:plasma, markersize=4)
-        end
+function visualize_pca_static_grid(res, simres, n)
+    idx = round.(Int, range(1, length(res), length=n))
+    c = ceil(Int, sqrt(n))
+    r = ceil(Int, n/c)
+    fig = Figure(size=(300*c, 300*r))
+
+    t0 = [s.u[1][1] for s in simres.solutions]
+
+    for (i, id) in enumerate(idx)
+        rr = res[id]
+        row, col = (i-1)÷c + 1, (i-1)%c + 1
+        ax = Axis(fig[row,col], title="τ=$(round(rr.tau, digits=2))", xlabel="PC1", ylabel="PC2")
+        scatter!(ax, rr.transformed_data[:,1], rr.transformed_data[:,2],
+                 color=t0[rr.valid_mask], colormap=:plasma, markersize=4)
     end
     return fig
 end
 
-function plot_loadings_evolution(results, names; info_text="")
-    fig = Figure(size=(800, 600))
-    n_comps = size(results[1].principal_components, 2)
-    taus = [r.tau for r in results]
-    for i in 1:min(n_comps, 2)
-        ax = Axis(fig[i, 1], title="Loadings PC$i", xlabel=L"\tau")
-        for (j, name) in enumerate(names)
-            vals = [r.principal_components[j, i] for r in results]
-            lines!(ax, taus, vals, label=string(name))
+function plot_loadings_evolution(res, names)
+    fig = Figure()
+    ts = [r.tau for r in res]
+    for i in 1:2
+        ax = Axis(fig[i,1], title="Loadings PC$i", xlabel=L"\tau")
+        for (j, n) in enumerate(names)
+            lines!(ax, ts, [r.principal_components[j,i] for r in res], label=n)
         end
         axislegend(ax)
     end
-    return fig
-end
-
-function plot_pca_snapshot(simres, t, idxs, params; info_text="", n_components=2)
-    res = modPCA.run_pca_at_time(simres, t, idxs, n_components, params)
-    if isnothing(res); return Figure(); end
-    fig = Figure()
-    ax = Axis(fig[1,1], title="PCA τ=$t", xlabel="PC1", ylabel="PC2")
-    t0_temps = [s.u[1][1] for s in simres.solutions]
-    colors = t0_temps[res.valid_mask]
-    scatter!(ax, res.transformed_data[:,1], res.transformed_data[:,2],
-             color=colors, colormap=:plasma)
     return fig
 end
 
