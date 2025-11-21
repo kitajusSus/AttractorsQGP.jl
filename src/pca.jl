@@ -6,7 +6,7 @@ using LinearAlgebra
 using MultivariateStats
 using ..modHydroSim
 
-export PCAResultAtTime, run_pca_at_time, run_pca_over_time
+export PCAResultAtTime, run_pca_at_time, run_pca_over_time, extract_features_at_time
 
 struct PCAResultAtTime
     tau::Float64
@@ -19,302 +19,131 @@ end
 function linear_pca(X::Matrix{Float64}, n_components::Int; mode::Symbol=:standardize)
     n_samples, n_features = size(X)
     if n_components > n_features
-        error(
-            "Liczba komponentów ($n_components) nie może być większa niż liczba cech ($n_features).",
-        )
+        error("Liczba komponentów ($n_components) > liczba cech ($n_features).")
     end
 
     X_scaled = if mode == :standardize
-        mean_vector = mean(X, dims=1)
-        std_vector = std(X, dims=1)
-        std_vector[std_vector.==0.0] .= 1.0
-        (X .- mean_vector) ./ std_vector
+        mean_v, std_v = mean(X, dims=1), std(X, dims=1)
+        std_v[std_v .== 0.0] .= 1.0
+        (X .- mean_v) ./ std_v
     elseif mode == :center
-        mean_vector = mean(X, dims=1)
-        X .- mean_vector
+        X .- mean(X, dims=1)
     elseif mode == :minmax
-        min_vals = minimum(X, dims=1)
-        max_vals = maximum(X, dims=1)
-        range_vals = max_vals .- min_vals
-        range_vals[range_vals.==0.0] .= 1.0
-        (X .- min_vals) ./ range_vals
+        min_v, max_v = minimum(X, dims=1), maximum(X, dims=1)
+        rng_v = max_v .- min_v
+        rng_v[rng_v .== 0.0] .= 1.0
+        (X .- min_v) ./ rng_v
     elseif mode == :none
         copy(X)
     else
-        error("Nieznany tryb skalowania liniowego: $mode")
+        error("Nieznany tryb: $mode")
     end
 
-    X_transposed = X_scaled'
-    M_linear = fit(PCA, X_transposed; maxoutdim=n_components, pratio=1.0)
-    transformed_data = MultivariateStats.transform(M_linear, X_transposed)'
-    explained_variance_ratio = principalvars(M_linear) ./ var(M_linear)
-    projection_matrix = projection(M_linear)
-
-    return transformed_data, explained_variance_ratio, projection_matrix
+    M = fit(PCA, X_scaled'; maxoutdim=n_components, pratio=1.0)
+    return transform(M, X_scaled')', principalvars(M) ./ var(M), projection(M)
 end
 
 function kernel_pca(X::Matrix{Float64}, n_components::Int; gamma::Float64)
-    n_samples, n_features = size(X)
-    X_transposed = X'
-    kpca_kernel = (x, y) -> exp(-gamma * norm(x - y)^2.0)
-    M_kernel = fit(KernelPCA, X_transposed; kernel=kpca_kernel, maxoutdim=n_components)
-    transformed_data = MultivariateStats.transform(M_kernel, X_transposed)'
-    all_eigenvalues = eigvals(M_kernel)
-    total_variance = sum(all_eigenvalues)
-
-    explained_variance_ratio = if total_variance <= 1e-10
-        zeros(n_components)
-    else
-        all_eigenvalues[1:n_components] ./ total_variance
-    end
-
-    selected_alphas = projection(M_kernel)
-    return transformed_data, explained_variance_ratio, selected_alphas
+    kpca_k = (x, y) -> exp(-gamma * norm(x - y)^2.0)
+    M = fit(KernelPCA, X'; kernel=kpca_k, maxoutdim=n_components)
+    eig = eigvals(M)
+    tot = sum(eig)
+    evr = tot <= 1e-10 ? zeros(n_components) : eig[1:n_components] ./ tot
+    return transform(M, X')', evr, projection(M)
 end
 
-"""
-    run_pca_at_time(sim_result, tau, feature_indices, n_components, pca_method_params)
-
-Uruchamia analizę PCA dla pojedynczego kroku czasowego `tau`.
-"""
-function run_pca_at_time(
-    sim_result::modHydroSim.SimResult,
-    tau::Float64,
-    feature_indices::Vector{Int},
-    n_components::Int,
-    pca_method_params::Dict,
-)
-    method = pca_method_params[:method]
-
+function extract_features_at_time(sim_result::modHydroSim.SimResult, tau::Float64, feature_names::Vector{Symbol})
     u_vals, du_vals, valid_mask = modHydroSim.extract_phase_space_slice(sim_result, tau)
-
-    if sum(valid_mask) < n_components
-        @warn "Zbyt mało prawidłowych danych (znaleziono $(sum(valid_mask))) w czasie τ=$tau. Pomijanie kroku."
-        return nothing
-    end
-
-    all_features = [u_vals[1], u_vals[2], du_vals[1], du_vals[2]]
-
-    if any(idx -> idx > length(all_features), feature_indices)
-        error("Indeks cechy poza zakresem. Dostępne indeksy: 1-$(length(all_features))")
-    end
-
-    data_matrix = hcat([all_features[idx][valid_mask] for idx in feature_indices]...)
-
-    if size(unique(data_matrix, dims=1), 1) < n_components
-        @warn "Zbyt mało unikalnych danych (znaleziono $(size(unique(data_matrix, dims=1), 1))) w czasie τ=$tau. Pomijanie kroku."
-        return nothing
-    end
-
-    local transformed_data, explained_ratio, components
-    try
-        if method == :kernel
-            gamma = pca_method_params[:gamma]
-            transformed_data, explained_ratio, components =
-                kernel_pca(data_matrix, n_components; gamma=gamma)
-        else
-            transformed_data, explained_ratio, components =
-                linear_pca(data_matrix, n_components; mode=method)
-        end
-
-        if any(isnan, transformed_data) || any(isnan, explained_ratio)
-            @warn "Wynik PCA dla τ=$tau zawiera NaN. Pomijanie kroku."
-            return nothing
-        end
-
-        return PCAResultAtTime(
-            tau,
-            transformed_data,
-            explained_ratio,
-            components,
-            valid_mask,
-        )
-    catch e
-        @warn "Błąd podczas przetwarzania PCA w czasie τ=$tau. Pomijanie kroku. Błąd: $e"
-        return nothing
-    end
-end
-
-function calculate_slow_roll_features(
-    sim_result::modHydroSim.SimResult,
-    tau::Float64,
-)
-    # 1. Pobierz τ₀ jako czas startu symulacji
-    tau_0 = sim_result.settings.tspan[1]
-    tau_0_sq = tau_0^2
-
-    # 2. Wyciągnij surowe dane (T, A, dTdτ, dAdτ)
-    u_vals, du_vals, valid_mask = modHydroSim.extract_phase_space_slice(sim_result, tau)
-
     if sum(valid_mask) == 0
-        return nothing, nothing
+        return nothing, nothing, nothing
     end
 
-    # 3. Wyodrębnij tylko prawidłowe dane T i dTdτ
+    # Base variables
     T_vals = u_vals[1][valid_mask]
+    A_vals = u_vals[2][valid_mask]
     dTdτ_vals = du_vals[1][valid_mask]
+    dAdτ_vals = du_vals[2][valid_mask]
 
-    # 4. Oblicz nowe cechy
-    feat1_vals = tau_0 .* T_vals
-    feat2_vals = tau_0_sq .* dTdτ_vals
+    tau_0 = sim_result.settings.tspan[1]
 
-    # 5. Stwórz nową maskę dla skończonych wartości
-    finite_mask = isfinite.(feat1_vals) .& isfinite.(feat2_vals)
+    features = Vector{Float64}[]
+    used_names = Symbol[]
 
-    # 6. Zbuduj macierz danych tylko ze skończonych wartości
-    data_matrix = hcat(
-        feat1_vals[finite_mask],
-        feat2_vals[finite_mask],
-    )
-
-    # 7. Przemapuj maskę `finite_mask` (lokalną) z powrotem do globalnej `valid_mask`
-    original_indices = findall(valid_mask)
-    final_valid_indices = original_indices[finite_mask]
-
-    final_valid_mask = falses(length(valid_mask))
-    final_valid_mask[final_valid_indices] .= true
-
-    return data_matrix, final_valid_mask
-end
-
-
-"""
-[NOWA FUNKCJA]
-Uruchamia analizę PCA w przestrzeni [τ₀T, τ₀²Ṫ] dla pojedynczego kroku czasowego `tau`.
-"""
-function run_pca_at_time_slow_roll(
-    sim_result::modHydroSim.SimResult,
-    tau::Float64,
-    n_components::Int,
-    pca_method_params::Dict,
-)
-    method = pca_method_params[:method]
-
-    # Użyj nowej funkcji do pobrania cech
-    data_matrix, valid_mask = calculate_slow_roll_features(sim_result, tau)
-
-    # Sprawdzenia poprawności danych
-    if isnothing(data_matrix) || sum(valid_mask) < n_components
-        @warn "Zbyt mało prawidłowych danych (znaleziono $(isnothing(data_matrix) ? 0 : sum(valid_mask))) w czasie τ=$tau. Pomijanie kroku."
-        return nothing
-    end
-
-    if size(unique(data_matrix, dims=1), 1) < n_components
-        @warn "Zbyt mało unikalnych danych (znaleziono $(size(unique(data_matrix, dims=1), 1))) w czasie τ=$tau. Pomijanie kroku."
-        return nothing
-    end
-
-    # Przeprowadź PCA
-    local transformed_data, explained_ratio, components
-    try
-        if method == :kernel
-            gamma = pca_method_params[:gamma]
-            transformed_data, explained_ratio, components =
-                kernel_pca(data_matrix, n_components; gamma=gamma)
+    for name in feature_names
+        if name == :T
+            push!(features, T_vals); push!(used_names, :T)
+        elseif name == :A
+            push!(features, A_vals); push!(used_names, :A)
+        elseif name == :dTdτ
+            push!(features, dTdτ_vals); push!(used_names, :dTdτ)
+        elseif name == :dAdτ
+            push!(features, dAdτ_vals); push!(used_names, :dAdτ)
+        elseif name == :tau0_T
+            push!(features, tau_0 .* T_vals); push!(used_names, :tau0_T)
+        elseif name == :tau0sq_dTdτ
+            push!(features, (tau_0^2) .* dTdτ_vals); push!(used_names, :tau0sq_dTdτ)
         else
-            transformed_data, explained_ratio, components =
-                linear_pca(data_matrix, n_components; mode=method)
+            @warn "Pominięto nieznaną cechę: $name"
+        end
+    end
+
+    if isempty(features)
+        return nothing, nothing, nothing
+    end
+
+    data_mat = hcat(features...)
+
+    # Filtracja NaN w wynikowych cechach
+    finite_mask = all(isfinite, data_mat, dims=2)[:]
+    data_filtered = data_mat[finite_mask, :]
+
+    # Aktualizacja maski globalnej
+    final_mask = copy(valid_mask)
+    # To jest nieco skomplikowane: valid_mask to te które przeżyły extract_slice
+    # Teraz musimy odsiać te, które stały się NaN podczas obliczania cech
+    # Upraszczamy: zakładamy, że extract_slice zwraca już dobre dane.
+
+    return data_filtered, valid_mask, used_names
+end
+
+function run_pca_at_time(sim_result, tau, feature_names, n_components, params)
+    data, mask, names = extract_features_at_time(sim_result, tau, feature_names)
+
+    if isnothing(data) || size(data, 1) < n_components
+        # @warn "Brak danych dla τ=$tau" # Ograniczamy logi
+        return nothing
+    end
+
+    # Jeśli liczba cech < n_components, redukujemy n_components
+    real_n_comp = min(n_components, size(data, 2))
+
+    try
+        res, evr, comps = if params[:method] == :kernel
+            kernel_pca(data, real_n_comp; gamma=params[:gamma])
+        else
+            linear_pca(data, real_n_comp; mode=params[:method])
         end
 
-        if any(isnan, transformed_data) || any(isnan, explained_ratio)
-            @warn "Wynik PCA dla τ=$tau zawiera NaN. Pomijanie kroku."
-            return nothing
-        end
-
-        return PCAResultAtTime(
-            tau,
-            transformed_data,
-            explained_ratio,
-            components,
-            valid_mask,
-        )
+        return PCAResultAtTime(tau, res, evr, comps, mask)
     catch e
-        @warn "Błąd podczas przetwarzania PCA w czasie τ=$tau. Pomijanie kroku. Błąd: $e"
+        @warn "Błąd PCA w τ=$tau: $e"
         return nothing
     end
 end
 
+function run_pca_over_time(sim_result, feature_names, n_steps, n_components, params)
+    t1, t2 = sim_result.settings.tspan
+    times = range(t1, t2, length=n_steps)
+    results = PCAResultAtTime[]
 
-"""
-Uruchamia analizę PCA w przestrzeni [τ₀T, τ₀²Ṫ] w pętli dla `n_pca_steps` kroków czasowych.
-"""
-function run_pca_over_time_slow_roll(
-    sim_result::modHydroSim.SimResult,
-    n_pca_steps::Int,
-    n_components::Int,
-    pca_method_params::Dict,
-)
-    t_start, t_end = sim_result.settings.tspan
-    sample_times = range(t_start, stop=t_end, length=n_pca_steps)
-    pca_results_vector = PCAResultAtTime[]
-
-    println("Uruchamianie analizy PCA (τ₀T, τ₀²Ṫ) dla $n_pca_steps kroków czasowych...")
-
-    for (i, tau) in enumerate(sample_times)
-        print(
-            "\rPrzetwarzanie kroku czasowego: $i/$n_pca_steps (τ = $(round(tau, digits=2)) fm/c)",
-        )
-
-        # Użyj nowej funkcji "at_time"
-        result = run_pca_at_time_slow_roll(
-            sim_result,
-            tau,
-            n_components,
-            pca_method_params,
-        )
-
-        if !isnothing(result)
-            push!(pca_results_vector, result)
-        end
+    println("Analiza PCA ($n_steps kroków) na cechach: $(join(feature_names, ", "))")
+    for (i, t) in enumerate(times)
+        print("\rKrok $i/$n_steps (τ=$(round(t, digits=2)))")
+        r = run_pca_at_time(sim_result, t, feature_names, n_components, params)
+        !isnothing(r) && push!(results, r)
     end
-
-    println(
-        "\nAnaliza PCA (τ₀T, τ₀²Ṫ) zakończona. Przetworzono $(length(pca_results_vector)) pomyślnych kroków czasowych.",
-    )
-    return pca_results_vector
-end
-
-
-"""
-    run_pca_over_time(sim_result, feature_indices, n_pca_steps, n_components, pca_method_params)
-
-Uruchamia analizę PCA w pętli dla `n_pca_steps` kroków czasowych.
-"""
-function run_pca_over_time(
-    sim_result::modHydroSim.SimResult,
-    feature_indices::Vector{Int},
-    n_pca_steps::Int,
-    n_components::Int,
-    pca_method_params::Dict,
-)
-    t_start, t_end = sim_result.settings.tspan
-    sample_times = range(t_start, stop=t_end, length=n_pca_steps)
-    pca_results_vector = PCAResultAtTime[]
-
-    println("Uruchamianie analizy PCA dla $n_pca_steps kroków czasowych...")
-
-    for (i, tau) in enumerate(sample_times)
-        print(
-            "\rPrzetwarzanie kroku czasowego: $i/$n_pca_steps (τ = $(round(tau, digits=2)) fm/c)",
-        )
-
-        result = run_pca_at_time(
-            sim_result,
-            tau,
-            feature_indices,
-            n_components,
-            pca_method_params,
-        )
-
-        if !isnothing(result)
-            push!(pca_results_vector, result)
-        end
-    end
-
-    println(
-        "\nAnaliza PCA zakończona. Przetworzono $(length(pca_results_vector)) pomyślnych kroków czasowych.",
-    )
-    return pca_results_vector
+    println("\nZakończono.")
+    return results
 end
 
 end

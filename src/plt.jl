@@ -5,637 +5,236 @@ module modPlots
 
 using GLMakie
 using LaTeXStrings
-using Printf
 using ..modHydroSim
 using ..modPCA
 
 set_theme!(theme_latexfonts())
 
-export plot_phase_space_snapshot,
-    plot_anisotropy_evolution,
-    animate_phase_space_evolution,
-    plot_phase_space_grid,
-    plot_explained_variance_evolution,
-    visualize_pca_static_grid,
-    plot_loadings_evolution,
-    plot_pca_snapshot
+export plot_phase_space_snapshot, plot_phase_space_grid,
+       plot_explained_variance_evolution, visualize_pca_static_grid,
+       plot_loadings_evolution, plot_pca_snapshot, animate_phase_space_evolution,
+       plot_thermodynamics_evolution,
+       AVAILABLE_PLOT_KEYS, get_axis_label
 
-"""
-Rysuje dane przestrzeni fazowej dla jednego momentu czasu `t`
-na podanej osi `ax`. Używa `extract_phase_space_slice` do pobrania danych.
-"""
-function plot_phase_space_snapshot!(
-    ax::Axis,
-    simres::modHydroSim.SimResult,
-    t::Float64,
+# --- Definitions of available variables ---
+const AVAILABLE_PLOT_KEYS = Dict(
+    :T => (label=L"T \text{ [MeV]}", desc="Temperatura (MeV)"),
+    :A => (label=L"A", desc="Anizotropia"),
+    :dT => (label=L"\dot{T}", desc="Pochodna Temp."),
+    :dA => (label=L"\dot{A}", desc="Pochodna Aniz."),
+    :tau0_T => (label=L"\tau_0 T", desc="Skalowana Temp. (Attractor)"),
+    :tau0sq_dT => (label=L"\tau_0^2 \dot{T}", desc="Skalowana Poch. (Attractor)"),
+    :tau_T => (label=L"\tau T", desc="w = tau * T")
 )
-    u_vals, du_vals, mask = modHydroSim.extract_phase_space_slice(simres, t)
 
-    ax.title = "τ = $(round(t, digits=2)) fm/c"
+function get_axis_label(key::Symbol)
+    return haskey(AVAILABLE_PLOT_KEYS, key) ? AVAILABLE_PLOT_KEYS[key].label : string(key)
+end
 
+# Helper to get values for a specific key
+function _get_values_for_key(simres, t, key::Symbol)
+    u, du, mask = modHydroSim.extract_phase_space_slice(simres, t)
     if !any(mask)
-        text!(ax, "Brak danych", position=(0.5, 0.5), align=(:center, :center))
-        @warn "Brak poprawnych danych dla τ = $t. Oś będzie pusta."
-        return ax
+        return Float64[], mask
     end
 
     t0 = simres.settings.tspan[1]
+    MeV_conversion = 197.327
 
-    T_vals = u_vals[1][mask]
-    dT_vals = du_vals[1][mask]
-    points = Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
+    vals = if key == :T
+        u[1] .* MeV_conversion
+    elseif key == :A
+        u[2]
+    elseif key == :dT
+        du[1] .* MeV_conversion
+    elseif key == :dA
+        du[2]
+    elseif key == :tau0_T
+        t0 .* u[1]
+    elseif key == :tau0sq_dT
+        (t0^2) .* du[1]
+    elseif key == :tau_T
+        t .* u[1]
+    else
+        error("Unknown plot key: $key")
+    end
 
-    scatter!(
-        ax,
-        points,
-        markersize=4,
-        strokewidth=0,
-        alpha=0.7,
-        color=:blue,
-    )
-
-    return ax
+    return vals, mask
 end
 
-"""
-Generuje siatkę statycznych wykresów przestrzeni fazowej
-dla podanej listy czasów `times`.
+function _calc_limits(simres, trange, x_key, y_key)
+    all_x, all_y = Float64[], Float64[]
+    steps = range(trange..., length=15)
 
-Wywołuje `plot_phase_space_snapshot!` dla każdego wykresu.
-"""
-function plot_phase_space_grid(
-    simres::modHydroSim.SimResult,
-    times::AbstractVector{<:Real};
-    layout=nothing,
-    fig_size=(1200, 1200),
-)
-    println("plt.plot_phase_space_grid")
-
-    n_plots = length(times)
-    if isnothing(layout)
-        cols = ceil(Int, sqrt(n_plots))
-        rows = ceil(Int, n_plots / cols)
-        layout = (rows, cols)
-    end
-
-    fig = Figure(size=fig_size)
-    println("Obliczanie globalnych limitów dla siatki...")
-    xlims, ylims = _calculate_global_limits(simres, simres.settings.tspan)
-    if isnothing(xlims)
-        println("Warning: Nie można ustalić limitów.")
-        xlims = (nothing, nothing)
-        ylims = (nothing, nothing)
-    end
-
-    fig[0, 1:layout[2]] = Label(
-        fig,
-        "Phase Space Evolution [$(simres.settings.theory)]",
-        fontsize=18,
-        font=:bold
-    )
-
-    plot_count = 1
-    for r in 1:layout[1], c in 1:layout[2]
-        if plot_count > n_plots
-            break
+    for t in steps
+        vx, mx = _get_values_for_key(simres, t, x_key)
+        vy, my = _get_values_for_key(simres, t, y_key)
+        if any(mx)
+            append!(all_x, vx[mx])
+            append!(all_y, vy[my])
         end
-
-        t = times[plot_count]
-
-        ax = Axis(
-            fig[r+1, c], #
-            xlabel=(r == layout[1]) ? L"\tau_0 T" : "",
-            ylabel=(c == 1) ? L"\tau_0^2 \dot{T}" : "",
-            limits=(xlims, ylims),
-            xticklabelsize=12,
-            yticklabelsize=12,
-            xticklabelsvisible=(r == layout[1]),
-            yticklabelsvisible=(c == 1),
-        )
-
-        plot_phase_space_snapshot!(ax, simres, t)
-
-        plot_count += 1
-    end
-
-    println("Gotowe. Zwracam figurę.")
-    return fig
-end
-
-function plot_anisotropy_evolution(simres::SimResult)
-    settings = simres.settings
-    fig = Figure(size=(1000, 750))
-    ax = Axis(
-        fig[1, 1],
-        title="Anisotropy Evolution A(τ) for $(settings.theory)",
-        xlabel=L"\tau \text{ [fm/c]}",
-        ylabel=L"A(\tau)",
-        xticklabelsize=14,
-        yticklabelsize=14
-    )
-
-    for sol in simres.solutions
-        t_vals = sol.t
-        A_vals = [u[2] for u in sol.u]
-
-        valid_indices = findall(isfinite.(A_vals))
-        if !isempty(valid_indices)
-            lines!(ax, t_vals[valid_indices], A_vals[valid_indices], lw=1.5, alpha=0.4)
-        end
-    end
-    return fig
-end
-
-function _calculate_global_limits(simres::SimResult, t_range)
-    t0 = simres.settings.tspan[1]
-    all_x = Float64[]
-    all_y = Float64[]
-
-    t_samples = range(t_range..., length=20)
-    for t_sample in t_samples
-        u_vals, du_vals, mask = extract_phase_space_slice(simres, t_sample)
-
-        if !any(mask)
-            continue
-        end
-
-        T_vals = u_vals[1][mask]
-        dT_vals = du_vals[1][mask]
-
-        append!(all_x, t0 .* T_vals)
-        append!(all_y, (t0^2) .* dT_vals)
     end
 
     if isempty(all_x) || isempty(all_y)
         return (nothing, nothing)
     end
-
-    xlims = (minimum(all_x), maximum(all_x))
-    ylims = (minimum(all_y), maximum(all_y))
-
-    x_pad = (xlims[2] - xlims[1]) * 0.05
-    y_pad = (ylims[2] - ylims[1]) * 0.05
-
-    return (
-        (xlims[1] - x_pad, xlims[2] + x_pad),
-        (ylims[1] - y_pad, ylims[2] + y_pad),
-    )
+    return (minimum(all_x), maximum(all_x)), (minimum(all_y), maximum(all_y))
 end
 
+# --- Snapshot Drawing ---
+function plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
+    vx, mx = _get_values_for_key(simres, t, x_key)
+    vy, my = _get_values_for_key(simres, t, y_key)
 
-
-
-function animate_phase_space_evolution(
-    simres::SimResult;
-    output_filename="phase_space_evolution.gif",
-    t_steps=100,
-    fps=20,
-)
-
-    println("plt.animate_phase_space_evolution")
-    t_span = simres.settings.tspan
-    t_range = range(t_span..., length=t_steps)
-    t0 = t_span[1]
-
-    println("Pre-calculating axis limits for animation...")
-    xlims, ylims = _calculate_global_limits(simres, t_span)
-    if isnothing(xlims)
-        println("Warning: Could not determine data limits. Animation might fail.")
-        xlims = (0, 1)
-        ylims = (-1, 1)
-    end
-
-    fig = Figure(size=(800, 650))
-
-    t_observable = Observable(t_range[1])
-    ax_title = @lift(
-        "Phase Space at τ = $(round($t_observable, digits=2)) fm/c [$(simres.settings.theory)]"
-    )
-    ax = Axis(
-        fig[1, 1],
-        xlabel=L"\tau_0 T",
-        ylabel=L"\tau_0^2 \dot{T}",
-        limits=(xlims, ylims),
-        title=ax_title,
-        xticklabelsize=14,  # Zwiększa cyfry na osi X
-        yticklabelsize=14   # Zwiększa cyfry na osi Y
-    )
-
-    points = @lift begin
-        u_vals, du_vals, mask = extract_phase_space_slice(simres, $t_observable)
-        T_vals = u_vals[1][mask]
-        dT_vals = du_vals[1][mask]
-        Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
-    end
-
-    scatter!(
-        ax,
-        points,
-        markersize=4,
-        strokewidth=0,
-        alpha=0.7,
-        color=:blue,
-    )
-
-    println("Recording animation to $output_filename...")
-    record(fig, output_filename, t_range; framerate=fps) do t
-        t_observable[] = t
-        if t == 0.55
-            display(fig)
-            readline()
-        end
-    end
-
-    println("Animation saved successfully.")
-    return fig
-end
-
-
-"""
-Rysuje dane przestrzeni fazowej dla jednego momentu czasu `t`
-na podanej osi `ax`.
-"""
-function plot_phase_space_at_time!(
-    ax::Axis,
-    simres::SimResult,
-    t::Float64,
-)
-    t0 = simres.settings.tspan[1]
-
-    # Ustaw tytuł dla tej konkretnej osi
-    ax.title = "τ = $(round(t, digits=2)) fm/c"
-
-    # Wyekstrahuj i oblicz punkty
-    u_vals, du_vals, mask = extract_phase_space_slice(simres, t)
-    T_vals = u_vals[1][mask]
-    dT_vals = du_vals[1][mask]
-    points = Point2f.(t0 .* T_vals, (t0^2) .* dT_vals)
-
-    # Narysuj punkty
-    scatter!(
-        ax,
-        points,
-        markersize=4,
-        strokewidth=0,
-        alpha=0.7,
-        color=:blue,
-    )
-
-    return ax # Zwróć oś
-end
-
-
-"""
-Generuje siatkę statycznych wykresów przestrzeni fazowej
-dla podanej listy czasów `times`.
-"""
-function plot_phase_space_grid(
-    simres::SimResult,
-    times::AbstractVector{<:Real};
-    layout=nothing, # np. (2, 2) dla 4 wykresów
-    fig_size=(800, 700),
-)
-    println("plt.plot_phase_space_grid")
-    t_span = simres.settings.tspan
-    t0 = t_span[1]
-
-    # --- Ustal układ siatki ---
-    n_plots = length(times)
-    if isnothing(layout)
-        # Automatycznie ustal układ (np. dąż do kwadratu)
-        cols = ceil(Int, sqrt(n_plots))
-        rows = ceil(Int, n_plots / cols)
-        layout = (rows, cols)
-    end
-
-    fig = Figure(size=fig_size)
-
-    # --- Oblicz globalne limity dla osi (używa istniejącej funkcji) ---
-    println("Obliczanie globalnych limitów dla siatki...")
-    xlims, ylims = _calculate_global_limits(simres, t_span)
-    if isnothing(xlims)
-        println("Warning: Nie można ustalić limitów. Wykresy mogą się różnić.")
-        xlims = (0, 1)
-        ylims = (-1, 1)
-    end
-
-    # --- Tytuł główny figury ---
-    fig[0, 1:layout[2]] = Label(
-        fig,
-        "Phase Space Evolution [$(simres.settings.theory)]",
-        fontsize=18,
-        font=:bold
-    )
-
-    # --- Tworzenie siatki wykresów ---
-    plot_count = 1
-    for r in 1:layout[1], c in 1:layout[2]
-        if plot_count > n_plots
-            break # Zakończ, jeśli narysowano wszystkie wykresy
-        end
-
-        t = times[plot_count]
-
-        # Stwórz oś (Axis)
-        ax = Axis(
-            fig[r+1, c], # +1 dla przesunięcia przez tytuł główny
-            xlabel=(r == layout[1]) ? L"\tau_0 T" : "", # Etykieta X tylko na dole
-            ylabel=(c == 1) ? L"\tau_0^2 \dot{T}" : "",  # Etykieta Y tylko po lewej
-            limits=(xlims, ylims),
-            xticklabelsize=12,
-            yticklabelsize=12,
-            xticklabelsvisible=(r == layout[1]), # Ukryj etykiety pośrednie
-            yticklabelsvisible=(c == 1),
-        )
-
-        # Użyj funkcji pomocniczej do narysowania danych
-        plot_phase_space_at_time!(ax, simres, t)
-
-        plot_count += 1
-    end
-
-    println("Gotowe. Zwracam figurę.")
-    return fig
-end
-
-# ==============================================================================
-# KONIEC NOWYCH FUNKCJI
-# ==============================================================================
-
-
-function plot_explained_variance_evolution(
-    pca_results::Vector{PCAResultAtTime};
-    info_text::String="",
-)
-    if isempty(pca_results)
-        @warn "Brak wyników PCA do narysowania wykresu wariancji."
-        return Figure()
-    end
-    # Zwiększa cyfry na osi Y
-    taus = [res.tau for res in pca_results]
-    n_components = maximum(length(res.explained_variance_ratio) for res in pca_results)
-
-    fig = Figure(size=(1000, 600))
-    ax = Axis(
-        fig[1, 1],
-        title="Ewolucja wariancji wyjaśnionej przez komponenty PCA",
-        subtitle=info_text,
-        xlabel=L"\tau \text{ [fm/c]}",
-        ylabel="Proporcja wyjaśnionej wariancji//Explained Variance EVR",
-        limits=(nothing, (0, 1.1)),
-        xticklabelsize=14,  # Zwiększa cyfry na osi X
-        yticklabelsize=14   # Zwiększa cyfry na osi Y
-    )
-
-    for i = 1:n_components
-        variance_data = [
-            length(res.explained_variance_ratio) >= i ? res.explained_variance_ratio[i] : NaN
-            for res in pca_results
-        ]
-        lines!(ax, taus, variance_data, label="PC $i", linewidth=2.5)
-    end
-
-    if n_components > 1
-        cumulative_variance = [sum(res.explained_variance_ratio) for res in pca_results]
-        lines!(
-            ax,
-            taus,
-            cumulative_variance,
-            label="Suma",
-            linestyle=:dash,
-            color=:black,
-            linewidth=2.0
-        )
-    end
-
-    hlines!(ax, [1.0], linestyle=:dot, color=:grey, alpha=0.7)
-    axislegend(ax, position=:rc)
-    return fig
-end
-
-"""
-    plot_pca_snapshot!(ax, pca_result, initial_temps_for_mask; ...)
-
-Wewnętrzna funkcja rysująca pojedynczy wykres PCA na podanej osi (Axis).
-"""
-function plot_pca_snapshot!(
-    ax::Axis,
-    pca_result::PCAResultAtTime,
-    initial_temps_for_mask::Vector{Float64};
-    colormap=:plasma,
-    markersize=4,
-)
-    data = pca_result.transformed_data
-
-    if size(data, 2) < 2
-        text!(ax, "Zbyt mało komponentów (N < 2)", position=(0, 0), align=(:center, :center))
-        @warn "Pominięto rysowanie dla tau=$(pca_result.tau), liczba komponentów < 2"
+    if !any(mx)
+        text!(ax, "Brak danych", position=(0,0))
         return
     end
 
-    pc1_data = data[:, 1]
-    pc2_data = data[:, 2]
-
-    if length(initial_temps_for_mask) == size(data, 1)
-        scatter!(
-            ax,
-            pc1_data,
-            pc2_data,
-            color=initial_temps_for_mask,
-            colormap=colormap,
-            markersize=markersize,
-            alpha=0.8,
-            strokewidth=0,
-        )
-    else
-        @warn "Niezgodność liczby temperatur i punktów danych dla tau=$(pca_result.tau). Używanie domyślnego koloru."
-        scatter!(
-            ax,
-            pc1_data,
-            pc2_data,
-            color=:blue,
-            markersize=markersize,
-            alpha=0.8,
-            strokewidth=0,
-        )
-    end
+    scatter!(ax, vx[mx], vy[my],
+             markersize=4, color=:blue, alpha=0.6)
 end
 
-"""
-    plot_pca_snapshot(sim_result, t, feature_indices, pca_method_params; ...)
+function plot_phase_space_grid(simres, times, x_key, y_key; layout=nothing)
+    n = length(times)
+    cols = ceil(Int, sqrt(n))
+    rows = ceil(Int, n/cols)
+    fig = Figure(size=(400*cols, 350*rows))
 
-Funkcja "publiczna": Uruchamia PCA dla pojedynczego czasu `t` i zwraca gotowy wykres (`Figure`).
-"""
-function plot_pca_snapshot(
-    sim_result::modHydroSim.SimResult,
-    t::Float64,
-    feature_indices::Vector{Int},
-    pca_method_params::Dict;
-    info_text::String="",
-    n_components::Int=2
-)
-    println("Uruchamianie PCA dla pojedynczego czasu τ = $t...")
-    pca_result = modPCA.run_pca_at_time(
-        sim_result,
-        t,
-        feature_indices,
-        n_components,
-        pca_method_params
-    )
+    xlims, ylims = _calc_limits(simres, simres.settings.tspan, x_key, y_key)
+    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
 
-    if isnothing(pca_result)
-        @error "Nie można wygenerować PCA dla tau=$t. Zwracanie pustego wykresu."
-        return Figure()
-    end
+    Label(fig[0, :], "Ewolucja chmury punktów: $yl vs $xl", fontsize=20, font=:bold)
 
-    initial_states_raw = [sol.u[1] for sol in sim_result.solutions]
-    all_initial_temps = [s[1] for s in initial_states_raw]
-    valid_initial_temps = all_initial_temps[pca_result.valid_mask]
+    for (i, t) in enumerate(times)
+        r, c = (i-1) ÷ cols + 1, (i-1) % cols + 1
+        ax = Axis(fig[r, c], title="τ=$(round(t, digits=2)) fm/c", xlabel=xl, ylabel=yl)
 
-    total_var = sum(pca_result.explained_variance_ratio) * 100
-    ax_title = "τ = $(round(t, digits=2)) fm/c (Var: $(round(total_var, digits=1))%)"
-
-    fig = Figure(size=(800, 700))
-    fig[1, 1] = Label(fig, "Wizualizacja PCA (pojedynczy czas)", fontsize=24, tellwidth=false)
-    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
-
-    ax = Axis(
-        fig[3, 1],
-        title=ax_title,
-        xlabel="PC 1",
-        ylabel="PC 2",
-        xticklabelsize=16,  # Zwiększa cyfry na osi X
-        yticklabelsize=16   # Zwiększa cyfry na osi Y
-    )
-
-    plot_pca_snapshot!(ax, pca_result, valid_initial_temps)
-
-    if length(all_initial_temps) > 0
-        Colorbar(fig[3, 2], colormap=:plasma, label=L"T_0 \text{ [MeV]}")
-    end
-
-    return fig
-end
-
-
-function visualize_pca_static_grid(
-    pca_results::Vector{PCAResultAtTime},
-    sim_result::modHydroSim.SimResult,
-    num_plots::Int;
-    info_text::String="",
-)
-    if isempty(pca_results)
-        @warn "Brak wyników PCA do wizualizacji."
-        return Figure()
-    end
-
-    initial_states_raw = [sol.u[1] for sol in sim_result.solutions]
-    all_initial_temps = [s[1] for s in initial_states_raw]
-
-    total_steps = length(pca_results)
-    indices_to_plot =
-        unique(round.(Int, range(1, stop=total_steps, length=num_plots)))
-
-    n_cols = ceil(Int, sqrt(length(indices_to_plot)))
-    n_rows = ceil(Int, length(indices_to_plot) / n_cols)
-
-    fig = Figure(size=(500 * n_cols, 450 * n_rows))
-    fig[1, 1:n_cols] = Label(fig, "Wizualizacja PCA w przestrzeni komponentów", fontsize=24, tellwidth=false)
-    fig[2, 1:n_cols] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
-
-    all_pc1 = filter(isfinite, vcat([res.transformed_data[:, 1] for res in pca_results if size(res.transformed_data, 2) >= 1]...))
-    all_pc2 = filter(isfinite, vcat([res.transformed_data[:, 2] for res in pca_results if size(res.transformed_data, 2) >= 2]...))
-
-    global_xlims = (nothing, nothing)
-    global_ylims = (nothing, nothing)
-
-    if !isempty(all_pc1) && !isempty(all_pc2)
-        min_pc1, max_pc1 = minimum(all_pc1), maximum(all_pc1)
-        min_pc2, max_pc2 = minimum(all_pc2), maximum(all_pc2)
-        x_margin = (max_pc1 - min_pc1) * 0.05
-        y_margin = (max_pc2 - min_pc2) * 0.05
-        global_xlims = (min_pc1 - x_margin, max_pc1 + x_margin)
-        global_ylims = (min_pc2 - y_margin, max_pc2 + y_margin)
-    else
-        @warn "Nie można ustalić globalnych limitów dla siatki PCA. Wykres może być pusty."
-    end
-
-    for (i, res_idx) in enumerate(indices_to_plot)
-        res = pca_results[res_idx]
-        valid_initial_temps = all_initial_temps[res.valid_mask]
-
-        row = (i - 1) ÷ n_cols + 3
-        col = (i - 1) % n_cols + 1
-
-        total_var = sum(res.explained_variance_ratio) * 100
-        ax_title = "τ = $(round(res.tau, digits=2)) fm/c (Var: $(round(total_var, digits=1))%)"
-
-        ax = Axis(
-            fig[row, col],
-            title=ax_title,
-            xlabel="PC 1",
-            ylabel="PC 2",
-            limits=(global_xlims, global_ylims),
-            xticklabelsize=14,
-            yticklabelsize=14
-        )
-
-        plot_pca_snapshot!(ax, res, valid_initial_temps)
-    end
-
-    if length(all_initial_temps) > 0
-        Colorbar(fig[3:n_rows+2, n_cols+1], colormap=:plasma, label=L"T_0 \text{ [MeV]}")
-    end
-
-    return fig
-end
-
-
-function plot_loadings_evolution(
-    pca_results::Vector{PCAResultAtTime},
-    selected_feature_names::Vector{String};
-    info_text::String="",
-)
-    if isempty(pca_results)
-        @warn "Brak wyników PCA do narysowania wykresu ładunków."
-        return Figure()
-    end
-
-    taus = [res.tau for res in pca_results]
-    n_components = 0
-    if !isempty(pca_results)
-        n_components = maximum(size(res.principal_components, 2) for res in pca_results if !isempty(res.principal_components))
-    end
-    n_features = length(selected_feature_names)
-
-    fig = Figure(size=(1000, 400 * n_components))
-    fig[1, 1] = Label(fig, "Ewolucja (Loadings) PCA", fontsize=24, tellwidth=false)
-    fig[2, 1] = Label(fig, info_text, fontsize=14, tellwidth=false, padding=(0, 0, 5, 10))
-
-    for i = 1:n_components
-        ax = Axis(
-            fig[i+2, 1],
-            title="Komponent PC$i",
-            xlabel=L"\tau \text{ [fm/c]}",
-            ylabel="Wartość ładunku",
-            limits=(nothing, (-1.1, 1.1)),
-        )
-
-        for j = 1:n_features
-            loading_data = [
-                (size(res.principal_components, 1) >= j && size(res.principal_components, 2) >= i) ?
-                res.principal_components[j, i] : NaN
-                for res in pca_results
-            ]
-
-            lines!(ax, taus, loading_data, label=selected_feature_names[j], linewidth=2.5)
+        if !isnothing(xlims)
+            wx, wy = xlims[2]-xlims[1], ylims[2]-ylims[1]
+            limits!(ax, xlims[1]-0.05wx, xlims[2]+0.05wx, ylims[1]-0.05wy, ylims[2]+0.05wy)
         end
-        hlines!(ax, [0.0], linestyle=:dot, color=:grey, alpha=0.7)
-        axislegend(ax, position=:rc, patchsize=(30, 30))
+        plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
     end
-
     return fig
 end
 
-end # koniec modułu modPlots
+function plot_phase_space_snapshot(simres, t, x_key, y_key)
+    fig = Figure(size=(800, 600))
+    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
+    ax = Axis(fig[1,1], title="Snapshot τ=$(round(t, digits=2)) fm/c", xlabel=xl, ylabel=yl)
+    plot_phase_space_snapshot!(ax, simres, t, x_key, y_key)
+    return fig
+end
 
+# --- Animation ---
+function animate_phase_space_evolution(simres, x_key, y_key; output_filename="anim.gif", fps=20)
+    times = range(simres.settings.tspan..., length=100)
+    xlims, ylims = _calc_limits(simres, simres.settings.tspan, x_key, y_key)
+    xl, yl = get_axis_label(x_key), get_axis_label(y_key)
+
+    fig = Figure(size=(800, 600))
+    ax = Axis(fig[1,1], title="Ewolucja", xlabel=xl, ylabel=yl)
+    if !isnothing(xlims)
+        wx, wy = xlims[2]-xlims[1], ylims[2]-ylims[1]
+        limits!(ax, xlims[1]-0.05wx, xlims[2]+0.05wx, ylims[1]-0.05wy, ylims[2]+0.05wy)
+    end
+
+    t_obs = Observable(times[1])
+    pts = @lift begin
+        vx, mx = _get_values_for_key(simres, $t_obs, x_key)
+        vy, my = _get_values_for_key(simres, $t_obs, y_key)
+        Point2f.(vx[mx], vy[mx])
+    end
+
+    scatter!(ax, pts, color=:blue, markersize=4)
+    record(fig, output_filename, times; framerate=fps) do t
+        t_obs[] = t
+    end
+    println("Zapisano: $output_filename")
+end
+
+# --- Thermo Evolution Plot (Option 5) ---
+function plot_thermodynamics_evolution(simres)
+    fig = Figure(size=(1200, 600))
+
+    ax_T = Axis(fig[1, 1], title="Ewolucja Temperatury T(τ) (Wszystkie punkty)", xlabel=L"\tau \text{ [fm/c]}", ylabel=L"T \text{ [MeV]}")
+    ax_A = Axis(fig[1, 2], title="Ewolucja Anizotropii A(τ) (Wszystkie punkty)", xlabel=L"\tau \text{ [fm/c]}", ylabel=L"A")
+
+    # Plot ALL trajectories (no step skipping)
+
+    for sol in simres.solutions
+        if isempty(sol.t) || any(isnan, sol.u[end]); continue; end
+        ts = sol.t
+        Ts = [u[1] for u in sol.u]
+        As = [u[2] for u in sol.u]
+
+        lines!(ax_T, ts, Ts, alpha=0.3, linewidth=0.5, color=(:red, 0.5))
+        lines!(ax_A, ts, As, alpha=0.3, linewidth=0.5, color=(:blue, 0.5))
+    end
+    return fig
+end
+
+# --- PCA Functions ---
+function plot_explained_variance_evolution(results; info_text="")
+    fig = Figure(size=(800,500))
+    ax = Axis(fig[1,1], title="Wariancja wyjaśniona $info_text", xlabel=L"\tau", ylabel="EVR")
+    taus = [r.tau for r in results]
+    if isempty(taus); return fig; end
+    n_comp = length(results[1].explained_variance_ratio)
+    for i in 1:n_comp
+        lines!(ax, taus, [r.explained_variance_ratio[i] for r in results], label="PC$i")
+    end
+    lines!(ax, taus, [sum(r.explained_variance_ratio) for r in results], label="Suma", linestyle=:dash)
+    axislegend(ax)
+    return fig
+end
+
+function visualize_pca_static_grid(results, simres, n_plots; info_text="")
+    idxs = round.(Int, range(1, length(results), length=n_plots))
+    cols = ceil(Int, sqrt(n_plots))
+    rows = ceil(Int, n_plots/cols)
+    fig = Figure(size=(300*cols, 300*rows))
+    Label(fig[0, :], info_text, fontsize=14)
+    t0_temps = [sol.u[1][1] for sol in simres.solutions]
+    for (i, idx) in enumerate(idxs)
+        res = results[idx]
+        r, c = (i-1)÷cols + 1, (i-1)%cols + 1
+        ax = Axis(fig[r,c], title="τ=$(round(res.tau, digits=2))", xlabel="PC1", ylabel="PC2")
+        if size(res.transformed_data, 2) >= 2
+            colors = t0_temps[res.valid_mask]
+            scatter!(ax, res.transformed_data[:,1], res.transformed_data[:,2],
+                     color=colors, colormap=:plasma, markersize=4)
+        end
+    end
+    return fig
+end
+
+function plot_loadings_evolution(results, names; info_text="")
+    fig = Figure(size=(800, 600))
+    n_comps = size(results[1].principal_components, 2)
+    taus = [r.tau for r in results]
+    for i in 1:min(n_comps, 2)
+        ax = Axis(fig[i, 1], title="Loadings PC$i", xlabel=L"\tau")
+        for (j, name) in enumerate(names)
+            vals = [r.principal_components[j, i] for r in results]
+            lines!(ax, taus, vals, label=string(name))
+        end
+        axislegend(ax)
+    end
+    return fig
+end
+
+function plot_pca_snapshot(simres, t, idxs, params; info_text="", n_components=2)
+    res = modPCA.run_pca_at_time(simres, t, idxs, n_components, params)
+    if isnothing(res); return Figure(); end
+    fig = Figure()
+    ax = Axis(fig[1,1], title="PCA τ=$t", xlabel="PC1", ylabel="PC2")
+    t0_temps = [s.u[1][1] for s in simres.solutions]
+    colors = t0_temps[res.valid_mask]
+    scatter!(ax, res.transformed_data[:,1], res.transformed_data[:,2],
+             color=colors, colormap=:plasma)
+    return fig
+end
+
+end

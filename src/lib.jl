@@ -25,18 +25,9 @@ using HDF5
 using Dates
 using Printf
 
-export AbstractHydroParams,
-    BRSSSParams,
-    SimSettings,
-    SimResult,
-    PARAMS_SYM_BRSSS,
-    PARAMS_MIS,
-    run_simulation,
-    MeV,
-    extract_phase_space_slice,
-    generate_and_save_ics,
-    load_initial_conditions,
-    load_simulation_settings
+export AbstractHydroParams, BRSSSParams, SimSettings, SimResult,
+    PARAMS_SYM_BRSSS, PARAMS_MIS, run_simulation, extract_phase_space_slice,
+    generate_and_save_ics, load_initial_conditions, load_simulation_settings, MeV
 
 const fm = 1.0
 const MeV = 1 / (197.0 * fm)
@@ -60,8 +51,34 @@ struct SimSettings
     seed::Int
 end
 
+struct SimResult
+    solutions::Vector{ODESolution}
+    settings::SimSettings
+end
+
+# --- Parametry ---
 const PARAMS_SYM_BRSSS = BRSSSParams((2 - log(2)) / (2 * π), 1 / (4 * π), 1 / (2 * π))
 const PARAMS_MIS = BRSSSParams((2 - log(2)) / (2 * π), 1 / (4 * π), 0.0)
+
+# --- Równania różniczkowe ---
+function ode_brsss!(du, u, p::BRSSSParams, τ)
+    T, A = u
+    C_τπ, C_η, C_λ1 = p.C_τπ, p.C_η, p.C_λ1
+
+    if T <= 1e-9 || !isfinite(T) || !isfinite(A)
+        du .= 0.0
+        return
+    end
+
+    # Równania ewolucji
+    # dT/dtau
+    du[1] = (T / τ) * (-1 / 3 + A / 18)
+
+    # dA/dtau
+    term_T = τ * T * (A + (C_λ1 / (12 * C_η)) * A^2)
+    term_A2 = (2 / 9) * C_τπ * A^2
+    du[2] = (1 / (C_τπ * τ)) * (8 * C_η - term_T - term_A2)
+end
 
 function SimSettings(;
     theory::Symbol=:BRSSS,
@@ -79,38 +96,11 @@ function SimSettings(;
         error("Unknown theory $theory. Available: :BRSSS, :MIS")
     end
 
-    return SimSettings(
-        theory,
-        params,
-        ode,
-        tspan,
-        n_points,
-        T_range,
-        A_range,
-        seed,
-    )
-end
-
-struct SimResult
-    solutions::Vector{ODESolution}
-    settings::SimSettings
-end
-
-function ode_brsss!(du, u, p::BRSSSParams, τ)
-    T, A = u
-    C_τπ, C_η, C_λ1 = p.C_τπ, p.C_η, p.C_λ1
-
-    (T <= 1e-9 || !isfinite(T) || !isfinite(A)) && (du .= 0.0; return)
-
-    du[1] = (T / τ) * (-1 / 3 + A / 18)
-    term_T = τ * T * (A + (C_λ1 / (12 * C_η)) * A^2)
-    term_A2 = (2 / 9) * C_τπ * A^2
-    du[2] = (1 / (C_τπ * τ)) * (8 * C_η - term_T - term_A2)
+    return SimSettings(theory, params, ode, tspan, n_points, T_range, A_range, seed)
 end
 
 function evol(u0, settings::SimSettings)
     prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
-
     return solve(prob, Rodas5(), save_everystep=false, dense=true, abstol=1e-6, reltol=1e-6)
 end
 
@@ -120,9 +110,7 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=
     initial_states = if ic_file !== nothing
         load_initial_conditions(ic_file)
     else
-        println(
-            "No file provided, generating $(settings.n_points) random initial conditions (seed: $(settings.seed)).",
-        )
+        println("Generating $(settings.n_points) random initial conditions (seed: $(settings.seed)).")
         generate_initial_conditions(settings)
     end
 
@@ -136,23 +124,7 @@ function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=
     return SimResult(solutions, settings)
 end
 
-function load_initial_conditions(filepath::String)
-    println("Loading initial conditions from: $filepath")
-
-    df = if endswith(filepath, ".csv")
-        CSV.read(filepath, DataFrame; comment="#")
-    elseif endswith(filepath, ".h5")
-        h5open(filepath, "r") do file
-            g = file["initial_conditions"]
-            cols = names(g)
-            DataFrame([col => read(g[col]) for col in cols])
-        end
-    else
-        error("Unsupported file type: $filepath. Use .csv or .h5")
-    end
-
-    return [[row.T_0, row.A_0] for row in eachrow(df)]
-end
+# --- I/O Functions ---
 
 function generate_initial_conditions(settings::SimSettings)
     rng = Xoshiro(settings.seed)
@@ -161,16 +133,29 @@ function generate_initial_conditions(settings::SimSettings)
     return [[Ts[j], As[j]] for j = 1:(settings.n_points)]
 end
 
+function load_initial_conditions(filepath::String)
+    println("Loading initial conditions from: $filepath")
+    df = if endswith(filepath, ".csv")
+        CSV.read(filepath, DataFrame; comment="#")
+    elseif endswith(filepath, ".h5")
+        h5open(filepath, "r") do file
+            g = file["initial_conditions"]
+            DataFrame([col => read(g[col]) for col in names(g)])
+        end
+    else
+        error("Unsupported file type: $filepath")
+    end
+    return [[row.T_0, row.A_0] for row in eachrow(df)]
+end
+
 function settings_to_header(settings::SimSettings)
-    header = "# SIMULATION SETTINGS\n"
-    header *= "# =====================\n"
+    header = "# SIMULATION SETTINGS\n# =====================\n"
     for field in fieldnames(typeof(settings))
         value = getfield(settings, field)
         if field == :params
             header *= "# Parameters for $(settings.theory):\n"
             for p_field in fieldnames(typeof(value))
-                p_value = getfield(value, p_field)
-                header *= "#   $(p_field) = $(p_value)\n"
+                header *= "#   $(p_field) = $(getfield(value, p_field))\n"
             end
         elseif field != :ode
             header *= "# $(field) = $(value)\n"
@@ -180,54 +165,96 @@ function settings_to_header(settings::SimSettings)
     return header
 end
 
-function generate_and_save_ics(;
-    settings::SimSettings,
-    output_base_filename="initial_conditions",
-)
+function generate_and_save_ics(; settings::SimSettings, output_base_filename="initial_conditions")
     ics_list = generate_initial_conditions(settings)
     df = DataFrame(T_0=[ic[1] for ic in ics_list], A_0=[ic[2] for ic in ics_list])
     df.Run_ID = 1:settings.n_points
 
+    # CSV Save
     csv_filename = "$(output_base_filename).csv"
-    header = settings_to_header(settings)
     open(csv_filename, "w") do f
-        write(f, header)
+        write(f, settings_to_header(settings))
         CSV.write(f, df[!, [:Run_ID, :T_0, :A_0]], append=true, writeheader=true)
     end
-    println("Saved initial conditions to: $csv_filename")
+    println("Saved CSV: $csv_filename")
 
+    # HDF5 Save
     h5_filename = "$(output_base_filename).h5"
     h5open(h5_filename, "w") do file
         g_data = create_group(file, "initial_conditions")
         for col in names(df)
             g_data[col] = df[!, col]
         end
-        attrs(g_data)["description"] = "Random initial conditions."
         attrs(g_data)["timestamp"] = string(now())
 
         g_settings = create_group(file, "settings")
-        attrs(g_settings)["description"] = "Simulation settings used to generate this data."
         for field in fieldnames(typeof(settings))
             value = getfield(settings, field)
-            s_field = string(field)
             if field == :params
                 for p_field in fieldnames(typeof(value))
                     attrs(g_settings)["param_$(p_field)"] = getfield(value, p_field)
                 end
             elseif field != :ode
-                attr_value = if isa(value, Tuple)
-                    [value...]
-                elseif isa(value, Symbol)
-                    string(value)
-                else
-                    value
-                end
-                attrs(g_settings)[s_field] = attr_value
+                val_to_store = isa(value, Tuple) ? [value...] : (isa(value, Symbol) ? string(value) : value)
+                attrs(g_settings)[string(field)] = val_to_store
             end
         end
     end
-    println("Saved initial conditions to: $h5_filename")
+    println("Saved H5: $h5_filename")
     return df
+end
+
+function load_simulation_settings(filepath::String)
+    config = Dict{Symbol,Any}()
+    param_config = Dict{Symbol,Any}()
+
+    if endswith(filepath, ".csv")
+        for line in eachline(filepath)
+            !startswith(line, "#") && break
+
+            # FIX: Bezpieczniejsze parsowanie linii
+            content = ""
+            is_param = false
+
+            if startswith(line, "#   ")
+                content = strip(line[5:end])
+                is_param = true
+            elseif startswith(line, "# ")
+                content = strip(line[3:end])
+            else
+                continue
+            end
+
+            parts = split(content, " = ")
+            length(parts) != 2 && continue
+
+            key_sym = Symbol(parts[1])
+            val_str = parts[2]
+
+            if is_param # Parametry modelu
+                param_config[key_sym] = parse(Float64, val_str)
+            else # Główne ustawienia
+                if key_sym == :theory
+                    config[key_sym] = Symbol(val_str)
+                elseif key_sym in [:n_points, :seed]
+                    config[key_sym] = parse(Int, val_str)
+                elseif key_sym in [:tspan, :T_range, :A_range]
+                    config[key_sym] = eval(Meta.parse(val_str))
+                end
+            end
+        end
+
+        theory = config[:theory]
+        params, ode = if theory in [:BRSSS, :MIS]
+            BRSSSParams(param_config[:C_τπ], param_config[:C_η], param_config[:C_λ1]), ode_brsss!
+        else
+            error("Unsupported theory in CSV.")
+        end
+
+        return SimSettings(theory, params, ode, config[:tspan], config[:n_points], config[:T_range], config[:A_range], config[:seed])
+    elseif endswith(filepath, ".h5")
+        error("H5 loading not implemented yet.")
+    end
 end
 
 function extract_phase_space_slice(simres::SimResult, t::Float64)
@@ -239,90 +266,21 @@ function extract_phase_space_slice(simres::SimResult, t::Float64)
     valid_mask = falses(n_sols)
     u_values = [fill(NaN, n_sols) for _ = 1:n_vars]
     du_values = [fill(NaN, n_sols) for _ = 1:n_vars]
-
     du_cache = zeros(Float64, n_vars)
 
     for (i, sol) in enumerate(simres.solutions)
-        if t < sol.t[1] || t > sol.t[end]
-            continue
-        end
-
+        if t < sol.t[1] || t > sol.t[end]; continue; end
         u = sol(t)
-
-        if any(!isfinite, u) || u[1] <= 1e-9
-            continue
-        end
+        if any(!isfinite, u) || u[1] <= 1e-9; continue; end
 
         ode_func!(du_cache, u, params, t)
-
         for j = 1:n_vars
             u_values[j][i] = u[j]
             du_values[j][i] = du_cache[j]
         end
-
         valid_mask[i] = true
     end
-
     return (u_values, du_values, valid_mask)
-end
-
-function load_simulation_settings(filepath::String)
-    println("Wczytywanie ustawień z pliku: $filepath")
-
-    config = Dict{Symbol,Any}()
-    param_config = Dict{Symbol,Any}()
-
-    if endswith(filepath, ".csv")
-        for line in eachline(filepath)
-            !startswith(line, "#") && break
-
-            local parts, line_content
-            if startswith(line, "#   ")
-                line_content = strip(line[5:end])
-                parts = split(line_content, " = ")
-                length(parts) != 2 && continue
-                param_config[Symbol(parts[1])] = parse(Float64, parts[2])
-            elseif startswith(line, "# ")
-                line_content = strip(line[3:end])
-                parts = split(line_content, " = ")
-                length(parts) != 2 && continue
-                key, value_str = parts[1], parts[2]
-                key_sym = Symbol(key)
-
-                if key_sym == :theory
-                    config[key_sym] = Symbol(value_str)
-                elseif key_sym in [:n_points, :seed]
-                    config[key_sym] = parse(Int, value_str)
-                elseif key_sym in [:tspan, :T_range, :A_range, :Z_range]
-                    val = eval(Meta.parse(value_str))
-                    config[key_sym] = val
-                end
-            end
-        end
-
-        theory = config[:theory]
-        params, ode = if theory == :BRSSS || theory == :MIS
-            BRSSSParams(param_config[:C_τπ], param_config[:C_η], param_config[:C_λ1]), ode_brsss!
-        else
-            error("Unknown or unsupported theory $theory during CSV load.")
-        end
-
-        return SimSettings(
-            theory,
-            params,
-            ode,
-            config[:tspan],
-            config[:n_points],
-            config[:T_range],
-            config[:A_range],
-            config[:seed]
-        )
-
-    elseif endswith(filepath, ".h5")
-        error("Wczytywanie ustawień z H5 nie jest jeszcze zaimplementowane.")
-    else
-        error("Nieobsługiwany typ pliku: $filepath. Użyj .csv lub .h5")
-    end
 end
 
 end
