@@ -44,8 +44,6 @@ function save_csv(simres, name)
 end
 
 function kadr(simres, t)
-    # 1. Pobranie danych (T, A) dla czasu t
-    # Korzystamy z funkcji bibliotecznej, która bezpiecznie wyciąga dane
     vals, _, mask = modHydroSim.extract_phase_space_slice(simres, Float64(t))
 
     if !any(mask)
@@ -103,7 +101,7 @@ function kadr_grid(simres, times)
             title="τ = $t fm/c",
             xlabel="T [MeV]",
             ylabel="A",
-            limits=(T_min, T_max, A_min, A_max), # <--- TO JEST KLUCZ DO STAŁYCH OSI
+            #limits=(T_min, T_max, A_min, A_max), # <--- TO JEST KLUCZ DO STAŁYCH OSI
             xlabelsize=14,
             ylabelsize=14
         )
