@@ -9,6 +9,7 @@ using LaTeXStrings
 using LinearAlgebra
 using Random
 using Distributions
+using Statistics
 function generate_matrix_example_plots()
     CairoMakie.activate!(type="png")
     modPlots.set_publication_theme()
@@ -55,7 +56,7 @@ function generate_matrix_example_plots()
     end
 
     save("plots/pca_matrix_example_variance.png", fig_var, px_per_unit=3)
-    println("Wygenerowano wysokiej jakości: plots/pca_matrix_example_variance.png")
+    println("Wygenerowano : plots/pca_matrix_example_variance.png")
 
 
     fig_proj = Figure(size=(1600, 1300), fontsize=35)
@@ -121,14 +122,57 @@ function generate_matrix_example_plots()
     println("Wygenerowano wysokiej jakości: plots/pca_matrix_example_projection.png")
 end
 
-# generate_matrix_example_plots()
-
-
 function kernel_pca_example()
     rng = Xoshiro(5)
-    x = rand(rng, 100)
+    x = 0:0.1:15
+    y_sin = sin.(x)
+    noise = 0.1 .* randn(rng, length(x))
+    y_noisy = y_sin .+ noise
 
-    X = sin.((1:100) .+ 0.5x)
+    data = Matrix{Float64}(hcat(x, y_noisy))
+    res, evr_raw, comps = modPCA.linear_pca(data, 2; mode=:center)
 
-    return X, x
+    fig = Figure(size=(1600, 1300), fontsize=35)
+    wykres = Axis(fig[1, 1],
+        # title=L"\textbf{Przestrzeń Głównych Składowych}",
+        xlabel=L"x",
+        ylabel=L"sin(x)",
+        titlesize=36,
+        xlabelsize=50,
+        ylabelsize=50,
+        xticklabelsize=30,
+        yticklabelsize=30)
+
+    lines!(wykres, x, y_sin, color=:blue, linewidth=10)
+    scatter!(wykres, x, y_noisy, color=:red, markersize=15)
+
+    mx, my = mean(x), mean(y_noisy)
+    scale = 4.0
+    arrows!(wykres, [mx, mx], [my, my],
+        [comps[1, 1], comps[1, 2]] .* scale,
+        [comps[2, 1], comps[2, 2]] .* scale,
+        color=:black, linewidth=9, arrowsize=35)
+
+    text!(wykres, mx + comps[1, 1] * scale, my + comps[2, 1] * scale, text="PC1", fontsize=40, font=:bold)
+    text!(wykres, mx + comps[1, 2] * scale, my + comps[2, 2] * scale, text="PC2", fontsize=40, font=:bold)
+
+    save("plots/wykres_sin_example.png", fig, px_per_unit=3)
+    # current_figure()
+    #
+    # analiza PCA DLA TEGO ZESTAWU DANYCH
+    # println("res: !!!!!!!", res)
+    # println("evr_raw::::!!!", evr_raw)
+    # println("comps:!!!!", comps)
+    fig2 = Figure(size=(1600, 1300), fontsize=35)
+    ax2 = Axis(fig2[1, 1],
+        # title="Przestrzeń PCA",
+        xlabel="PC1",
+        ylabel="PC2",
+        xlabelsize=50,
+        ylabelsize=50,
+        xticklabelsize=30,
+        yticklabelsize=30
+    )
+    scatter!(ax2, res[:, 1], res[:, 2], color=x, colormap=:viridis, markersize=25)
+    save("plots/wykres_sinpca_example.png", fig2, px_per_unit=3)
 end
