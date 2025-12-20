@@ -6,7 +6,7 @@ using LinearAlgebra
 using MultivariateStats
 using ..modHydroSim
 
-export PCAResultAtTime, run_pca_at_time, run_pca_over_time
+export PCAResultAtTime, run_pca_at_time, run_pca_over_time, linear_pca, kernel_pca
 
 struct PCAResultAtTime
     tau::Float64
@@ -33,11 +33,11 @@ function linear_pca(X::Matrix{Float64}, n::Int; mode::Symbol=:standardize)
     end
 
     M = fit(PCA, X_scaled'; maxoutdim=n, pratio=1.0)
-    return transform(M, X_scaled')', principalvars(M)./var(M), projection(M)
+    return transform(M, X_scaled')', principalvars(M) ./ var(M), projection(M)
 end
 
 function kernel_pca(X::Matrix{Float64}, n::Int; gamma::Float64)
-    k = (x,y) -> exp(-gamma * norm(x-y)^2)
+    k = (x, y) -> exp(-gamma * norm(x - y)^2)
     M = fit(KernelPCA, X'; kernel=k, maxoutdim=n)
     ev = eigvals(M)
     tot = sum(ev)
@@ -47,7 +47,9 @@ end
 
 function extract_features(simres, t, feats::Vector{Symbol})
     u, du, mask = modHydroSim.extract_phase_space_slice(simres, t)
-    if !any(mask); return nothing, nothing; end
+    if !any(mask)
+        return nothing, nothing
+    end
 
     t0 = simres.settings.tspan[1]
     data = Vector{Float64}[]
@@ -75,7 +77,9 @@ end
 
 function run_pca_at_time(simres, t, feats, n, params)
     data, mask = extract_features(simres, t, feats)
-    if isnothing(data) || size(data, 1) < n; return nothing; end
+    if isnothing(data) || size(data, 1) < n
+        return nothing
+    end
 
     real_n = min(n, size(data, 2))
 

@@ -26,8 +26,8 @@ using Dates
 using Printf
 
 export AbstractHydroParams, BRSSSParams, SimSettings, SimResult,
-       run_simulation, extract_phase_space_slice,
-       generate_and_save_ics, load_initial_conditions, load_simulation_settings
+    run_simulation, extract_phase_space_slice,
+    generate_and_save_ics, load_initial_conditions, load_simulation_settings
 
 abstract type AbstractHydroParams end
 
@@ -92,7 +92,7 @@ end
 
 function evol(u0, settings::SimSettings)
     prob = ODEProblem(settings.ode, u0, settings.tspan, settings.params)
-    return solve(prob, Rodas5(),  abstol=1e-6, reltol=1e-6)
+    return solve(prob, Rodas5(), abstol=1e-6, reltol=1e-6)
 end
 
 function run_simulation(; settings::SimSettings, ic_file::Union{String,Nothing}=nothing)
@@ -147,7 +147,9 @@ function generate_and_save_ics(; settings::SimSettings, output_base_filename="in
     h5_filename = "$(output_base_filename).h5"
     h5open(h5_filename, "w") do file
         g_data = create_group(file, "initial_conditions")
-        for col in names(df); g_data[col] = df[!, col]; end
+        for col in names(df)
+            g_data[col] = df[!, col]
+        end
         attrs(g_data)["timestamp"] = string(now())
 
         g_settings = create_group(file, "settings")
@@ -241,9 +243,13 @@ function extract_phase_space_slice(simres::SimResult, t::Float64)
     cache = zeros(n_vars)
 
     for (i, sol) in enumerate(simres.solutions)
-        if t < sol.t[1] || t > sol.t[end]; continue; end
+        if t < sol.t[1] || t > sol.t[end]
+            continue
+        end
         u = sol(t)
-        if any(!isfinite, u) || u[1] <= 1e-9; continue; end
+        if any(!isfinite, u) || u[1] <= 1e-9
+            continue
+        end
 
         ode!(cache, u, params, t)
         for j in 1:n_vars

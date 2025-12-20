@@ -10,7 +10,7 @@ using CSV
 using DataFrames
 
 const FEATS = [("T", :T), ("A", :A), ("dT", :dTdτ), ("dA", :dAdτ), ("τ₀T", :tau0_T), ("τ₀²dT", :tau0sq_dTdτ)]
-const AXES = [(:T, "T"), (:A, "A"), (:dT, "dT"), (:dA, "dA"), (:tau0_T, "τ₀T"), (:tau0sq_dT, "τ₀²dT")]
+const AXES = [(:T, "T"), (:A, "A"), (:dT, "dT"), (:dA, "dA"), (:tau0_T, "τ₀T"), (:tau0sq_dT, "τ₀²dT"), (:tau, "τ")]
 
 function prompt_file(dir="datasets")
     !isdir(dir) && return nothing
@@ -51,11 +51,9 @@ function kadr(simres, t)
         return
     end
 
-    # Wyciągamy T i A tylko dla aktywnych symulacji
     Ts = vals[1][mask]
     As = vals[2][mask]
 
-    # 2. Tworzenie ŁADNEGO wykresu (jeden duży widok)
     fig = Figure(size=(800, 600))
 
     ax = Axis(fig[1, 1],
@@ -80,7 +78,71 @@ function kadr(simres, t)
 
     display(fig)
 end
+function plot_universal_grid(simres, times, x_key, y_key)
+    x_label = try
+        modPlots.resolve_def(x_key)[1]
+    catch
+        string(x_key)
+    end
+    y_label = try
+        modPlots.resolve_def(y_key)[1]
+    catch
+        string(y_key)
+    end
 
+    n = length(times)
+    n_cols = ceil(Int, sqrt(n))
+    n_rows = ceil(Int, n / n_cols)
+
+    fig = Figure(size=(400 * n_cols, 350 * n_rows))
+
+    Label(fig[0, :], "Zależność $y_label od $x_label", fontsize=20, font=:bold)
+
+    axes_list = []
+
+    for (i, t) in enumerate(times)
+        row = (i - 1) ÷ n_cols + 1
+        col = (i - 1) % n_cols + 1
+
+        ax = Axis(fig[row, col],
+            title="τ = $t fm/c",
+            xlabel=x_label,
+            ylabel=y_label,
+            xlabelsize=16,
+            ylabelsize=16
+        )
+        push!(axes_list, ax)
+
+        vx, mask_x = modPlots.get_data(simres, Float64(t), x_key)
+        vy, mask_y = modPlots.get_data(simres, Float64(t), y_key)
+
+        mask = mask_x .& mask_y
+
+        if any(mask)
+            scatter!(ax, vx[mask], vy[mask],
+                markersize=5,
+                color=:dodgerblue,
+                strokewidth=0.5,
+                strokecolor=:black,
+                alpha=0.7
+            )
+        else
+            text!(ax, 0.5, 0.5, text="Brak danych", space=:relative, align=(:center, :center))
+        end
+
+        if row < n_rows
+            hidexdecorations!(ax, grid=false)
+        end
+        if col > 1
+            hideydecorations!(ax, grid=false)
+        end
+    end
+
+    # linkaxes!(axes_list...)
+
+    display(fig)
+    return fig
+end
 function kadr_grid(simres, times)
     T_min, T_max = simres.settings.T_range
     A_min, A_max = simres.settings.A_range
@@ -132,7 +194,56 @@ function kadr_grid(simres, times)
     display(fig)
 end
 
+function plot_trajectories(simres, var_key)
+    vars = Dict(
+        :T => (1, L"T \, [\text{fm}^{-1}]"),
+        :A => (2, L"\mathcal{A}")
+    )
 
+    if !haskey(vars, var_key)
+        println("Nieznana zmienna. Dostępne opcje: :T, :A")
+        return nothing
+    end
+
+    idx, y_label = vars[var_key]
+
+    fig = Figure(size=(900, 600), fontsize=20)
+    ax = Axis(fig[1, 1],
+        title=L"Zbieganie trajektorii %$(y_label) \text{ do atraktora}",
+        xlabel=L"\tau \, [\text{fm}/c]",
+        ylabel=y_label,
+        limits=(0.2, 1.2, 1, 10),
+        titlesize=24,
+        xlabelsize=22,
+        ylabelsize=22
+    )
+
+    n_sols = length(simres.solutions)
+    step = max(1, n_sols ÷ 500)
+
+    println("Rysowanie $n_sols trajektorii (krok: $step)...")
+
+    for i in 1:step:n_sols
+        sol = simres.solutions[i]
+        if !isempty(sol.t)
+            values = [u[idx] for u in sol.u]
+
+            lines!(ax, sol.t, values,
+                color=(:dodgerblue, 0.2),
+                linewidth=1.5
+            )
+        end
+    end
+
+    if var_key == :A
+        hlines!(ax, [0.0], color=:red, linestyle=:dash, linewidth=2, label=L"\mathcal{A}=0 \text{ (Izotropia)}")
+        axislegend(ax)
+    end
+
+    # ax.xscale = log10
+
+    return fig
+end
 
 function main()
     file = prompt_file()
@@ -146,6 +257,7 @@ function main()
         println("[2] Wykresy Grid")
         println("[3] Animacja")
         println("[5] Ewolucja T,A + Chmura A vs T + CSV")
+        println("[6] kadry dla danego czasu")
         println("[q] Quit")
 
         c = readline()
@@ -170,6 +282,22 @@ function main()
         elseif c == "3"
             x, y = prompt_axis("X:"), prompt_axis("Y:")
             modPlots.animate_phase_space_evolution(sim, x, y)
+        elseif c == "4"
+            println("\n--- Uniwersalny Wykres ---")
+            x = prompt_axis("Wybierz zmienną na Oś X:")
+            y = prompt_axis("Wybierz zmienną na Oś Y:")
+            println("Podaj czasy oddzielone spacją (np. 0.2 0.6 1.0): ")
+            input_t = readline()
+            if !isempty(input_t)
+                ts = [parse(Float64, t) for t in split(input_t)]
+                fig = plot_universal_grid(sim, ts, x, y)
+                println("Zapisać wykres? [t/n]")
+                if readline() == "t"
+                    save("universal_plot_$(x)_vs_$(y).png", fig)
+                    println("Zapisano jako universal_plot_$(x)_vs_$(y).png")
+                end
+            end
+
         elseif c == "5"
             println("Rysuje trajektorie...")
             save("traj.png", modPlots.plot_thermodynamics_evolution(sim))
@@ -190,6 +318,26 @@ function main()
             println("Podaj czasy oddzielone spacją (np. 0.5 1.0 2.0 5.0): ")
             ts = [parse(Float64, t) for t in split(readline())]
             kadr_grid(sim, ts)
+        elseif c == "10" # <--- OBSŁUGA NOWEJ OPCJI
+            println("Wybierz zmienną do wykreślenia:")
+            println("[1] Temperatura T(τ)")
+            println("[2] Anizotropia A(τ)")
+            choice = readline()
+
+            var_sym = choice == "1" ? :T : (choice == "2" ? :A : nothing)
+
+            if !isnothing(var_sym)
+                fig = plot_trajectories(sim, var_sym)
+                display(fig)
+                println("Zapisać wykres? [t/n]")
+                if readline() == "t"
+                    save("trajectory_$(var_sym).png", fig)
+                    println("Zapisano jako trajectory_$(var_sym).png")
+                end
+            else
+                println("Niepoprawny wybór.")
+            end
+
 
         elseif c == "q"
             break
