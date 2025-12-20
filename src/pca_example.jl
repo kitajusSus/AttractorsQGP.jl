@@ -148,14 +148,6 @@ function kernel_pca_example()
 
     mx, my = mean(x), mean(y_noisy)
     scale = 4.0
-    arrows!(wykres, [mx, mx], [my, my],
-        [comps[1, 1], comps[1, 2]] .* scale,
-        [comps[2, 1], comps[2, 2]] .* scale,
-        color=:black, linewidth=9, arrowsize=35)
-
-    text!(wykres, mx + comps[1, 1] * scale, my + comps[2, 1] * scale, text="PC1", fontsize=40, font=:bold)
-    text!(wykres, mx + comps[1, 2] * scale, my + comps[2, 2] * scale, text="PC2", fontsize=40, font=:bold)
-
     save("plots/wykres_sin_example.png", fig, px_per_unit=3)
     # current_figure()
     #
@@ -173,6 +165,15 @@ function kernel_pca_example()
         xticklabelsize=30,
         yticklabelsize=30
     )
+
+    arrows!(ax2, [0, 0], [0, 0],
+        [comps[1, 1], comps[1, 2]] .* scale,
+        [comps[2, 1], comps[2, 2]] .* scale,
+        color=:black, linewidth=9, arrowsize=35)
+
+    text!(ax2, 0 + comps[1, 1] * scale, my + comps[2, 1] * scale, text="PC1", fontsize=40, font=:bold)
+    text!(ax2, 0 + comps[1, 2] * scale, my + comps[2, 2] * scale, text="PC2", fontsize=40, font=:bold)
+
     scatter!(ax2, res[:, 1], res[:, 2], color=x, colormap=:viridis, markersize=25)
     save("plots/wykres_sinpca_example.png", fig2, px_per_unit=3)
 end
