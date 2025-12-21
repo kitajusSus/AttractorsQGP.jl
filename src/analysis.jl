@@ -258,6 +258,8 @@ function main()
         println("[3] Animacja")
         println("[5] Ewolucja T,A + Chmura A vs T + CSV")
         println("[6] kadry dla danego czasu")
+        println("[7] kadr grid ")
+        println("[10] Ewolucja dla A lub T w τ")
         println("[q] Quit")
 
         c = readline()
