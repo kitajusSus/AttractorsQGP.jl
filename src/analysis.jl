@@ -65,7 +65,6 @@ function kadr(simres, t)
         ylabelsize=18
     )
 
-
     scatter!(ax, Ts, As,
         markersize=8,
         color=:blue,
@@ -78,7 +77,9 @@ function kadr(simres, t)
 
     display(fig)
 end
+
 function plot_universal_grid(simres, times, x_key, y_key)
+
     x_label = try
         modPlots.resolve_def(x_key)[1]
     catch
