@@ -81,8 +81,7 @@ end
 function plot_universal_grid(simres, times, x_key, y_key)
 
     x_label = try
-        modPlots.resolve_def(x_key)[1]
-    catch
+        modPlots.resolve_def(x_key)[1] catch
         string(x_key)
     end
     y_label = try
@@ -164,16 +163,16 @@ function kadr_grid(simres, times)
             title="τ = $t fm/c",
             xlabel="T [MeV]",
             ylabel="A",
-            #limits=(T_min, T_max, A_min, A_max), # <--- TO JEST KLUCZ DO STAŁYCH OSI
+            #limits=(T_min, T_max, A_min, A_max),
             xlabelsize=14,
             ylabelsize=14
         )
 
         if row < n_rows
-            hidexdecorations!(ax, grid=false) # Ukryj X (liczy i label) jeśli nie jest na dole
+            hidexdecorations!(ax, grid=false)
         end
         if col > 1
-            hideydecorations!(ax, grid=false) # Ukryj Y (liczby i label) jeśli nie jest z lewej
+            hideydecorations!(ax, grid=false)
         end
 
         push!(axes_list, ax)
@@ -200,7 +199,7 @@ function plot_trajectories(simres, var_key)
         :T => (1, L"T \, [\text{fm}^{-1}]"),
         :A => (2, L"\mathcal{A}")
     )
-
+ # haskey(tablica, wartość) - sprawdza czy  jest dana wartośc w tablicy returns :bool
     if !haskey(vars, var_key)
         println("Nieznana zmienna. Dostępne opcje: :T, :A")
         return nothing
@@ -282,6 +281,7 @@ function main()
             println("Czasy: ")
             ts = [parse(Float64, t) for t in split(readline())]
             save("grid.png", modPlots.plot_phase_space_grid(sim, ts, x, y))
+            println(" the drawings got saved" )
         elseif c == "3"
             x, y = prompt_axis("X:"), prompt_axis("Y:")
             modPlots.animate_phase_space_evolution(sim, x, y)
@@ -321,7 +321,7 @@ function main()
             println("Podaj czasy oddzielone spacją (np. 0.5 1.0 2.0 5.0): ")
             ts = [parse(Float64, t) for t in split(readline())]
             kadr_grid(sim, ts)
-        elseif c == "10" # <--- OBSŁUGA NOWEJ OPCJI
+        elseif c == "10"
             println("Wybierz zmienną do wykreślenia:")
             println("[1] Temperatura T(τ)")
             println("[2] Anizotropia A(τ)")

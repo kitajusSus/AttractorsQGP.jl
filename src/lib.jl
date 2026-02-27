@@ -37,9 +37,9 @@ struct BRSSSParams <: AbstractHydroParams
     C_λ1::Float64
 end
 
-struct SimSettings
+struct SimSettings{P<:AbstractHydroParams}
     theory::Symbol
-    params::AbstractHydroParams
+    params::P
     ode::Function
     tspan::Tuple{Float64,Float64}
     n_points::Int

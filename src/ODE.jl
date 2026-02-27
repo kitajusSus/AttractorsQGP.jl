@@ -83,11 +83,7 @@ function ODE_sympy()
     println(solution)
 end
 
-println("--- Symbolics Solution ---")
 solve_analytical_coefficients()
 
-println("\n--- SymPy Solution ---")
 ODE_sympy()
-
-println("\n--- Numerical Solution ---")
 solve_attractor()
