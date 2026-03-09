@@ -1,5 +1,4 @@
 """
-Estimate largest Lyapunov exponent from two nearby trajectories.
 """
 function run_LLE(
     model::AbstractHydroModel,

@@ -56,9 +56,10 @@ function run_pipeline(
     ics = generate_initial_conditions(n_points; T_range=T_range, A_range=A_range)
     solutions = generate_trajectories(model, ics, tspan; saveat=saveat)
     dataset = build_dataset(solutions)
-    lle = run_LLE(model, ics[1], tspan; saveat=saveat)
-    dim = estimate_dimension(dataset[:, 2:3])
-    return (solutions=solutions, dataset=dataset, lle=lle, dimension=dim)
+    # lle = run_LLE(model, ics[1], tspan; saveat=saveat)
+    # dim = estimate_dimension(dataset[:, 2:3])
+    return (solutions=solutions, dataset=dataset)
 end
+
 
 end

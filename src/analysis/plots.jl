@@ -3,7 +3,7 @@ using LaTeXStrings
 using ColorSchemes
 
 """
-Apply a clean publication style for Makie plots.
+theme of all those Makie plots.
 """
 function set_publication_theme()
     set_theme!(Theme(

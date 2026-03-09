@@ -2,7 +2,7 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "33e3723b9f990f6008b17c1293e8fdc05329f101"
+project_hash = "9c985f29d26b14556299f531daaf60ef8e4d1a57"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -1548,6 +1548,12 @@ git-tree-sha1 = "6187bb2d5fcbb2007c39e7ac53308b0d371124bd"
 uuid = "9fb69e20-1954-56bb-a84f-559cc56a8ff7"
 version = "0.2.2"
 
+[[deps.HostCPUFeatures]]
+deps = ["BitTwiddlingConvenienceFunctions", "IfElse", "Libdl", "Preferences", "Static"]
+git-tree-sha1 = "af9ab7d1f70739a47f03be78771ebda38c3c71bf"
+uuid = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
+version = "0.1.18"
+
 [[deps.Hwloc_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "XML2_jll", "Xorg_libpciaccess_jll"]
 git-tree-sha1 = "157e2e5838984449e44af851a52fe374d56b9ada"
@@ -2237,6 +2243,23 @@ deps = ["FFTW", "LinearAlgebra", "Measurements", "Random", "SpecialFunctions", "
 git-tree-sha1 = "d64a0ce7539181136a85fd8fe4f42626387f0f26"
 uuid = "fc60dff9-86e7-5f2f-a8a0-edeadbb75bd9"
 version = "1.0.3"
+
+[[deps.LoopVectorization]]
+deps = ["ArrayInterface", "CPUSummary", "CloseOpenIntervals", "DocStringExtensions", "HostCPUFeatures", "IfElse", "LayoutPointers", "LinearAlgebra", "OffsetArrays", "PolyesterWeave", "PrecompileTools", "SIMDTypes", "SLEEFPirates", "Static", "StaticArrayInterface", "ThreadingUtilities", "UnPack", "VectorizationBase"]
+git-tree-sha1 = "a9fc7883eb9b5f04f46efb9a540833d1fad974b3"
+uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
+version = "0.12.173"
+
+    [deps.LoopVectorization.extensions]
+    ForwardDiffExt = ["ChainRulesCore", "ForwardDiff"]
+    ForwardDiffNNlibExt = ["ForwardDiff", "NNlib"]
+    SpecialFunctionsExt = "SpecialFunctions"
+
+    [deps.LoopVectorization.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
+    SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [[deps.LowRankMatrices]]
 deps = ["LinearAlgebra"]
@@ -3562,6 +3585,12 @@ git-tree-sha1 = "330289636fb8107c5f32088d2741e9fd7a061a5c"
 uuid = "94e857df-77ce-4151-89e5-788b33177be4"
 version = "0.1.0"
 
+[[deps.SLEEFPirates]]
+deps = ["IfElse", "Static", "VectorizationBase"]
+git-tree-sha1 = "456f610ca2fbd1c14f5fcf31c6bfadc55e7d66e0"
+uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
+version = "0.6.43"
+
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "Adapt", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Moshi", "PreallocationTools", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLLogging", "SciMLOperators", "SciMLPublic", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface"]
 git-tree-sha1 = "4675d321bfebe190d22dc4d9de6af7e318d5174a"
@@ -4280,6 +4309,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "9166406dedd38c111a6574e9814be83d267f8aec"
 uuid = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
 version = "0.5.0"
+
+[[deps.VectorizationBase]]
+deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static", "StaticArrayInterface"]
+git-tree-sha1 = "d1d9a935a26c475ebffd54e9c7ad11627c43ea85"
+uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
+version = "0.21.72"
 
 [[deps.VersionParsing]]
 git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
