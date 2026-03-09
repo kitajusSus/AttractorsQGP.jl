@@ -25,13 +25,18 @@ include("simulation/trajectories.jl")
 include("analysis/lle.jl")
 include("analysis/pca.jl")
 include("analysis/dimension.jl")
+include("analysis/plots.jl")
 
 include("io/data_io.jl")
 
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel
 export solve_hydro, generate_initial_conditions, generate_trajectories
 export build_dataset, run_LLE, run_pca, estimate_dimension
-export save_dataset_csv, load_dataset_csv, run_pipeline
+export save_dataset_csv, load_dataset_csv, save_dataset_h5, load_dataset_h5
+export save_dataset_jls, load_dataset_jls, save_dataset, load_dataset
+export set_publication_theme, resolve_def, get_data
+export plot_phase_space_grid, plot_thermodynamics_evolution, plot_pca_summary
+export run_pipeline
 
 
 
