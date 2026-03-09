@@ -14,6 +14,7 @@ end
 include("models/brsss.jl")
 include("models/mis.jl")
 
+include("constants/units.jl")
 
 include("equations/bjorken.jl")
 
@@ -30,12 +31,13 @@ include("analysis/plots.jl")
 include("io/data_io.jl")
 
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel
+export HBARC_MEV_FM, MEV_PER_FM, FM_PER_MEV, to_temperature_unit, temperature_to_fm
 export solve_hydro, generate_initial_conditions, generate_trajectories
-export build_dataset, run_LLE, run_pca, estimate_dimension
+export build_dataset, run_LLE, run_pca, run_pca_kernel, run_pca_per_time, estimate_dimension
 export save_dataset_csv, load_dataset_csv, save_dataset_h5, load_dataset_h5
 export save_dataset_jls, load_dataset_jls, save_dataset, load_dataset
 export set_publication_theme, resolve_def, get_data
-export plot_phase_space_grid, plot_thermodynamics_evolution, plot_pca_summary
+export plot_phase_space_grid, plot_thermodynamics_evolution, plot_pca_summary, plot_pca_evr_over_time
 export run_pipeline
 
 
@@ -51,15 +53,12 @@ function run_pipeline(
     tspan::Tuple{<:Real,<:Real}=(0.22, 1.0),
     T_range::Tuple{<:Real,<:Real}=(400.0, 2500.0),
     A_range::Tuple{<:Real,<:Real}=(-8.0, 20.0),
-    saveat::Real=0.01,
+    saveat::Union{Real, AbstractVector{<:Real}, Nothing}=0.01
 )
     ics = generate_initial_conditions(n_points; T_range=T_range, A_range=A_range)
     solutions = generate_trajectories(model, ics, tspan; saveat=saveat)
     dataset = build_dataset(solutions)
-    # lle = run_LLE(model, ics[1], tspan; saveat=saveat)
-    # dim = estimate_dimension(dataset[:, 2:3])
     return (solutions=solutions, dataset=dataset)
 end
-
 
 end

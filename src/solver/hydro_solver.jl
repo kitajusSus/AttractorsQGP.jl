@@ -23,4 +23,5 @@ function solve_hydro(model::AbstractHydroModel, u0::AbstractVector{<:Real}, tspa
         return solve(problem, solver; abstol=abstol, reltol=reltol)
     end
     return solve(problem, solver; abstol=abstol, reltol=reltol, saveat=saveat)
+
 end

@@ -3,23 +3,30 @@ using LaTeXStrings
 using ColorSchemes
 
 """
-theme of all those Makie plots.
+Apply the default Makie theme used by this package.
+
+Returns `nothing` and updates Makie's global active theme.
+
+```julia
+set_publication_theme()
+```
 """
 function set_publication_theme()
     set_theme!(Theme(
         font="TeX Gyre Heros",
         fontsize=16,
+        figure_padding=14,
         Axis=(
             titlesize=18,
             xlabelsize=18,
             ylabelsize=18,
             xticklabelsize=14,
             yticklabelsize=14,
-            backgroundcolor=:white,
+            backgroundcolor=RGBf(0.94, 0.94, 0.94),
             xgridstyle=:dash,
             ygridstyle=:dash,
-            xgridcolor=RGBAf(0.8, 0.8, 0.8, 0.5),
-            ygridcolor=RGBAf(0.8, 0.8, 0.8, 0.5),
+            xgridcolor=RGBAf(0.80, 0.80, 0.80, 0.65),
+            ygridcolor=RGBAf(0.80, 0.80, 0.80, 0.65),
             spinewidth=1.2,
             xtickwidth=1.2,
             ytickwidth=1.2,
@@ -28,8 +35,8 @@ function set_publication_theme()
         ),
         Legend=(
             framevisible=true,
-            framewidth=0.8,
-            backgroundcolor=:white,
+            framewidth=1.0,
+            backgroundcolor=RGBf(0.94, 0.94, 0.94),
             position=:rt,
         ),
         Palette=(
@@ -39,14 +46,25 @@ function set_publication_theme()
 end
 
 const PLOT_KEYS = Dict(
-    :T => (L"T", x -> x[2]),
-    :A => (L"\\mathcal{A}", x -> x[3]),
-    :tauT => (L"\\tau T", x -> x[1] * x[2]),
-    :tau2A => (L"\\tau^2 \\mathcal{A}", x -> x[1]^2 * x[3]),
+    :T => (L"T\,[\mathrm{fm}^{-1}]", x -> x[2]),
+    :A => (L"\mathcal{A}", x -> x[3]),
+    :tauT => (L"\tau T", x -> x[1] * x[2]),
+    :tau2A => (L"\tau^2 \mathcal{A}", x -> x[1]^2 * x[3]),
 )
 
 """
-Resolve axis definition from Symbol or Tuple(label, fn).
+Resolve an axis definition used by plotting helpers.
+
+Accepted formats:
+- `Symbol` key from `PLOT_KEYS` (for example `:T`, `:A`, `:tauT`)
+- `(label, fn)` tuple where `fn(row)` computes axis value from one dataset row
+
+Returns `(label, fn)`.
+
+```julia
+resolve_def(:T)
+resolve_def(("custom", row -> row[2] / row[1]))
+```
 """
 function resolve_def(def)
     if def isa Symbol
@@ -62,8 +80,16 @@ function resolve_def(def)
 end
 
 """
-Get x/y data for a requested simulation time.
-Uses nearest available row in dataset.
+Extract x/y arrays for a selected simulation time.
+
+The dataset must have columns `[tau, T, A]`.
+If exact `t` is not present, the nearest available `tau` slice is used.
+
+Returns a named tuple `(x, y, xlabel, ylabel)`.
+
+```julia
+get_data(dataset, 0.6, :tauT, :A)
+```
 """
 function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef)
     @assert size(dataset, 2) == 3 "Dataset must have columns [tau, T, A]."
@@ -74,7 +100,7 @@ function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef)
     rows = findall(isapprox.(dataset[:, 1], t; atol=1e-8))
     if isempty(rows)
         nearest = argmin(abs.(dataset[:, 1] .- t))
-        rows = [nearest]
+        rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol=1e-8))
     end
 
     selected = dataset[rows, :]
@@ -85,7 +111,52 @@ function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef)
 end
 
 """
-Grid of phase-space snapshots for selected times.
+Split a stacked dataset into trajectory row ranges.
+
+Assumes rows are ordered by time inside each trajectory and that a new trajectory
+starts when `tau` stops increasing.
+
+Returns a vector of `UnitRange{Int}` that can be used for plotting each line.
+
+```julia
+ranges = _split_trajectories(dataset)
+```
+"""
+function _split_trajectories(dataset::AbstractMatrix{<:Real})
+    @assert size(dataset, 2) == 3 "Dataset must have columns [tau, T, A]."
+    if size(dataset, 1) == 0
+        return UnitRange{Int}[]
+    end
+
+    starts = Int[1]
+    for i in 2:size(dataset, 1)
+        if dataset[i, 1] <= dataset[i - 1, 1]
+            push!(starts, i)
+        end
+    end
+
+    ranges = UnitRange{Int}[]
+    for k in eachindex(starts)
+        s = starts[k]
+        e = k < length(starts) ? starts[k + 1] - 1 : size(dataset, 1)
+        push!(ranges, s:e)
+    end
+    return ranges
+end
+
+"""
+Create a grid of phase-space snapshots for selected times.
+
+`times` is an iterable of requested `tau` values.
+`xdef` and `ydef` can be symbols from `PLOT_KEYS` or `(label, fn)` tuples.
+
+Returns a `Figure`.
+
+
+> example for repl
+```julia
+plot_phase_space_grid(dataset, [0.3, 0.5, 0.7], :tauT, :A)
+```
 """
 function plot_phase_space_grid(dataset::AbstractMatrix{<:Real}, times, xdef, ydef)
     set_publication_theme()
@@ -93,7 +164,7 @@ function plot_phase_space_grid(dataset::AbstractMatrix{<:Real}, times, xdef, yde
     n = length(times)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
-    fig = Figure(size=(360 * ncols, 320 * nrows))
+    fig = Figure(size=(360 * ncols, 290 * nrows))
 
     for (i, t) in enumerate(times)
         row = (i - 1) ÷ ncols + 1
@@ -101,17 +172,15 @@ function plot_phase_space_grid(dataset::AbstractMatrix{<:Real}, times, xdef, yde
         d = get_data(dataset, t, xdef, ydef)
 
         ax = Axis(fig[row, col],
-            title=L"\\tau = %$(round(t, digits=3))",
+            title=L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
             xlabel=d.xlabel,
             ylabel=d.ylabel,
         )
 
         scatter!(ax, d.x, d.y;
-            markersize=7,
-            color=:dodgerblue,
-            strokecolor=:black,
-            strokewidth=0.4,
-            alpha=0.8,
+            markersize=2.4,
+            color=:midnightblue,
+            alpha=0.72,
         )
     end
 
@@ -119,75 +188,145 @@ function plot_phase_space_grid(dataset::AbstractMatrix{<:Real}, times, xdef, yde
 end
 
 """
-Plot trajectory evolution in time for T and A.
+Plot time evolution of temperature `T` and anisotropy `A` for all trajectories.
+
+The input dataset must contain stacked trajectories in columns `[tau, T, A]`.
+
+Returns a `Figure` with two linked x-axes.
+
+```julia
+plot_thermodynamics_evolution(dataset)
+```
 """
 function plot_thermodynamics_evolution(dataset::AbstractMatrix{<:Real})
     set_publication_theme()
+    trajs = _split_trajectories(dataset)
 
-    τ = dataset[:, 1]
-    T = dataset[:, 2]
-    A = dataset[:, 3]
+    fig = Figure(size=(950, 620))
 
-    fig = Figure(size=(900, 560))
-
+    # ─── FIX: usunięto nadmiarowy nawias } po \tau ───
     ax1 = Axis(fig[1, 1],
-        title=L"Ewolucja termodynamiczna",
-        xlabel=L"\\tau",
-        ylabel=L"T",
+        title=L"\text{Ewolucja Temperatury } T\,[\mathrm{fm}^{-1}]\; \text{w czasie własnym } \tau",
+        xlabel=L"\tau\,[\mathrm{fm}/c]",
+        ylabel=L"T\,[\mathrm{fm}^{-1}]",
     )
-    lines!(ax1, τ, T, color=:firebrick, linewidth=2.5, label="T(τ)")
-    axislegend(ax1, position=:rt)
+
+    for tr in trajs
+        lines!(ax1, dataset[tr, 1], dataset[tr, 2], color=(:dodgerblue, 0.20), linewidth=1.2)
+    end
 
     ax2 = Axis(fig[2, 1],
-        xlabel=L"\\tau",
-        ylabel=L"\\mathcal{A}",
+               title=L"\text{Ewolucja Anizotropii}\; \mathcal{A(τ)}\; \text{ w czasie własnym}",
+        xlabel=L"\tau\,[\mathrm{fm}/c]",
+        ylabel=L"\mathcal{A}",
     )
-    lines!(ax2, τ, A, color=:midnightblue, linewidth=2.5, label="A(τ)")
-    hlines!(ax2, [0.0], color=:gray50, linestyle=:dash)
+
+    for tr in trajs
+        lines!(ax2, dataset[tr, 1], dataset[tr, 3], color=(:dodgerblue, 0.20), linewidth=1.2)
+    end
+
+    hlines!(ax2, [0.0], color=:red, linestyle=:dash, linewidth=1.8, label=L"\mathcal{A}=0\;(\text{Anizotropia} = 0)")
     axislegend(ax2, position=:rt)
 
     linkxaxes!(ax1, ax2)
-
     fig
 end
 
 """
-Simple PCA visualization matching project style.
+Plot explained variance ratio (EVR) over time.
+
+PCA is computed independently for each `tau` slice via `run_pca_per_time`.
+
+Returns a `Figure`.
+
+```julia
+plot_pca_evr_over_time(dataset; n_components=2, method=:minmax)
+```
 """
-function plot_pca_summary(data::AbstractMatrix{<:Real}; n_components::Int=2)
+function plot_pca_evr_over_time(dataset::AbstractMatrix{<:Real}; n_components::Int=2, method::Symbol=:minmax, gamma::Float64=1.0)
     set_publication_theme()
 
-    pca = run_pca(data; n_components=n_components)
-    ratio = pca.explained_variance_ratio
-    transformed = pca.transformed
+    result = run_pca_per_time(dataset; n_components=n_components, method=method, gamma=gamma)
+    taus = result.taus
+    evr = result.explained_variance_ratio
 
-    fig = Figure(size=(1000, 420))
-
-    ax1 = Axis(fig[1, 1],
-        title="Explained variance",
-        xlabel="Component",
+    fig = Figure(size=(900, 460))
+    ax = Axis(fig[1, 1],
+        title="Explained Variance  (EVR) w funkcji czasu",
+        xlabel=L"\tau\,[\mathrm{fm}/c]",
         ylabel="EVR",
-        limits=(0.5, length(ratio) + 0.5, 0, 1),
-    )
-    barplot!(ax1, 1:length(ratio), ratio, color=collect(ColorSchemes.viridis[range(0.2, 0.9, length=length(ratio))]))
-
-    ax2 = Axis(fig[1, 2],
-        title="PCA projection",
-        xlabel="PC1",
-        ylabel="PC2",
+        limits=(minimum(taus), maximum(taus), 0, 1),
     )
 
-    if size(transformed, 2) >= 2
-        scatter!(ax2, transformed[:, 1], transformed[:, 2],
-            markersize=8,
-            color=1:size(transformed, 1),
-            colormap=:magma,
-        )
+    hlines!(ax, [1.0], color=:gray45, linestyle=:dash, label="100%")
+
+    palette = Makie.wong_colors()
+    for comp in 1:n_components
+        vals = evr[:, comp]
+        mask = .!isnan.(vals)
+        if any(mask)
+            lines!(ax, taus[mask], vals[mask], linewidth=2.8, color=palette[min(comp, end)], label="PC$(comp)")
+            if comp == 1
+                band!(ax, taus[mask], zeros(sum(mask)), vals[mask], color=(palette[1], 0.10))
+            end
+        end
+    end
+
+    axislegend(ax, position=:rb)
+    fig
+end
+
+"""
+DONT USE THIS FUNCTION DIRECTLY. Use `plot_pca_evr_over_time` instead.
+this one is still being made for usefull purposes, but now its unusable
+Plot a PCA summary for one dataset snapshot.
+
+Left panel shows point projection on principal components.
+Right panel shows explained variance ratio.
+
+`method` can be `:minmax` (standard PCA pipeline) or `:kernel`.
+
+Returns a `Figure`.
+
+```julia
+plot_pca_summary(dataset; n_components=2, method=:kernel, gamma=1.0)
+```
+"""
+function plot_pca_summary(
+    dataset::AbstractMatrix{<:Real};
+    n_components::Int=2,
+    method::Symbol=:minmax,
+    gamma::Float64=1.0,
+)
+    @assert size(dataset, 2) >= 3 "Dataset must contain at least [tau, T, A]."
+
+    set_publication_theme()
+
+    features = Matrix{Float64}(dataset[:, 2:3])
+    pca_result = if method === :minmax
+        run_pca(features; n_components=n_components)
+    elseif method === :kernel
+        run_pca_kernel(features; n_components=n_components, gamma=gamma)
     else
-        scatter!(ax2, transformed[:, 1], zeros(size(transformed, 1)),
-            markersize=8,
-            color=:dodgerblue,
-        )
+        error("Unknown PCA method. Choose :minmax or :kernel.")
+    end
+
+    transformed = pca_result.transformed
+    evr = pca_result.explained_variance_ratio
+    n_show = min(size(transformed, 2), 2)
+
+    fig = Figure(size=(980, 420))
+
+    ax_proj = Axis(fig[1, 1], xlabel="PC1", ylabel="PC2", title="PCA projection")
+    if n_show >= 2
+        scatter!(ax_proj, transformed[:, 1], transformed[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
+    elseif n_show == 1
+        scatter!(ax_proj, transformed[:, 1], zeros(size(transformed, 1)); markersize=4.5, color=(:midnightblue, 0.75))
+    end
+
+    ax_evr = Axis(fig[1, 2], xlabel="Principal component", ylabel="EVR", limits=(0.5, max(length(evr), 1) + 0.5, 0, 1), title="Explained variance ratio")
+    if !isempty(evr)
+        barplot!(ax_evr, 1:length(evr), evr; color=:slateblue3)
     end
 
     fig

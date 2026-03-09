@@ -1,8 +1,7 @@
 using DifferentialEquations
-
+# using Trixie
 """
-Solve trajectories for a list of initial conditions.
-Use EnsembleProblem for efficient threaded execution.
+Solve  hydro equasions for a list of initial conditions.
 """
 function generate_trajectories(
     model::AbstractHydroModel,
@@ -29,16 +28,16 @@ function generate_trajectories(
 
     ensemble_problem = EnsembleProblem(base_problem; prob_func=prob_func)
     ensemble_alg = parallel === :threads ? EnsembleThreads() : EnsembleSerial()
-    ensemble_solution = solve(
-        ensemble_problem,
-        Tsit5(),
-        ensemble_alg;
+    solve_kwargs = (
         trajectories=length(initial_conditions),
-        saveat=saveat,
         abstol=1e-8,
         reltol=1e-8,
     )
-
+    ensemble_solution = if isnothing(saveat)
+        solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs...)
+    else
+        solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs..., saveat=saveat)
+    end
     @inbounds for i in eachindex(solutions)
         solutions[i] = ensemble_solution.u[i]
     end
@@ -48,23 +47,43 @@ end
 """
 Build a dense matrix dataset from solution snapshots.
 Rows are samples, columns are [tau, T, A].
-"""
+Keyword `temperature_unit` controls T output unit (`:fm` or `:MeV`).
+```julia
+
 function build_dataset(solutions::AbstractVector)
     n_rows = 0
-    @inbounds for sol in solutions
-        n_rows += length(sol.t)
-    end
 
     data = Matrix{Float64}(undef, n_rows, 3)
-    row = 1
+    @inbounds for sol in solutions
+        for i in eachindex(sol.t)
+        ###
+        end
+    end
+    return data
+end
+```
+"""
+function build_dataset(solutions::AbstractVector; temperature_unit::Symbol=:fm)
+    rows = Vector{NTuple{3,Float64}}()
+    sizehint!(rows, sum(length(sol.t) for sol in solutions))
+
     @inbounds for sol in solutions
         for i in eachindex(sol.t)
             state = sol.u[i]
-            data[row, 1] = Float64(sol.t[i])
-            data[row, 2] = Float64(state[1])
-            data[row, 3] = Float64(state[2])
-            row += 1
+            τ = Float64(sol.t[i])
+            T = to_temperature_unit(state[1], temperature_unit)
+            A = Float64(state[2])
+
+            if isfinite(τ) && isfinite(T) && isfinite(A)
+                push!(rows, (τ, T, A))
+            end
         end
     end
+
+    data = Matrix{Float64}(undef, length(rows), 3)
+    @inbounds for i in eachindex(rows)
+        data[i, 1], data[i, 2], data[i, 3] = rows[i]
+    end
+
     return data
 end
