@@ -1,14 +1,20 @@
 using Documenter
 using AtractorsQGP
 
-
 makedocs(
     sitename = "AtractorsQGP.jl",
-    format = Documenter.HTML(),
     modules = [AtractorsQGP],
-    pages = Any[
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        ansicolor = true
+    ),
+    pages = [
         "Home" => "index.md",
-    #     "Examples" => "examples.md",
-    #     "API" => "api.md",
     ],
+    warnonly = [:missing_docs, :cross_references]
+)
+
+deploydocs(
+    repo = "github.com/kitajusSus/Atractors-in-QGP.git",
+    devbranch = "master",
 )
