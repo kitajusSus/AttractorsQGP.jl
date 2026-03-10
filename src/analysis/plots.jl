@@ -289,33 +289,78 @@ function plot_pca_evr_over_time(
 end
 
 """
-DONT USE THIS FUNCTION DIRECTLY. Use `plot_pca_evr_over_time` instead.
-this one is still being made for usefull purposes, but now its unusable
-Plot a PCA summary for one dataset snapshot.
+    plot_pca_summary(
+        dataset::AbstractMatrix{<:Real};
+        tau::Union{Nothing,Real}=nothing,
+        tau_tol::Float64=1e-8,
+        tau_mode::Symbol=:nearest,
+        n_components::Int=2,
+        method::Symbol=:minmax,
+        gamma::Float64=1.0,
+    )
 
-Left panel shows point projection on principal components.
-Right panel shows explained variance ratio.
+DONT USE THIS FUNCTION DIRECTLY. Use `plot_pca_evr_over_time` instead.
+This helper plots a PCA summary for a single dataset slice.
+
+Dataset columns are expected as `[tau, T, A, ...]`.
+If `tau` is provided, rows are selected according to `tau_mode`:
+
+- `:strict`  -> use rows with `abs(tau - tau) <= tau_tol`
+- `:nearest` -> if strict match exists, use it; otherwise use nearest available tau
+
+If `tau === nothing`, all rows are used (legacy behavior).
+
+Left panel: projection on principal components.
+Right panel: explained variance ratio (EVR).
 
 `method` can be `:minmax` (standard PCA pipeline) or `:kernel`.
 
 Returns a `Figure`.
-
-```julia
-plot_pca_summary(dataset; n_components=2, method=:kernel, gamma=1.0)
-```
 """
 function plot_pca_summary(
     dataset::AbstractMatrix{<:Real};
+    tau::Union{Nothing,Real}=nothing,
+    tau_tol::Float64=1e-8,
+    tau_mode::Symbol=:nearest,
     n_components::Int=2,
     method::Symbol=:minmax,
     gamma::Float64=1.0,
-    tau::Float64=0.5,
 )
     @assert size(dataset, 2) >= 3 "Dataset must contain at least [tau, T, A]."
+    @assert tau_tol >= 0 "tau_tol must be >= 0."
+    @assert tau_mode in (:strict, :nearest) "tau_mode must be :strict or :nearest."
 
     set_publication_theme()
 
-    features = Matrix{Float64}(dataset[:, 2:3])
+    data = Matrix{Float64}(dataset)
+    subtitle = "all τ"
+
+    if tau !== nothing
+        τ = Float64(tau)
+        τcol = data[:, 1]
+        d = abs.(τcol .- τ)
+        strict_mask = d .<= tau_tol
+
+        if any(strict_mask)
+            data = data[strict_mask, :]
+            subtitle = "τ=$(τ) ± $(tau_tol)"
+        else
+            if tau_mode === :strict
+                error("No rows found for tau=$(τ) within tau_tol=$(tau_tol).")
+            else
+                i = argmin(d)
+                τnearest = τcol[i]
+                near_mask = τcol .== τnearest
+                data = data[near_mask, :]
+                @warn "No exact tau slice for tau=$(τ) within tau_tol=$(tau_tol). Using nearest tau=$(τnearest)."
+                subtitle = "requested τ=$(τ), using nearest τ=$(τnearest)"
+            end
+        end
+    end
+
+    features = data[:, 2:3]  # [T, A]
+    @assert size(features, 1) > 1 "Need at least two samples in selected tau slice."
+
     pca_result = if method === :minmax
         run_pca(features; n_components=n_components)
     elseif method === :kernel
@@ -330,17 +375,30 @@ function plot_pca_summary(
 
     fig = Figure(size=(980, 420))
 
-    ax_proj = Axis(fig[1, 1], xlabel="PC1", ylabel="PC2", title="PCA projection")
+    ax_proj = Axis(
+        fig[1, 1],
+        xlabel="PC1",
+        ylabel="PC2",
+        title="PCA projection ($subtitle)",
+    )
     if n_show >= 2
-        scatter!(ax_proj, transformed[:, 1], transformed[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(ax_proj, transformed[:, 1], transformed[:, 2];
+                 markersize=4.5, color=(:midnightblue, 0.75))
     elseif n_show == 1
-        scatter!(ax_proj, transformed[:, 1], zeros(size(transformed, 1)); markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(ax_proj, transformed[:, 1], zeros(size(transformed, 1));
+                 markersize=4.5, color=(:midnightblue, 0.75))
     end
 
-    ax_evr = Axis(fig[1, 2], xlabel="Principal component", ylabel="EVR", limits=(0.5, max(length(evr), 1) + 0.5, 0, 1), title="Explained variance ratio")
+    ax_evr = Axis(
+        fig[1, 2],
+        xlabel="Principal component",
+        ylabel="EVR",
+        limits=(0.5, max(length(evr), 1) + 0.5, 0, 1),
+        title="Explained variance ratio",
+    )
     if !isempty(evr)
         barplot!(ax_evr, 1:length(evr), evr; color=:slateblue3)
     end
 
-    fig
+    return fig
 end
