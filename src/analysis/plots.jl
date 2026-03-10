@@ -309,6 +309,7 @@ function plot_pca_summary(
     n_components::Int=2,
     method::Symbol=:minmax,
     gamma::Float64=1.0,
+    tau::Float64=0.5,
 )
     @assert size(dataset, 2) >= 3 "Dataset must contain at least [tau, T, A]."
 

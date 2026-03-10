@@ -87,17 +87,41 @@ Returns a named tuple with fields:
 - `components`
 - `explained_variance_ratio`
 - `explained_variance_ratio_full`
+
+
+For large `n_samples`, full kernel PCA may require O(n_samples^2) memory.
+`max_kernel_gb` limits estimated Gram-matrix size.
 """
-function run_pca_kernel(data::AbstractMatrix{<:Real}; n_components::Integer=2, gamma::Float64=1.0)
+function run_pca_kernel(
+    data::AbstractMatrix{<:Real};
+    n_components::Integer=2,
+    gamma::Float64=1.0,
+    max_kernel_gb::Float64=8.0,
+)
     @assert size(data, 1) > 1 "Need at least two samples."
     @assert size(data, 2) > 0 "Need at least one feature."
+    @assert n_components ≥ 1 "n_components must be >= 1."
+    @assert gamma > 0 "gamma must be > 0."
 
     X = Matrix{Float64}(data)
-    k = min(n_components, size(X, 1), size(X, 2))
+    n, p = size(X)
+    k = min(Int(n_components), n, p)
 
-    kernel = (x, y) -> exp(-gamma * norm(x - y)^2)
+    # Memory guard for dense Gram matrix K (n x n, Float64)
+    estimated_bytes = n * n * sizeof(Float64)
+    limit_bytes = max_kernel_gb * 1024^3
+    if estimated_bytes > limit_bytes
+        est_gb = estimated_bytes / 1024^3
+        throw(ArgumentError(
+            "Kernel PCA requires dense Gram matrix of size $(n)x$(n) (~$(round(est_gb, digits=2)) GB). " *
+            "This exceeds max_kernel_gb=$(max_kernel_gb). " *
+            "Use fewer samples (subsampling), lower max_kernel_gb only if RAM allows, or use linear PCA."
+        ))
+    end
+
+    kernel = (x, y) -> exp(-gamma * sum(abs2, x .- y))
     model = fit(KernelPCA, X'; kernel=kernel, maxoutdim=k)
-    transformed = transform(model, X')'
+    transformed = MultivariateStats.transform(model, X')'
 
     ev = Float64.(eigvals(model))
     total = sum(ev)
@@ -107,7 +131,7 @@ function run_pca_kernel(data::AbstractMatrix{<:Real}; n_components::Integer=2, g
     components = try
         projection(model)
     catch
-        Matrix{Float64}(undef, size(X, 2), 0)
+        Matrix{Float64}(undef, p, 0)
     end
 
     return (
@@ -117,7 +141,6 @@ function run_pca_kernel(data::AbstractMatrix{<:Real}; n_components::Integer=2, g
         explained_variance_ratio_full=ratio_full,
     )
 end
-
 
 """
     get_tau_slice(taus::AbstractVector{<:Real}, tau::Real; atol::Real=1e-8)
