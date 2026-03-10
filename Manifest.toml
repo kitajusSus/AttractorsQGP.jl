@@ -2,7 +2,7 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "3573c83bf87751ac956412fd3677988de690d11a"
+project_hash = "5dc6fd8b010539735093e2a6b691f6ef3715c248"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -224,6 +224,12 @@ deps = ["JSON", "Pidfile", "SHA"]
 git-tree-sha1 = "902b85010203830d4bc02259f5450d2e16b316d8"
 uuid = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
 version = "0.1.1"
+
+[[deps.AtractorsQGP]]
+deps = ["ApproxFun", "BenchmarkTools", "BifurcationKit", "Blink", "CSV", "CairoMakie", "ColorSchemes", "Conda", "DataFrames", "DifferentialEquations", "Distributions", "DynamicalSystems", "ForwardDiff", "GLMakie", "HDF5", "Integrals", "Interact", "Interpolations", "LaTeXStrings", "LanguageServer", "LinearAlgebra", "LoopVectorization", "Makie", "ManifoldLearning", "ModelingToolkit", "MultivariateStats", "NonlinearSolve", "Optimization", "PGFPlotsX", "PlotThemes", "PlotlyBase", "PlotlyJS", "PlotlyKaleido", "Plots", "ProgressMeter", "Random", "Revise", "Roots", "SciMLBase", "StaticArrays", "StaticLint", "Statistics", "SymPy", "SymbolServer", "Symbolics", "TSne", "TimerOutputs"]
+path = "."
+uuid = "3aa772ee-73c7-4728-8ce2-799db91c0e5f"
+version = "0.2.1"
 
 [[deps.Attractors]]
 deps = ["BlackBoxOptim", "Clustering", "ComplexityMeasures", "Distances", "Distributions", "DynamicalSystemsBase", "LinearAlgebra", "Mmap", "Neighborhood", "OhMyThreads", "Optim", "ProgressMeter", "Random", "Reexport", "StateSpaceSets"]
