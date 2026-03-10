@@ -9,7 +9,7 @@ function generate_trajectories(
     initial_conditions::AbstractVector{<:AbstractVector{<:Real}},
     tspan::Tuple{<:Real,<:Real};
     saveat=nothing,
-    parallel::Symbol=:threads,
+    parallel::Symbol=:serial,
 )
     @assert !isempty(initial_conditions) "At least one initial condition is required."
 
