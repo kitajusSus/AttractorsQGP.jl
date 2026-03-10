@@ -240,13 +240,25 @@ PCA is computed independently for each `tau` slice via `run_pca_per_time`.
 Returns a `Figure`.
 
 ```julia
-plot_pca_evr_over_time(dataset; n_components=2, method=:minmax)
+plot_pca_evr_over_time(dataset; n_components=2, method=:minmax, feature_cols=[2, 3])
 ```
 """
-function plot_pca_evr_over_time(dataset::AbstractMatrix{<:Real}; n_components::Int=2, method::Symbol=:minmax, gamma::Float64=1.0)
+function plot_pca_evr_over_time(
+    dataset::AbstractMatrix{<:Real};
+    n_components::Int=2,
+    method::Symbol=:minmax,
+    gamma::Float64=1.0,
+    feature_cols::AbstractVector{<:Integer}=collect(2:size(dataset, 2)),
+)
     set_publication_theme()
 
-    result = run_pca_per_time(dataset; n_components=n_components, method=method, gamma=gamma)
+    result = run_pca_per_time(
+        dataset;
+        n_components=n_components,
+        method=method,
+        gamma=gamma,
+        feature_cols=feature_cols,
+    )
     taus = result.taus
     evr = result.explained_variance_ratio
 

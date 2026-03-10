@@ -18,8 +18,19 @@ Load dataset matrix [tau, T, A] from CSV.
 """
 function load_dataset_csv(path::AbstractString)
     df = CSV.read(path, DataFrame)
-    @assert all([:tau, :T, :A] .∈ Ref(names(df))) "CSV must contain tau, T, A columns."
-    return Matrix{Float64}(select(df, :tau, :T, :A))
+    cols = names(df)
+
+    name_map = Dict(lowercase(strip(String(c))) => c for c in cols)
+    tau_col = get(name_map, "tau", nothing)
+    t_col = get(name_map, "t", nothing)
+    a_col = get(name_map, "a", nothing)
+
+    if tau_col === nothing || t_col === nothing || a_col === nothing
+        @assert size(df, 2) >= 3 "CSV must contain tau, T, A columns or at least three columns."
+        return Matrix{Float64}(df[:, 1:3])
+    end
+
+    return Matrix{Float64}(select(df, tau_col, t_col, a_col))
 end
 
 """
