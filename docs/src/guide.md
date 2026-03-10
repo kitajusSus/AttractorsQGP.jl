@@ -104,33 +104,6 @@ pca_kernel_results = run_pca_per_time(dataset; n_components=2, method=:kernel, g
 
 The returned object contains the `explained_variance_ratio` (EVR), which quantitatively shows how much variance is captured by the principal components as time progresses.
 
-## 5. Dynamical Systems Analysis
-
-Beyond PCA, AtractorsQGP.jl provides tools to analyze the system from the perspective of chaos theory and dynamical systems.
-
-### Potencial Way for upgrades
-While I am doing my research sometimes I find out about interesting algorithms:
-
-#### Lyapunov Exponent
-
-Measures the rate of separation of infinitesimally close trajectories. A negative LLE strongly indicates the presence of an attracting manifold.
-
-```julia
-u0 = [2.0, 5.0] # [T0 in fm⁻¹, A0]
-lle = run_LLE(model_brsss, u0, (0.22, 5.0); perturbation=1e-6)
-println("Local Lyapunov Exponent: ", lle)
-
-```
-
-### Intrinsic Dimension
-
-Estimates the intrinsic geometric dimension of the data cloud at a given time using the participation ratio of the covariance matrix eigenvalues.
-
-```julia
-_, X_tau = get_tau_slice(dataset, 0.5)
-dim = estimate_dimension(X_tau)
-
-```
 
 ## 6. Visualization
 My own way of ploting data used in my Thesis
