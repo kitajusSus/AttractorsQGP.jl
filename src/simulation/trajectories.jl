@@ -45,9 +45,9 @@ function generate_trajectories(
     )
 
     ensemble_solution = if isnothing(saveat)
-        solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs...)
+        solve(ensemble_problem, Rodas5(), ensemble_alg; solve_kwargs...)
     else
-        solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs..., saveat=saveat)
+        solve(ensemble_problem, Rodas5(), ensemble_alg; solve_kwargs..., saveat=saveat)
     end
 
     @inbounds for i in eachindex(solutions)

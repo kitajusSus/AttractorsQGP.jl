@@ -42,6 +42,7 @@ export explained_variance_ratio_from_svd,
        run_pca_for_tau,
        run_pca_per_time,
        run_evolution_pca_workflow
+export lle
 export save_dataset_csv, load_dataset_csv, save_dataset_h5, load_dataset_h5
 export save_dataset_jls, load_dataset_jls, save_dataset, load_dataset
 export set_publication_theme, resolve_def, get_data
@@ -60,7 +61,7 @@ function run_main(
     n_points::Integer=1000,
     tspan::Tuple{<:Real,<:Real}=(0.22, 1.2),
     T_range::Tuple{<:Real,<:Real}=(400.0, 2500.0),
-    A_range::Tuple{<:Real,<:Real}=(-13.0, 20.0),
+    A_range::Tuple{<:Real,<:Real}=(-8.0, 20.0),
     saveat::Union{Real, AbstractVector{<:Real}, Nothing}=0.01,
     seed::Integer=5,
 )

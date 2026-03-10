@@ -5,9 +5,9 @@ using StaticArrays
 Solve hydrodynamic evolution for one initial condition.
 """
 function solve_hydro(model::AbstractHydroModel, u0::AbstractVector{<:Real}, tspan::Tuple{<:Real,<:Real};
-    solver=Tsit5(),
-    abstol::Real=1e-8,
-    reltol::Real=1e-8,
+    solver=Rodas5(),
+    abstol::Real=1e-6,
+    reltol::Real=1e-6,
     saveat=nothing,
 )
     @assert length(u0) == 2 "Initial state must contain [T, A]."
