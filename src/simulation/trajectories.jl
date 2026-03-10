@@ -1,4 +1,5 @@
 using DifferentialEquations
+using ProgressMeter
 # using Trixie
 """
 Solve  hydro equasions for a list of initial conditions.
@@ -22,25 +23,37 @@ function generate_trajectories(
     end
 
     base_problem = first_solution.prob
+
     function prob_func(prob, i, _)
         remake(prob, u0=initial_conditions[i])
     end
 
-    ensemble_problem = EnsembleProblem(base_problem; prob_func=prob_func)
+    pasek = Progress(length(initial_conditions), 1, "Obliczanie trajektorii: ")
+
+    function output_func(sol, i)
+        next!(pasek)
+        return (sol, false)
+    end
+
+    ensemble_problem = EnsembleProblem(base_problem; prob_func=prob_func, output_func=output_func)
     ensemble_alg = parallel === :threads ? EnsembleThreads() : EnsembleSerial()
+
     solve_kwargs = (
         trajectories=length(initial_conditions),
         abstol=1e-8,
         reltol=1e-8,
     )
+
     ensemble_solution = if isnothing(saveat)
         solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs...)
     else
         solve(ensemble_problem, Tsit5(), ensemble_alg; solve_kwargs..., saveat=saveat)
     end
+
     @inbounds for i in eachindex(solutions)
         solutions[i] = ensemble_solution.u[i]
     end
+
     return solutions
 end
 

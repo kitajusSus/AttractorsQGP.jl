@@ -45,14 +45,14 @@ export run_pipeline
 
 
 """
-Run full simulation
+Run full simulation generating important data
 """
-function run_pipeline(
+function run_main(
     model::AbstractHydroModel;
-    n_points::Integer=200,
-    tspan::Tuple{<:Real,<:Real}=(0.22, 1.0),
+    n_points::Integer=1000,
+    tspan::Tuple{<:Real,<:Real}=(0.22, 1.2),
     T_range::Tuple{<:Real,<:Real}=(400.0, 2500.0),
-    A_range::Tuple{<:Real,<:Real}=(-8.0, 20.0),
+    A_range::Tuple{<:Real,<:Real}=(-13.0, 20.0),
     saveat::Union{Real, AbstractVector{<:Real}, Nothing}=0.01
 )
     ics = generate_initial_conditions(n_points; T_range=T_range, A_range=A_range)
