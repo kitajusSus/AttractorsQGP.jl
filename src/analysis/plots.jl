@@ -401,4 +401,38 @@ function plot_pca_summary(
     end
 
     return fig
+
+end
+
+
+
+function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int)
+    set_publication_theme()
+
+    lle_data = run_lle_per_time(dataset; k=k, d=d)
+
+    fig = Figure(size=(600, 500))
+    ax = Axis(fig[1, 1], title="LLE: k=$k neighbors, d=$d dimensions")
+
+    if d == 1
+        ax.xlabel = "LLE1"
+        ax.ylabel = "Wartość stała"
+    else
+        ax.xlabel = "LLE1"
+        ax.ylabel = "LLE2"
+    end
+
+    for tau in lle_data.taus
+        if haskey(lle_data.lle_results, tau)
+            embedding = lle_data.lle_results[tau]
+
+            if d == 1
+                scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, label="tau = $tau")
+            else
+                scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, label="tau = $tau")
+            end
+        end
+    end
+
+    fig
 end

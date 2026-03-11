@@ -1,6 +1,8 @@
 using LinearAlgebra
 using GLMakie
 using Random
+using AtractorsQGP
+
 
 function compute_lle(X::Matrix{Float64}, k::Int, d::Int)
     D, N = size(X)
@@ -27,6 +29,10 @@ function compute_lle(X::Matrix{Float64}, k::Int, d::Int)
     return Y
 end
 
+
+
+
+set_publication_theme()
 Random.seed!(4)
 N_points = 150
 t = range(0, 2pi, length=N_points)
