@@ -406,33 +406,29 @@ end
 
 
 
-function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int)
+function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
     set_publication_theme()
 
     lle_data = run_lle_per_time(dataset; k=k, d=d)
 
+    if !haskey(lle_data.lle_results, tau)
+        error("Wartość tau = $tau nie została znaleziona w wynikach LLE.")
+    end
+
+    embedding = lle_data.lle_results[tau]
+
     fig = Figure(size=(600, 500))
-    ax = Axis(fig[1, 1], title="LLE: k=$k neighbors, d=$d dimensions")
+    ax = Axis(fig[1, 1], title="LLE: k=$k neighbors, d=$d dimensions, tau=$tau")
 
     if d == 1
         ax.xlabel = "LLE1"
         ax.ylabel = "Wartość stała"
+        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, color=(:midnightblue, 0.75))
     else
         ax.xlabel = "LLE1"
         ax.ylabel = "LLE2"
+        scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
     end
 
-    for tau in lle_data.taus
-        if haskey(lle_data.lle_results, tau)
-            embedding = lle_data.lle_results[tau]
-
-            if d == 1
-                scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, label="tau = $tau")
-            else
-                scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, label="tau = $tau")
-            end
-        end
-    end
-
-    fig
+    return fig
 end
