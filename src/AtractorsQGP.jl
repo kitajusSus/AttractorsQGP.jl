@@ -23,7 +23,7 @@ include("solver/hydro_solver.jl")
 include("simulation/initial_conditions.jl")
 include("simulation/trajectories.jl")
 
-# include("analysis/lle.jl")
+include("analysis/lle.jl")
 include("analysis/pca.jl")
 include("analysis/dimension.jl")
 include("analysis/plots.jl")
@@ -42,7 +42,7 @@ export explained_variance_ratio_from_svd,
        run_pca_for_tau,
        run_pca_per_time,
        run_evolution_pca_workflow
-# export lle
+export lle
 export save_dataset_csv, load_dataset_csv, save_dataset_h5, load_dataset_h5
 export save_dataset_jls, load_dataset_jls, save_dataset, load_dataset
 export set_publication_theme, resolve_def, get_data
