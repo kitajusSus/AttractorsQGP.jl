@@ -20,15 +20,31 @@ end
 
 """
     normalize_minmax(X::AbstractMatrix{<:Real})
+to jest moja funkcja normalizacji min-max, która jest używana w PCA. Działa kolumnowo, więc każda kolumna jest normalizowana niezależnie.
+Jeśli jakaś kolumna jest stała (max = min), to dzielnik jest ustawiany na 1, aby uniknąć dzielenia przez zero. Zwraca znormalizowane
+dane oraz wektory minimum i maksimum dla każdej kolumny, które mogą być przydatne do odwrócenia normalizacji lub interpretacji wyników PCA.
+```julia
 
-Apply column-wise min-max normalization to `X`.
+function normalize_minmax(X::AbstractMatrix{<:Real})
+    Xf = Matrix{Float64}(X)
+    mn = minimum(Xf, dims=1)
+    mx = maximum(Xf, dims=1)
+    r = mx .- mn
+    r[r .== 0.0] .= 1.0
+    Xn = (Xf .- mn) ./ r
+    return Xn, mn, mx
+end
+```
 
-For constant columns, denominator is set to 1.0 to avoid division by zero.
 
-Returns `(Xn, mn, mx)` where:
-- `Xn` is normalized data
-- `mn` is per-column minimum
-- `mx` is per-column maximum
+    Apply column-wise min-max normalization to `X`.
+
+    For constant columns, denominator is set to 1.0 to avoid division by zero.
+
+    Returns `(Xn, mn, mx)` where:
+    - `Xn` is normalized data
+    - `mn` is per-column minimum
+    - `mx` is per-column maximum
 """
 function normalize_minmax(X::AbstractMatrix{<:Real})
     Xf = Matrix{Float64}(X)
@@ -43,24 +59,22 @@ end
 """
     run_pca(data::AbstractMatrix{<:Real}; n_components::Integer=2)
 
-Run linear PCA using SVD after column-wise min-max normalization.
+    Run linear PCA using SVD after column-wise min-max normalization.
 
-Returns a named tuple with fields:
-- `transformed`
-- `components`
-- `explained_variance_ratio`
-- `explained_variance_ratio_full`
-- `minvals`
-- `maxvals`
+    Returns a named tuple with fields:
+    - `transformed`
+    - `components`
+    - `explained_variance_ratio`
+    - `explained_variance_ratio_full`
+    - `minvals`
+    - `maxvals`
 """
 function run_pca(data::AbstractMatrix{<:Real}; n_components::Integer=2)
     @assert size(data, 1) > 1 "Need at least two samples."
     @assert size(data, 2) > 0 "Need at least one feature."
-
     Xn, mn, mx = normalize_minmax(data)
     Xc = Xn .- mean(Xn; dims=1)
     _, S, V = svd(Xc)
-
     k = min(n_components, size(V, 2))
     components = V[:, 1:k]
     transformed = Xc * components

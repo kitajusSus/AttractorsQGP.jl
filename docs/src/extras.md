@@ -31,3 +31,33 @@ _, X_tau = get_tau_slice(dataset, 0.5)
 dim = estimate_dimension(X_tau)
 
 ```
+
+
+
+
+## youtube
+
+
+### Dimensionality
+
+- [The Curse of Dimensionality youtube ](https://www.youtube.com/watch?v=9Tf-_mJhOkU)
+
+How distances Increse in higher dimensions?
+How to indentify which features are more significant/important/relevant
+
+
+### LLE
+- [Localy Linear Embeding Lecture](https://www.youtube.com/watch?v=scMntW3s-Wk&t=59s)
+
+Shows how PCA and PCA-kernel got a little problems with holding the structure of data
+
+> How does it work?
+> [!IMPORTANT]
+> $\epsilon(W) = \sum_i = |\vec{X}_i - \sum_j W_{ij}\vec{Y}_j|^2$
+Computing a set of weights that can be used for reconstructing a point
+
+
+
+
+
+

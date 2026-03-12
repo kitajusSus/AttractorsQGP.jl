@@ -39,7 +39,7 @@ t = range(0, 2pi, length=N_points)
 #
 X_orig = vcat(t', sin.(t)' .+ 0.2 .* randn(1, N_points))
 k_neighbors = 4
-d_target = 1
+d_target = 2
 
 Y_lle = compute_lle(X_orig, k_neighbors, d_target)
 
@@ -67,5 +67,3 @@ frames = 0:0.01:1.0
 record(fig, "lle_sinus_animation.mp4", frames; framerate = framerate) do frame
     alpha[] = frame
 end
-
-println("Animacja wygenerowana poprawnie: lle_sinus_animation.mp4")

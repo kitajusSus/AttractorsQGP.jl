@@ -203,8 +203,6 @@ function plot_thermodynamics_evolution(dataset::AbstractMatrix{<:Real})
     trajs = _split_trajectories(dataset)
 
     fig = Figure(size=(950, 620))
-
-    # ─── FIX: usunięto nadmiarowy nawias } po \tau ───
     ax1 = Axis(fig[1, 1],
         title=L"\text{Ewolucja Temperatury } T\,[\mathrm{fm}^{-1}]\; \text{w czasie własnym } \tau",
         xlabel=L"\tau\,[\mathrm{fm}/c]",
