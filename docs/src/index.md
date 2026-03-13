@@ -1,20 +1,12 @@
-# Atractots in QGP
+# Attractors in QGP
 
-Julia project for my Batchelor Thesis
+Julia project for my Bachelor Thesis
 
-
-
-> [!IMPORTANT]
-> Atractors in physics of quark gluon plasma
-
-
-
-
+!!! info "Important"
+    Attractors in physics of quark gluon plasma
 
 # Issues
-If you have any questions about project feel free to ask a question or make and issue
-on main repository on github
 
+If you have any questions about the project, feel free to ask a question or open an issue on the main repository on GitHub.
 
-
-> [Link to repo Atractors-in-QGP ](https://github.com/kitajusSus/Atractors-in-QGP)
+[Link to repository: Attractors-in-QGP](https://github.com/kitajusSus/Atractors-in-QGP)

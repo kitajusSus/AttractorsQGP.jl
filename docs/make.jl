@@ -13,6 +13,7 @@ makedocs(
         "User Guide" => "guide.md",
         "Extras" => "extras.md",
         "Examples of usage" => "examples.md",
+        "Tutorials" => "tutorials.md",
     ],
     warnonly = [:missing_docs, :cross_references]
 )
