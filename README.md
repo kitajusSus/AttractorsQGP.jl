@@ -1,4 +1,7 @@
 # Thesis
+> [!IMPORTANT]
+> You can find docs in here [docs link ](https://kitajussus.github.io/Atractors-in-QGP/dev/)
+
 ```bash
 git clone {repo html}
 cd Atractors-in-QGP
@@ -6,6 +9,7 @@ julia --project=.
 
 
 ```
+
 
 
 
