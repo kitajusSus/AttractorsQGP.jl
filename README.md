@@ -4,7 +4,7 @@
 > You can find docs in here [docs link ](https://kitajussus.github.io/Atractors-in-QGP/dev/)
 
 ```bash
-git clone {repo html}
+git clone https://github.com/kitajusSus/Atractors-in-QGP
 cd Atractors-in-QGP
 julia --project=.
 
