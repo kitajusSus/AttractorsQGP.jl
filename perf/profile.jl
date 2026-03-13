@@ -1,7 +1,5 @@
 using Profile
-
-include("../src/AtractorsQGP.jl")
-using .AtractorsQGP
+using AtractorsQGP
 
 model = BRSSSModel()
 ICs = generate_initial_conditions(256)
