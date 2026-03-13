@@ -36,10 +36,6 @@ end
 
 ## Testing the `@normalize_minmax` function
 
-```@docs
-normalize_minmax()
-
-```
 
 
 ``` julia
