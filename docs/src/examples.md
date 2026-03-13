@@ -36,6 +36,11 @@ end
 
 ## Testing the `@normalize_minmax` function
 
+```@docs
+normalize_minmax()
+
+```
+
 
 ``` julia
 
@@ -115,3 +120,6 @@ julia> fig
 julia> scatter!(ax1, norm_test[1][:, 1], norm_test[1][:, 1])
 Scatter{Tuple{Vector{Point{2, Float64}}}}
 julia> fig
+
+
+```
