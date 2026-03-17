@@ -50,9 +50,11 @@ SymbolServer = "cf896787-08d5-524d-9de7-132aaa0cb996"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 TSne = "24678dba-d5e9-5843-a4c6-250288b04835"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
+VimBindings = "51b3953f-5e5d-4a6b-bd62-c64b6fa1518a"
 
 [compat]
 LinearAlgebra = "1.12.0"
 Random = "1.11.0"
 Serialization = "1.11.0"
 Statistics = "1.11.1"
+VimBindings = "0.4.0"
