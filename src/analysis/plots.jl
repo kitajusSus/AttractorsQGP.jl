@@ -227,7 +227,7 @@ function plot_thermodynamics_evolution(dataset::AbstractMatrix{<:Real})
     axislegend(ax2, position=:rt)
 
     linkxaxes!(ax1, ax2)
-    fig
+    return    fig
 end
 
 """
@@ -430,3 +430,51 @@ function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real
 
     return fig
 end
+
+"""
+    function plot_lle_dim!(ax::Axis, dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
+Helper function to plot LLE embedding for a single tau slice on an existing axis.
+Dataset columns are expected as `[tau, T, A, ...]`.
+The LLE embedding is computed via `run_lle_per_time` and plotted as a scatter
+plot. The axis title is set to indicate the LLE parameters.
+
+"""
+function plot_lle_dim!(ax::Axis, dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
+    lle_data = run_lle_per_time(dataset; k=k, d=d)
+    embedding = lle_data.lle_results[tau]
+
+    ax.title = "LLE: k=$k, d=$d, tau=$tau"
+
+    if d == 1
+        ax.xlabel = "LLE1"
+        ax.ylabel = "Wartość stała"
+        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, color=(:midnightblue, 0.75))
+    else
+        ax.xlabel = "LLE1"
+        ax.ylabel = "LLE2"
+        scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
+    end
+    return nothing
+end
+
+
+function simulation_lle(dataset::AbstractMatrix{<:Real}, zakres_k, d::Int, tau::Real)
+    set_publication_theme()
+
+    liczba_wykresow = length(zakres_k)
+    kolumny = 4
+    wiersze = ceil(Int, liczba_wykresow / kolumny)
+
+    fig = Figure(size=(kolumny * 400, wiersze * 350))
+
+    for (i, k) in enumerate(zakres_k)
+        row = (i - 1) ÷ kolumny + 1
+        col = (i - 1) % kolumny + 1
+        ax = Axis(fig[row, col])
+        plot_lle_dim!(ax, dataset, k, d, tau)
+    end
+
+    return fig
+end
+
+
