@@ -61,7 +61,7 @@ function run_main(
     n_points::Integer=1000,
     tspan::Tuple{<:Real,<:Real}=(0.22, 1.2),
     T_range::Tuple{<:Real,<:Real}=(400.0, 2500.0),
-    A_range::Tuple{<:Real,<:Real}=(-8.0, 20.0),
+    A_range::Tuple{<:Real,<:Real}=(-1, 20.0),
     saveat::Union{Real, AbstractVector{<:Real}, Nothing}=0.01,
     seed::Integer=5,
 )
