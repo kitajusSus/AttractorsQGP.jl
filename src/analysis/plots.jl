@@ -12,37 +12,37 @@ set_publication_theme()
 ```
 """
 function set_publication_theme()
-    set_theme!(Theme(
-        font="TeX Gyre Heros",
-        fontsize=16,
-        figure_padding=14,
-        Axis=(
-            titlesize=18,
-            xlabelsize=18,
-            ylabelsize=18,
-            xticklabelsize=14,
-            yticklabelsize=14,
-            backgroundcolor=RGBf(0.94, 0.94, 0.94),
-            xgridstyle=:dash,
-            ygridstyle=:dash,
-            xgridcolor=RGBAf(0.80, 0.80, 0.80, 0.65),
-            ygridcolor=RGBAf(0.80, 0.80, 0.80, 0.65),
-            spinewidth=1.2,
-            xtickwidth=1.2,
-            ytickwidth=1.2,
-            topspinevisible=true,
-            rightspinevisible=true,
+    set_theme!(
+        Theme(
+            font = "TeX Gyre Heros",
+            fontsize = 16,
+            figure_padding = 14,
+            Axis = (
+                titlesize = 18,
+                xlabelsize = 18,
+                ylabelsize = 18,
+                xticklabelsize = 14,
+                yticklabelsize = 14,
+                backgroundcolor = RGBf(0.94, 0.94, 0.94),
+                xgridstyle = :dash,
+                ygridstyle = :dash,
+                xgridcolor = RGBAf(0.80, 0.80, 0.80, 0.65),
+                ygridcolor = RGBAf(0.80, 0.80, 0.80, 0.65),
+                spinewidth = 1.2,
+                xtickwidth = 1.2,
+                ytickwidth = 1.2,
+                topspinevisible = true,
+                rightspinevisible = true,
+            ),
+            Legend = (
+                framevisible = true,
+                framewidth = 1.0,
+                backgroundcolor = RGBf(0.94, 0.94, 0.94),
+                position = :rt,
+            ),
+            Palette = (color = Makie.wong_colors(),),
         ),
-        Legend=(
-            framevisible=true,
-            framewidth=1.0,
-            backgroundcolor=RGBf(0.94, 0.94, 0.94),
-            position=:rt,
-        ),
-        Palette=(
-            color=Makie.wong_colors(),
-        ),
-    ))
+    )
 end
 
 const PLOT_KEYS = Dict(
@@ -97,17 +97,17 @@ function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef)
     xlbl, xfn = resolve_def(xdef)
     ylbl, yfn = resolve_def(ydef)
 
-    rows = findall(isapprox.(dataset[:, 1], t; atol=1e-8))
+    rows = findall(isapprox.(dataset[:, 1], t; atol = 1e-8))
     if isempty(rows)
         nearest = argmin(abs.(dataset[:, 1] .- t))
-        rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol=1e-8))
+        rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol = 1e-8))
     end
 
     selected = dataset[rows, :]
-    x = [xfn(selected[i, :]) for i in 1:size(selected, 1)]
-    y = [yfn(selected[i, :]) for i in 1:size(selected, 1)]
+    x = [xfn(selected[i, :]) for i = 1:size(selected, 1)]
+    y = [yfn(selected[i, :]) for i = 1:size(selected, 1)]
 
-    return (x=x, y=y, xlabel=xlbl, ylabel=ylbl)
+    return (x = x, y = y, xlabel = xlbl, ylabel = ylbl)
 end
 
 """
@@ -129,12 +129,12 @@ function _split_trajectories(dataset::AbstractMatrix{<:Real})
     end
 
     starts = Int[1]
-    for i in 2:size(dataset, 1)
+    for i = 2:size(dataset, 1)
         if dataset[i, 1] <= dataset[i - 1, 1]
             push!(starts, i)
         end
     end
-
+ # to  definicja typu dla ranges to samo co ranges = [1:0.1:15...]
     ranges = UnitRange{Int}[]
     for k in eachindex(starts)
         s = starts[k]
@@ -164,24 +164,21 @@ function plot_phase_space_grid(dataset::AbstractMatrix{<:Real}, times, xdef, yde
     n = length(times)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
-    fig = Figure(size=(360 * ncols, 290 * nrows))
+    fig = Figure(size = (360 * ncols, 290 * nrows))
 
     for (i, t) in enumerate(times)
         row = (i - 1) ÷ ncols + 1
         col = (i - 1) % ncols + 1
         d = get_data(dataset, t, xdef, ydef)
 
-        ax = Axis(fig[row, col],
-            title=L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
-            xlabel=d.xlabel,
-            ylabel=d.ylabel,
+        ax = Axis(
+            fig[row, col],
+            title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
+            xlabel = d.xlabel,
+            ylabel = d.ylabel,
         )
 
-        scatter!(ax, d.x, d.y;
-            markersize=2.4,
-            color=:midnightblue,
-            alpha=0.72,
-        )
+        scatter!(ax, d.x, d.y; markersize = 2.4, color = :midnightblue, alpha = 0.72)
     end
 
     fig
@@ -202,32 +199,53 @@ function plot_thermodynamics_evolution(dataset::AbstractMatrix{<:Real})
     set_publication_theme()
     trajs = _split_trajectories(dataset)
 
-    fig = Figure(size=(950, 620))
-    ax1 = Axis(fig[1, 1],
-        title=L"\text{Ewolucja Temperatury } T\,[\mathrm{fm}^{-1}]\; \text{w czasie własnym } \tau",
-        xlabel=L"\tau\,[\mathrm{fm}/c]",
-        ylabel=L"T\,[\mathrm{fm}^{-1}]",
+    fig = Figure(size = (950, 620))
+    ax1 = Axis(
+        fig[1, 1],
+        title = L"\text{Ewolucja Temperatury } T\,[\mathrm{fm}^{-1}]\; \text{w czasie własnym } \tau",
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"T\,[\mathrm{fm}^{-1}]",
     )
 
     for tr in trajs
-        lines!(ax1, dataset[tr, 1], dataset[tr, 2], color=(:dodgerblue, 0.20), linewidth=1.2)
+        lines!(
+            ax1,
+            dataset[tr, 1],
+            dataset[tr, 2],
+            color = (:dodgerblue, 0.20),
+            linewidth = 1.2,
+        )
     end
 
-    ax2 = Axis(fig[2, 1],
-               title=L"\text{Ewolucja Anizotropii}\; \mathcal{A(τ)}\; \text{ w czasie własnym}",
-        xlabel=L"\tau\,[\mathrm{fm}/c]",
-        ylabel=L"\mathcal{A}",
+    ax2 = Axis(
+        fig[2, 1],
+        title = L"\text{Ewolucja Anizotropii}\; \mathcal{A(τ)}\; \text{ w czasie własnym}",
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\mathcal{A}",
     )
 
     for tr in trajs
-        lines!(ax2, dataset[tr, 1], dataset[tr, 3], color=(:dodgerblue, 0.20), linewidth=1.2)
+        lines!(
+            ax2,
+            dataset[tr, 1],
+            dataset[tr, 3],
+            color = (:dodgerblue, 0.20),
+            linewidth = 1.2,
+        )
     end
 
-    hlines!(ax2, [0.0], color=:red, linestyle=:dash, linewidth=1.8, label=L"\mathcal{A}=0\;(\text{Anizotropia} = 0)")
-    axislegend(ax2, position=:rt)
+    hlines!(
+        ax2,
+        [0.0],
+        color = :red,
+        linestyle = :dash,
+        linewidth = 1.8,
+        label = L"\mathcal{A}=0\;(\text{Anizotropia} = 0)",
+    )
+    axislegend(ax2, position = :rt)
 
     linkxaxes!(ax1, ax2)
-    return    fig
+    return fig
 end
 
 """
@@ -243,46 +261,60 @@ plot_pca_evr_over_time(dataset; n_components=2, method=:minmax, feature_cols=[2,
 """
 function plot_pca_evr_over_time(
     dataset::AbstractMatrix{<:Real};
-    n_components::Int=2,
-    method::Symbol=:minmax,
-    gamma::Float64=1.0,
-    feature_cols::AbstractVector{<:Integer}=collect(2:size(dataset, 2)),
+    n_components::Int = 2,
+    method::Symbol = :minmax,
+    gamma::Float64 = 1.0,
+    feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
 )
     set_publication_theme()
 
     result = run_pca_per_time(
         dataset;
-        n_components=n_components,
-        method=method,
-        gamma=gamma,
-        feature_cols=feature_cols,
+        n_components = n_components,
+        method = method,
+        gamma = gamma,
+        feature_cols = feature_cols,
     )
     taus = result.taus
     evr = result.explained_variance_ratio
 
-    fig = Figure(size=(900, 460))
-    ax = Axis(fig[1, 1],
-        title="Explained Variance  (EVR) w funkcji czasu",
-        xlabel=L"\tau\,[\mathrm{fm}/c]",
-        ylabel="EVR",
-        limits=(minimum(taus), maximum(taus), 0, 1),
+    fig = Figure(size = (900, 460))
+    ax = Axis(
+        fig[1, 1],
+        title = "Explained Variance  (EVR) w funkcji czasu",
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = "EVR",
+        limits = (minimum(taus), maximum(taus), 0, 1),
     )
 
-    hlines!(ax, [1.0], color=:gray45, linestyle=:dash, label="100%")
+    hlines!(ax, [1.0], color = :gray45, linestyle = :dash, label = "100%")
 
     palette = Makie.wong_colors()
-    for comp in 1:n_components
+    for comp = 1:n_components
         vals = evr[:, comp]
         mask = .!isnan.(vals)
         if any(mask)
-            lines!(ax, taus[mask], vals[mask], linewidth=2.8, color=palette[min(comp, end)], label="PC$(comp)")
+            lines!(
+                ax,
+                taus[mask],
+                vals[mask],
+                linewidth = 2.8,
+                color = palette[min(comp, end)],
+                label = "PC$(comp)",
+            )
             if comp == 1
-                band!(ax, taus[mask], zeros(sum(mask)), vals[mask], color=(palette[1], 0.10))
+                band!(
+                    ax,
+                    taus[mask],
+                    zeros(sum(mask)),
+                    vals[mask],
+                    color = (palette[1], 0.10),
+                )
             end
         end
     end
 
-    axislegend(ax, position=:rb)
+    axislegend(ax, position = :rb)
     fig
 end
 
@@ -317,12 +349,12 @@ Returns a `Figure`.
 """
 function plot_pca_summary(
     dataset::AbstractMatrix{<:Real};
-    tau::Union{Nothing,Real}=nothing,
-    tau_tol::Float64=1e-8,
-    tau_mode::Symbol=:nearest,
-    n_components::Int=2,
-    method::Symbol=:minmax,
-    gamma::Float64=1.0,
+    tau::Union{Nothing,Real} = nothing,
+    tau_tol::Float64 = 1e-8,
+    tau_mode::Symbol = :nearest,
+    n_components::Int = 2,
+    method::Symbol = :minmax,
+    gamma::Float64 = 1.0,
 )
     @assert size(dataset, 2) >= 3 "Dataset must contain at least [tau, T, A]."
     @assert tau_tol >= 0 "tau_tol must be >= 0."
@@ -360,9 +392,9 @@ function plot_pca_summary(
     @assert size(features, 1) > 1 "Need at least two samples in selected tau slice."
 
     pca_result = if method === :minmax
-        run_pca(features; n_components=n_components)
+        run_pca(features; n_components = n_components)
     elseif method === :kernel
-        run_pca_kernel(features; n_components=n_components, gamma=gamma)
+        run_pca_kernel(features; n_components = n_components, gamma = gamma)
     else
         error("Unknown PCA method. Choose :minmax or :kernel.")
     end
@@ -371,31 +403,41 @@ function plot_pca_summary(
     evr = pca_result.explained_variance_ratio
     n_show = min(size(transformed, 2), 2)
 
-    fig = Figure(size=(980, 420))
+    fig = Figure(size = (980, 420))
 
     ax_proj = Axis(
         fig[1, 1],
-        xlabel="PC1",
-        ylabel="PC2",
-        title="PCA projection ($subtitle)",
+        xlabel = "PC1",
+        ylabel = "PC2",
+        title = "PCA projection ($subtitle)",
     )
     if n_show >= 2
-        scatter!(ax_proj, transformed[:, 1], transformed[:, 2];
-                 markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(
+            ax_proj,
+            transformed[:, 1],
+            transformed[:, 2];
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     elseif n_show == 1
-        scatter!(ax_proj, transformed[:, 1], zeros(size(transformed, 1));
-                 markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(
+            ax_proj,
+            transformed[:, 1],
+            zeros(size(transformed, 1));
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     end
 
     ax_evr = Axis(
         fig[1, 2],
-        xlabel="Principal component",
-        ylabel="EVR",
-        limits=(0.5, max(length(evr), 1) + 0.5, 0, 1),
-        title="Explained variance ratio",
+        xlabel = "Principal component",
+        ylabel = "EVR",
+        limits = (0.5, max(length(evr), 1) + 0.5, 0, 1),
+        title = "Explained variance ratio",
     )
     if !isempty(evr)
-        barplot!(ax_evr, 1:length(evr), evr; color=:slateblue3)
+        barplot!(ax_evr, 1:length(evr), evr; color = :slateblue3)
     end
 
     return fig
@@ -407,7 +449,7 @@ end
 function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
     set_publication_theme()
 
-    lle_data = run_lle_per_time(dataset; k=k, d=d)
+    lle_data = run_lle_per_time(dataset; k = k, d = d)
 
     if !haskey(lle_data.lle_results, tau)
         error("Wartość tau = $tau nie została znaleziona w wynikach LLE.")
@@ -415,17 +457,29 @@ function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real
 
     embedding = lle_data.lle_results[tau]
 
-    fig = Figure(size=(600, 500))
-    ax = Axis(fig[1, 1], title="LLE: k=$k neighbors, d=$d dimensions, tau=$tau")
+    fig = Figure(size = (600, 500))
+    ax = Axis(fig[1, 1], title = "LLE: k=$k neighbors, d=$d dimensions, tau=$tau")
 
     if d == 1
         ax.xlabel = "LLE1"
         ax.ylabel = "Wartość stała"
-        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(
+            ax,
+            embedding[:, 1],
+            zeros(size(embedding, 1));
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     else
         ax.xlabel = "LLE1"
         ax.ylabel = "LLE2"
-        scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(
+            ax,
+            embedding[:, 1],
+            embedding[:, 2];
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     end
 
     return fig
@@ -440,34 +494,46 @@ plot. The axis title is set to indicate the LLE parameters.
 
 """
 function plot_lle_dim!(ax::Axis, dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
-    lle_data = run_lle_per_time(dataset; k=k, d=d)
+    lle_data = run_lle_per_time(dataset; k = k, d = d)
     embedding = lle_data.lle_results[tau]
 
-    ax.title = "LLE: k=$k, d=$d, tau=$tau"
+    ax.title = L"\text{LLE: } k=%$k, d=%$d, \tau=%$tau"
 
     if d == 1
-        ax.xlabel = "LLE1"
+        ax.xlabel = "Odwzorowanie 1"
         ax.ylabel = "Wartość stała"
-        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize=4.5, color=(:midnightblue, 0.75))
+        scatter!(
+            ax,
+            embedding[:, 1],
+            zeros(size(embedding, 1));
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     else
-        ax.xlabel = "LLE1"
-        ax.ylabel = "LLE2"
-        scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize=4.5, color=(:midnightblue, 0.75))
+        ax.xlabel = "Odwzorowanie LLE1"
+        ax.ylabel = "Odwzorowanie LLE2"
+        scatter!(
+            ax,
+            embedding[:, 1],
+            embedding[:, 2];
+            markersize = 4.5,
+            color = (:midnightblue, 0.75),
+        )
     end
     return nothing
 end
 
 
-function simulation_lle(dataset::AbstractMatrix{<:Real}, zakres_k, d::Int, tau::Real)
+function plot_simulation_lle(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau_zakres)
     set_publication_theme()
 
-    liczba_wykresow = length(zakres_k)
+    liczba_wykresow = length(tau_zakres)
     kolumny = 4
     wiersze = ceil(Int, liczba_wykresow / kolumny)
 
-    fig = Figure(size=(kolumny * 400, wiersze * 350))
+    fig = Figure(size = (kolumny * 400, wiersze * 350))
 
-    for (i, k) in enumerate(zakres_k)
+    for (i, tau) in enumerate(tau_zakres)
         row = (i - 1) ÷ kolumny + 1
         col = (i - 1) % kolumny + 1
         ax = Axis(fig[row, col])
