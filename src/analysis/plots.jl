@@ -543,4 +543,67 @@ function plot_simulation_lle(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, ta
     return fig
 end
 
+function animate_pca_evolution(
+    dataset::AbstractMatrix{<:Real};
+    filename::String = "pca_evolution.gif",
+    fps::Int = 15,
+    n_components::Int = 2,
+    method::Symbol = :minmax,
+    gamma::Float64 = 1.0,
+    tau_tol::Float64 = 1e-8
+)
+    set_publication_theme()
 
+    taus = sort(unique(dataset[:, 1]))
+
+    fig = Figure(size = (800, 600))
+
+    title_obs = Observable("PCA projection (tau = $(taus[1]))")
+    ax = Axis(
+        fig[1, 1],
+        xlabel = "PC1",
+        ylabel = "PC2",
+        title = title_obs
+    )
+
+    pts_obs = Observable(Point2f[])
+
+    scatter!(
+        ax,
+        pts_obs;
+        markersize = 6.0,
+        color = (:midnightblue, 0.75)
+    )
+
+    record(fig, filename, taus; framerate = fps) do t
+        title_obs[] = "PCA projection (tau = $(round(t, digits=3)))"
+
+        d = abs.(dataset[:, 1] .- t)
+        mask = d .<= tau_tol
+        data_slice = dataset[mask, :]
+
+        features = data_slice[:, 2:3]
+
+        if size(features, 1) > 1
+            pca_result = if method === :minmax
+                run_pca(features; n_components = n_components)
+            elseif method === :kernel
+                run_pca_kernel(features; n_components = n_components, gamma = gamma)
+            else
+                error("Unknown PCA method. Choose :minmax or :kernel.")
+            end
+
+            transformed = pca_result.transformed
+
+            if size(transformed, 2) >= 2
+                pts_obs[] = [Point2f(transformed[i, 1], transformed[i, 2]) for i in 1:size(transformed, 1)]
+            else
+                pts_obs[] = [Point2f(transformed[i, 1], 0.0) for i in 1:size(transformed, 1)]
+            end
+
+            autolimits!(ax)
+        end
+    end
+
+    return filename
+end
