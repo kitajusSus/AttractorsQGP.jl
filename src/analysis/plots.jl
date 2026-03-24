@@ -523,24 +523,24 @@ function plot_lle_dim!(ax::Axis, dataset::AbstractMatrix{<:Real}, k::Int, d::Int
     return nothing
 end
 
-
 function plot_simulation_lle(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau_zakres)
     set_publication_theme()
 
     liczba_wykresow = length(tau_zakres)
-    kolumny = 4
+    kolumny = 2
     wiersze = ceil(Int, liczba_wykresow / kolumny)
 
-    fig = Figure(size = (kolumny * 400, wiersze * 350))
+    bok_kwadratu = max(kolumny, wiersze)
+
+    fig = Figure(size = (bok_kwadratu * 400, bok_kwadratu * 400))
 
     for (i, tau) in enumerate(tau_zakres)
         row = (i - 1) ÷ kolumny + 1
         col = (i - 1) % kolumny + 1
-        ax = Axis(fig[row, col])
+
+        ax = Axis(fig[row, col], aspect = 1)
         plot_lle_dim!(ax, dataset, k, d, tau)
     end
 
     return fig
 end
-
-
