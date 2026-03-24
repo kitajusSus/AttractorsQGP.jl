@@ -27,6 +27,7 @@ include("analysis/lle.jl")
 include("analysis/pca.jl")
 include("analysis/dimension.jl")
 include("analysis/plots.jl")
+export animate_pca_evolution
 include("analysis/fit_polynomials.jl")
 export compute_polynomial_lle
 include("io/data_io.jl")

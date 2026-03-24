@@ -46,3 +46,6 @@ function rhs(u::AbstractVector{<:Real}, model::AbstractHydroModel, τ::Real)
     dA = (1 / (p.tau_pi * τ)) * (8 * p.eta_over_s - term_T - term_A2)
     return SVector(dT, dA)
 end
+
+
+
