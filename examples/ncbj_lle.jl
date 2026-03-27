@@ -21,8 +21,8 @@ function ncbj1_macierz_wszyskich_punktów!(x::Vector{Float64})
 end
 ```
 """
-function ncbj1_macierz_wszyskich_punktów!(x::Vector{Float64})
-    y = 1f-3 ./ x
+function ncbj1_macierz_wszyskich_punktów!(x::AbstractVector{Float64})
+    y = 1 ./ x
     return hcat(x, y)'
 end
 
@@ -63,7 +63,7 @@ end
 
 
 
-function ncbj3_calculate_wagi_dla_x_i!(𝛈, x_i::Vector{Float64}, nn::Int)
+function ncbj3_calculate_wagi_dla_x_i!(𝛈, x_i::AbstractVector{Float64}, nn::Int)
     Z = 𝛈 .- x_i
     C = Z' * Z
     C += I * dx * tr(C)
@@ -73,7 +73,10 @@ function ncbj3_calculate_wagi_dla_x_i!(𝛈, x_i::Vector{Float64}, nn::Int)
     return w_surowe ./ sum(w_surowe)
 end
 
-function ncbj4_lle!(macierz_punktow::Matrix{Float64}, nn::Int)
+
+
+#  zmieniłem typ na AbstractMatrix by nie było probelmu z transponowaniem macierzy
+function ncbj4_lle!(macierz_punktow::AbstractMatrix{<: AbstractFloat}, nn::Int)
     N = size(macierz_punktow, 2)
     W = zeros(Float32, N, N)
 

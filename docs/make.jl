@@ -14,6 +14,7 @@ makedocs(
         "Extras" => "extras.md",
         "Examples of usage" => "examples.md",
         "Tutorials" => "tutorials.md",
+        "NCBJ" => "ncbj.md",
     ],
     warnonly = [:missing_docs, :cross_references]
 )
