@@ -226,7 +226,7 @@ uuid = "bf4720bc-e11a-5d0c-854e-bdca1663c893"
 version = "0.1.1"
 
 [[deps.AtractorsQGP]]
-deps = ["ApproxFun", "BenchmarkTools", "BifurcationKit", "Blink", "CSV", "CairoMakie", "ColorSchemes", "Conda", "DataFrames", "DifferentialEquations", "Distributions", "DynamicalSystems", "ForwardDiff", "GLMakie", "HDF5", "Integrals", "Interact", "Interpolations", "LaTeXStrings", "LinearAlgebra", "LoopVectorization", "Makie", "ManifoldLearning", "ModelingToolkit", "MultivariateStats", "NonlinearSolve", "Optimization", "PGFPlotsX", "PlotThemes", "PlotlyBase", "PlotlyKaleido", "Plots", "Polynomials", "ProgressMeter", "Random", "Roots", "SciMLBase", "Serialization", "StaticArrays", "StaticLint", "Statistics", "SymbolServer", "Symbolics", "TSne", "TimerOutputs", "VimBindings"]
+deps = ["ApproxFun", "BenchmarkTools", "BifurcationKit", "Blink", "CSV", "CairoMakie", "ColorSchemes", "Conda", "DataFrames", "DifferentialEquations", "Distributions", "DynamicalSystems", "ForwardDiff", "GLMakie", "HDF5", "Integrals", "Interact", "Interpolations", "LaTeXStrings", "Latexify", "LinearAlgebra", "LoopVectorization", "Makie", "ManifoldLearning", "ModelingToolkit", "MultivariateStats", "NonlinearSolve", "Optimization", "PGFPlotsX", "PlotThemes", "PlotlyBase", "PlotlyKaleido", "Plots", "Polynomials", "ProgressMeter", "Random", "Roots", "SciMLBase", "Serialization", "StaticArrays", "StaticLint", "Statistics", "SymbolServer", "Symbolics", "TSne", "TimerOutputs", "VimBindings"]
 path = "."
 uuid = "3aa772ee-73c7-4728-8ce2-799db91c0e5f"
 version = "0.2.1"
