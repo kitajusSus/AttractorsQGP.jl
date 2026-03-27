@@ -18,6 +18,11 @@ include("constants/units.jl")
 
 include("equations/bjorken.jl")
 
+
+# include("examples/lagranz.jl")
+# export lle_ncbj, fun_y
+# # funkcje do obliczen symbolicznych
+# export lagrang, basic_lag
 include("solver/hydro_solver.jl")
 
 include("simulation/initial_conditions.jl")
@@ -72,5 +77,12 @@ function run_main(
     dataset = build_dataset(solutions)
     return (solutions=solutions, dataset=dataset)
 end
+
+"""
+Zrobione na NCBJ staż
+"""
+# include("./examples/ncbj_lle.jl")
+# export ncbj_lle, ncbj1_macierz_wszyskich_punktów!, ncbj2_sąsiedzi!, ncbj3_calculate_wagi_dla_x_i!
+
 
 end

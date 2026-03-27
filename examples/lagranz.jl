@@ -15,8 +15,8 @@ function basic_lag()
 end
 
 
-
 function lagrang()
+
     # 3 wagi oraz jeden mnożnik Lagrange'a (λ)
     @variables w[1:3] λ
 
