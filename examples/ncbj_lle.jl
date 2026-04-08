@@ -91,3 +91,7 @@ function ncbj4_lle!(macierz_punktow::AbstractMatrix{<: AbstractFloat}, nn::Int)
 
     return W
 end
+
+
+
+
