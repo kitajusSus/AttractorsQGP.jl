@@ -61,6 +61,53 @@ function ncbj2_sasiedzi(macierz_punktow::AbstractMatrix{T}, dla_jakiego_punktu::
 end
 
 """
+    lle3_svd_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractVector{<:Real}, d::Int)
+
+dla punktu `x_i` na podstawie jego sąsiadów, wykorzystując rozkład SVD. Metoda eliminuje konieczność 
+regularyzacji Tichonowa. (ta z C_{c} + \eta I)
+
+- `sasiedzi`: Macierz sąsiadów dla punktu x_i (zwracana np. przez ncbj2_sasiedzi)
+- `x_i`: Rozpatrywany punkt w przestrzeni fazowej
+- `d`: Przewidywany wymiar docelowej rozmaitości (atraktora)
+
+- wektor wag `w` o długości równej liczbie sąsiadów, sumujący się do 1.
+"""
+function ncbj3_svd_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractVector{<:Real}, d::Int)
+    T = promote_type(eltype(sasiedzi), eltype(x_i))
+    S = Matrix{T}(sasiedzi)
+    x = Vector{T}(x_i)
+    
+    𝛈 = size(S, 2)
+    Z = S .- x
+    
+    # Artykuł definiuje macierz otoczenia X_i jako macierz K x D,
+    # dlatego transponujemy nasze Z
+    X_i = Z'
+    
+    # Wykonujemy rozkład SVD. Używamy full=true, aby macierz U miała
+    # pełny wymiar K x K, co jest wymagane do wyizolowania podprzestrzeni szumu.
+    F = svd(X_i, full=true)
+    U = F.U
+    
+    # U_2 to podmacierz zawierająca kolumny od d+1 do K, opisująca szum
+    U_2 = U[:, d+1:𝛈]
+    
+    # Wektor jedynek o długości równej liczbie sąsiadów
+    ones_vec = ones(T, 𝛈)
+    
+    #  w = (U_2 * U_2' * 1) / (1' * U_2 * U_2' * 1).
+    🥕 = U_2' * ones_vec
+    licznik = U_2 * 🥕
+    mianownik = dot(ones_vec, licznik)
+    
+    w = licznik ./ mianownik
+    
+    return w
+end
+
+
+
+"""
     ncbj3_calculate_wagi_dla_x_i(sasiedzi::Matrix{Float32}, x_i::Vector{Float32}; dx::Float32 = 1e-3)
 """
 function ncbj3_calculate_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractVector{<:Real}; dx=1e-3)
@@ -97,9 +144,3 @@ function ncbj4_lle(macierz_punktow::AbstractMatrix{T}, nn::Int; dx=dx) where {T<
 end
 
 
-function ncbj5_wykres(Wagi::Any)
-    set_publication_theme()
-     
-
-
-end
