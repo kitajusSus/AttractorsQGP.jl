@@ -62,8 +62,6 @@ end
 
 """
     ncbj3_calculate_wagi_dla_x_i(sasiedzi::Matrix{Float32}, x_i::Vector{Float32}; dx::Float32 = 1e-3)
-
-
 """
 function ncbj3_calculate_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractVector{<:Real}; dx=1e-3)
     # podmienia typy na wspólny w zależności od tego jaki jest typ elementów macierzy sasiedzi
@@ -98,3 +96,10 @@ function ncbj4_lle(macierz_punktow::AbstractMatrix{T}, nn::Int; dx=dx) where {T<
     return W
 end
 
+
+function ncbj5_wykres(Wagi::Any)
+    set_publication_theme()
+     
+
+
+end
