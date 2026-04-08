@@ -3,6 +3,20 @@ using StaticArrays
 
 """
 Solve hydrodynamic evolution for one initial condition.
+```julia
+
+solve_hydro(model::AbstractHydroModel, u0::AbstractVector{<:Real}, tspan::Tuple{<:Real,<:Real};
+    solver=Rodas5(),
+    abstol::Real=1e-6,
+    reltol::Real=1e-6,
+    saveat=nothing,
+)
+
+```
+
+
+
+
 """
 function solve_hydro(model::AbstractHydroModel, u0::AbstractVector{<:Real}, tspan::Tuple{<:Real,<:Real};
     solver=Rodas5(),

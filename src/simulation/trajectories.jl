@@ -14,8 +14,8 @@ function generate_trajectories(
     @assert !isempty(initial_conditions) "At least one initial condition is required."
 
     first_solution = solve_hydro(model, initial_conditions[1], tspan; saveat=saveat)
-    solT = typeof(first_solution)
-    solutions = Vector{solT}(undef, length(initial_conditions))
+    solType = typeof(first_solution)
+    solutions = Vector{solType}(undef, length(initial_conditions))
     solutions[1] = first_solution
 
     if length(initial_conditions) == 1
