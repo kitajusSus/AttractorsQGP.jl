@@ -147,7 +147,7 @@ end
 
 
 
-function ncbj_plot_examples_lle(X,K)
+function ncbj_plot_examples_lle(X,K,N=5000)
     W = ncbj4_lle(X, K)
     I_N = I(N)
     M = (I_N - W)' * (I_N - W)
@@ -166,16 +166,14 @@ end
 
 
 
-function  matlab()
-    N = 5000
+function  matlab(N = 5000)
     τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
     h = 21 .* rand(Float32, N)
 
     X = [τ .* cos.(τ)  h  τ .* sin.(τ)]'
     return X
 end
-function sruba()
-    N = 5000
+function sruba(N = 5000)
     t = LinRange(0, 4π, N)
     x = sin.(t) .+ 0.1 .* randn(Float32, N)
     y = cos.(t) .+ 0.1 .* randn(Float32, N)
@@ -186,8 +184,13 @@ function sruba()
 end
 
 
-function scurve()
-    
+function scurve(N = 5000)
+    𝛉 = LinRange(-1.5π, 1.5π, N)
+    x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
+    y = LinRange(0,5,N) .+ 0.01 .* randn(Float32, N) 
+    z = 𝛉 ./ abs.(𝛉) .+ 0.1 .* randn(Float32, N)
 
+    X = [x y z]'
+    return X
 
 end
