@@ -64,7 +64,7 @@ end
     lle3_svd_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractVector{<:Real}, d::Int)
 
 dla punktu `x_i` na podstawie jego sąsiadów, wykorzystując rozkład SVD. Metoda eliminuje konieczność 
-regularyzacji Tichonowa. (ta z C_{c} + \eta I)
+regularyzacji tzw Tichonowa. (ta z C_{c} + \eta I)
 
 - `sasiedzi`: Macierz sąsiadów dla punktu x_i (zwracana np. przez ncbj2_sasiedzi)
 - `x_i`: Rozpatrywany punkt w przestrzeni fazowej
@@ -144,3 +144,50 @@ function ncbj4_lle(macierz_punktow::AbstractMatrix{T}, nn::Int; dx=dx) where {T<
 end
 
 
+
+
+
+function ncbj_plot_examples_lle(X,K)
+    W = ncbj4_lle(X, K)
+    I_N = I(N)
+    M = (I_N - W)' * (I_N - W)
+    F = eigen(Symmetric(M))
+    Y = F.vectors[:, 1:3]'
+    fig = Figure(size = (1200, 600))
+
+    ax_3d = Axis3(fig[1, 1], title = "Oryginalna rozmaitość X (3D)", azimuth = 0.22 * π)
+    scatter!(ax_3d, X[1, :], X[2, :], X[3, :], color = τ, colormap = :jet, markersize = 8)
+
+    ax_2d = Axis(fig[1, 2], title = "Zredukowana przestrzeń Y (2D)")
+    scatter!(ax_2d, Y[1, :], Y[2, :], color = τ, colormap = :jet, markersize = 8)
+    fig
+
+end
+
+
+
+function  matlab()
+    N = 5000
+    τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
+    h = 21 .* rand(Float32, N)
+
+    X = [τ .* cos.(τ)  h  τ .* sin.(τ)]'
+    return X
+end
+function sruba()
+    N = 5000
+    t = LinRange(0, 4π, N)
+    x = sin.(t) .+ 0.1 .* randn(Float32, N)
+    y = cos.(t) .+ 0.1 .* randn(Float32, N)
+    z = t .+ 0.1 .* randn(Float32, N)
+
+    X = [x y z]'
+    return X
+end
+
+
+function scurve()
+    
+
+
+end
