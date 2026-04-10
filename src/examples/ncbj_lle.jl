@@ -164,31 +164,35 @@ end
 function ncbj5_nowy_manifold(W)
     M = (I - W)' * (I - W)
     F = eigen(Symmetric(M))
-    Y = F.vectors[:, 2:3]'
+    Y = F.vectors[:, 2:3]'#.*sqrt(N)
+    
     return Y
 end
+
+
+
 # tutaj rysune 
-function examples_lle_data(dataset = "matlab", N = 5000, thickness = 2)
-    if dataset == "matlab"
-    elseif dataset == "sruba"            
-        t = LinRange(0, 4π, N)
-        x = sin.(t) .+ 0.1 .* randn(Float32, N)
-        y = cos.(t) .+ 0.1 .* randn(Float32, N)
-        z = t .+ 0.1 .* randn(Float32, N)
-        X = [x y z]'
-        return X, t
-    elseif dataset == "scurve" 
-        𝛉 = LinRange(-1.5π, 1.5π, N)
-        x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
-        y = LinRange(0, 5, N) .+ 0.01 .* randn(Float32, N) 
-        z = sign.(𝛉) .+ 0.1 .* randn(Float32, N)
-        X = [x y z]'
-        return X, 𝛉
-    else 
-        return nothing, nothing
-    end
-end
-#
+# function examples_lle_data(dataset = "matlab", N = 5000, thickness = 2)
+#     if dataset == "matlab"
+#     elseif dataset == "sruba"            
+#         t = LinRange(0, 4π, N)
+#         x = sin.(t) .+ 0.1 .* randn(Float32, N)
+#         y = cos.(t) .+ 0.1 .* randn(Float32, N)
+#         z = t .+ 0.1 .* randn(Float32, N)
+#         X = [x y z]'
+#         return X, t
+#     elseif dataset == "scurve" 
+#         𝛉 = LinRange(-1.5π, 1.5π, N)
+#         x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
+#         y = LinRange(0, 5, N) .+ 0.01 .* randn(Float32, N) 
+#         z = sign.(𝛉) .+ 0.1 .* randn(Float32, N)
+#         X = [x y z]'
+#         return X, 𝛉
+#     else 
+#         return nothing, nothing
+#     end
+# end
+# #
 # function  matlab(N = 5000)
 #     τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
 #     h = 21 .* rand(Float32, N)

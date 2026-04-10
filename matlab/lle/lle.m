@@ -61,9 +61,9 @@ end;
 
 % CALCULATION OF EMBEDDING
 options.disp = 0; options.isreal = 1; options.issym = 1; 
-[Y,eigenvals] = eigs(M,d+1,0,options);
-Y = Y(:,2:d+1)'*sqrt(N); % bottom evect is [1,1,1,1...] with eval 0
-
+[Y,eigenvals] = eigs(M,d+1,"sm");
+Y = Y(:,1:2)'*sqrt(N); % bottom evect is [1,1,1,1...] with eval 0
+diag(eigenvals)
 
 fprintf(1,'Done.\n');
 

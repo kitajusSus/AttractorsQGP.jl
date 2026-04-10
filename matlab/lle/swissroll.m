@@ -44,7 +44,7 @@ clf; colormap jet; set(gcf,'Position',[200,400,620,200]);
   fprintf("enter");
   pause;
        
-  save -ascii "X_matlab.csv" X;
-  save -ascii "W_matlab.csv" W;
-  save -ascii "Y_matlab.csv" Y;
+  save -ascii -double "X_matlab.csv" X;
+  save -ascii -double "W_matlab.csv" W;
+  save -ascii -double "Y_matlab.csv" Y;
     fprintf(1, 'Done.\n');
