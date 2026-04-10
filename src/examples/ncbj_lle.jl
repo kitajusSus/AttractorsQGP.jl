@@ -168,14 +168,8 @@ function ncbj5_nowy_manifold(W)
     return Y
 end
 # tutaj rysune 
-
 function examples_lle_data(dataset = "matlab", N = 5000, thickness = 2)
     if dataset == "matlab"
-        τ = (1 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
-        h = 4 .* rand(Float32, N)
-        r = τ .+ (thickness .* randn(Float32, N))
-        X = [r .* cos.(τ)  h  r .* sin.(τ)]'
-        return X, τ
     elseif dataset == "sruba"            
         t = LinRange(0, 4π, N)
         x = sin.(t) .+ 0.1 .* randn(Float32, N)

@@ -39,7 +39,12 @@ Y=lle(X,K,d);
 % SCATTERPLOT OF EMBEDDING
   subplot(1,3,3); cla;
   scatter(Y(1,:),Y(2,:),12,tt,'+');
-  grid off;
+  grid on;
   set(gca,'XTick',[]); set(gca,'YTick',[]); 
   pause;
 
+
+
+writematrix(X, 'X_matlab.csv');
+writematrix(W, 'W_matlab.csv');
+writematrix(Y, 'Y_matlab.csv');

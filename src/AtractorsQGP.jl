@@ -57,7 +57,17 @@ export plot_phase_space_grid, plot_thermodynamics_evolution, plot_pca_summary, p
 export run_main
 
 
+include("examples/ncbj_lle.jl")
+export ncbj1_macierz_wszystkich_punktow, ncbj2_sasiedzi, ncbj3_calculate_wagi_dla_x_i
+export ncbj3_svd_wagi_dla_x_i, ncbj4_lle_basic, ncbj4_lle_svd, ncbj5_nowy_manifold
+include("examples/lle_examples/plots_lle.jl")
+include("examples/lle_examples/swissroll.jl")
+include("examples/lle_examples/scurve.jl")
+include("examples/lle_examples/helix.jl")
 
+export ex_swissroll, swissroll_dane
+export ex_scurve, scurve_dane
+export ex_helix, helix_dane
 
 
 """
@@ -78,11 +88,8 @@ function run_main(
     return (solutions=solutions, dataset=dataset)
 end
 
-"""
-Zrobione na NCBJ staż
-"""
-# include("./examples/ncbj_lle.jl")
-# export ncbj_lle, ncbj1_macierz_wszyskich_punktów!, ncbj2_sąsiedzi!, ncbj3_calculate_wagi_dla_x_i!
+
+
 
 
 end
