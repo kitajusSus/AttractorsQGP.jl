@@ -146,51 +146,73 @@ end
 
 
 
+using GLMakie 
 
-function ncbj_plot_examples_lle(X,K,N=5000)
+# tutaj rysune i oblicza 
+function ncbj_plot_examples_lle(X, labels, K, N=5000)
     W = ncbj4_lle(X, K)
-    I_N = I(N)
-    M = (I_N - W)' * (I_N - W)
+    M = (I - W)' * (I - W)
     F = eigen(Symmetric(M))
-    Y = F.vectors[:, 1:3]'
+    Y = F.vectors[:, 2:3]'
+    
     fig = Figure(size = (1200, 600))
-
+    
     ax_3d = Axis3(fig[1, 1], title = "Oryginalna rozmaitość X (3D)", azimuth = 0.22 * π)
-    scatter!(ax_3d, X[1, :], X[2, :], X[3, :], color = τ, colormap = :jet, markersize = 8)
+    scatter!(ax_3d, X[1, :], X[2, :], X[3, :], color = labels, colormap = :jet, markersize = 8)
 
     ax_2d = Axis(fig[1, 2], title = "Zredukowana przestrzeń Y (2D)")
-    scatter!(ax_2d, Y[1, :], Y[2, :], color = τ, colormap = :jet, markersize = 8)
-    fig
-
+    scatter!(ax_2d, Y[1, :], Y[2, :], color = labels, colormap = :jet, markersize = 8)
+    
+    return fig
 end
 
-
-
-function  matlab(N = 5000)
-    τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
-    h = 21 .* rand(Float32, N)
-
-    X = [τ .* cos.(τ)  h  τ .* sin.(τ)]'
-    return X
+function examples_lle_data(dataset = "matlab", N = 5000, thickness = 0.5)
+    if dataset == "matlab"
+        τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
+        h = 21 .* rand(Float32, N)
+        r = τ .+ (thickness .* randn(Float32, N))
+        X = [r .* cos.(τ)  h  r .* sin.(τ)]'
+        return X, τ
+    elseif dataset == "sruba"            
+        t = LinRange(0, 4π, N)
+        x = sin.(t) .+ 0.1 .* randn(Float32, N)
+        y = cos.(t) .+ 0.1 .* randn(Float32, N)
+        z = t .+ 0.1 .* randn(Float32, N)
+        X = [x y z]'
+        return X, t
+    elseif dataset == "scurve" 
+        𝛉 = LinRange(-1.5π, 1.5π, N)
+        x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
+        y = LinRange(0, 5, N) .+ 0.01 .* randn(Float32, N) 
+        z = sign.(𝛉) .+ 0.1 .* randn(Float32, N)
+        X = [x y z]'
+        return X, 𝛉
+    else 
+        return nothing, nothing
+    end
 end
-function sruba(N = 5000)
-    t = LinRange(0, 4π, N)
-    x = sin.(t) .+ 0.1 .* randn(Float32, N)
-    y = cos.(t) .+ 0.1 .* randn(Float32, N)
-    z = t .+ 0.1 .* randn(Float32, N)
-
-    X = [x y z]'
-    return X
-end
-
-
-function scurve(N = 5000)
-    𝛉 = LinRange(-1.5π, 1.5π, N)
-    x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
-    y = LinRange(0,5,N) .+ 0.01 .* randn(Float32, N) 
-    z = 𝛉 ./ abs.(𝛉) .+ 0.1 .* randn(Float32, N)
-
-    X = [x y z]'
-    return X
-
-end
+#
+# function  matlab(N = 5000)
+#     τ = (1.5 * π) .* (1.0 .+ 2.0 .* rand(Float32, N))
+#     h = 21 .* rand(Float32, N)
+#     X = [τ .* cos.(τ)  h  τ .* sin.(τ)]'
+#     return X
+# end
+# function sruba(N = 5000)
+#     t = LinRange(0, 4π, N)
+#     x = sin.(t) .+ 0.1 .* randn(Float32, N)
+#     y = cos.(t) .+ 0.1 .* randn(Float32, N)
+#     z = t .+ 0.1 .* randn(Float32, N)
+#     X = [x y z]'
+#     return X
+# end
+#
+#
+# function scurve(N = 5000)
+#     𝛉 = LinRange(-1.5π, 1.5π, N)
+#     x = sin.(𝛉) .+ 0.1 .* randn(Float32, N)
+#     y = LinRange(0,5,N) .+ 0.01 .* randn(Float32, N) 
+#     z = 𝛉 ./ abs.(𝛉) .+ 0.1 .* randn(Float32, N)
+#     X = [x y z]'
+#     return X
+# end
