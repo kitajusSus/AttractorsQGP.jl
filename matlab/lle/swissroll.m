@@ -34,17 +34,17 @@ clf; colormap jet; set(gcf,'Position',[200,400,620,200]);
   axis([-15,20,0,32,-15,15]); drawnow;
 
 % RUN LLE ALGORITHM
-Y=lle(X,K,d);
+[Y, W] = lle(X,K,d);
 
-% SCATTERPLOT OF EMBEDDING
-  subplot(1,3,3); cla;
-  scatter(Y(1,:),Y(2,:),12,tt,'+');
-  grid on;
-  set(gca,'XTick',[]); set(gca,'YTick',[]); 
+    % SCATTERPLOT OF EMBEDDING
+    subplot(1,3,3); cla;
+    scatter(Y(1,:),Y(2,:),12,tt,'+');
+    grid on;
+    set(gca,'XTick',[]); set(gca,'YTick',[]); 
+  fprintf("enter");
   pause;
-
-
-
-writematrix(X, 'X_matlab.csv');
-writematrix(W, 'W_matlab.csv');
-writematrix(Y, 'Y_matlab.csv');
+       
+  save -ascii "X_matlab.csv" X;
+  save -ascii "W_matlab.csv" W;
+  save -ascii "Y_matlab.csv" Y;
+    fprintf(1, 'Done.\n');

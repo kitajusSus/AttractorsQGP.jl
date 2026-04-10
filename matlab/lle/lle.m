@@ -9,7 +9,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [Y] = lle(X,K,d)
+function [Y,W] = lle(X,K,d)
 
 [D,N] = size(X);
 fprintf(1,'LLE running on %d points in %d dimensions\n',N,D);
