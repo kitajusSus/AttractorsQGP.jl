@@ -15,14 +15,14 @@ function set_publication_theme()
     set_theme!(
         Theme(
             font = "TeX Gyre Heros",
-            fontsize = 16,
-            figure_padding = 14,
+            fontsize = 35,
+            figure_padding = 20,
             Axis = (
-                titlesize = 18,
-                xlabelsize = 18,
-                ylabelsize = 18,
-                xticklabelsize = 14,
-                yticklabelsize = 14,
+                titlesize = 25,
+                xlabelsize = 22,
+                ylabelsize = 22,
+                xticklabelsize = 18,
+                yticklabelsize = 18,
                 backgroundcolor = RGBf(0.94, 0.94, 0.94),
                 xgridstyle = :dash,
                 ygridstyle = :dash,
@@ -37,13 +37,71 @@ function set_publication_theme()
             Legend = (
                 framevisible = true,
                 framewidth = 1.0,
-                backgroundcolor = RGBf(0.94, 0.94, 0.94),
+                backgroundcolor = RGBAf(0.94, 0.94, 0.94, 0.70),
                 position = :rt,
             ),
             Palette = (color = Makie.wong_colors(),),
         ),
     )
 end
+
+
+"""
+Dla dużych wykresów wieksza czcionka itd 
+"""
+function set_publication_theme_large()
+    set_theme!(
+        Theme(
+            font = "Libertinus", 
+            fontsize = 35,           
+            figure_padding = 30,
+            
+            Axis = (
+                titlesize = 50,
+                xlabelsize = 35,
+                ylabelsize = 35,
+                xticklabelsize = 28,
+                yticklabelsize = 28,
+                backgroundcolor = RGBf(1.0, 1.0, 1.0),
+                xgridstyle = :dash,
+                ygridstyle = :dash,
+                xgridcolor = RGBAf(0.85, 0.85, 0.85, 0.65),
+                ygridcolor = RGBAf(0.85, 0.85, 0.85, 0.65),
+                spinewidth = 2.0,     
+                xtickwidth = 2.0,
+                ytickwidth = 2.0,
+                xgridwidth = 1.5,
+                ygridwidth = 1.5,
+                
+                xticksize = 10,       
+                yticksize = 10,
+                xtickalign = 1.0,
+                ytickalign = 1.0,
+                topspinevisible = true,
+                rightspinevisible = true,
+            ),
+            
+            Legend = (
+                titlesize = 28,
+                labelsize = 24,
+                framevisible = true,
+                framewidth = 1.5,     # Grubsza ramka legendy
+                framecolor = RGBAf(0.8, 0.8, 0.8, 1.0),
+                backgroundcolor = RGBAf(1.0, 1.0, 1.0, 0.85),
+                position = :rt,
+                padding = (12.0, 12.0, 12.0, 12.0), # Więcej oddechu wewnątrz
+            ),
+            Palette = (color = Makie.wong_colors(),),
+            Lines = (
+                linewidth = 3.0,
+            ),
+            Scatter = (
+                markersize = 12,
+            )
+        )
+    )
+end
+
 
 const PLOT_KEYS = Dict(
     :T => (L"T\,[\mathrm{fm}^{-1}]", x -> x[2]),
@@ -266,7 +324,7 @@ function plot_pca_evr_over_time(
     gamma::Float64 = 1.0,
     feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
 )
-    set_publication_theme()
+    set_publication_theme_large()
 
     result = run_pca_per_time(
         dataset;
@@ -278,13 +336,13 @@ function plot_pca_evr_over_time(
     taus = result.taus
     evr = result.explained_variance_ratio
 
-    fig = Figure(size = (900, 460))
+    fig = Figure(size = (1600, 1000))
     ax = Axis(
         fig[1, 1],
-        title = "Explained Variance  (EVR) w funkcji czasu",
+        title = L"\text{Explained Variance (EVR) w funkcji czasu dla zmiennych } \mathcal{A} \text{ i } T/T_0",
         xlabel = L"\tau\,[\mathrm{fm}/c]",
-        ylabel = "EVR",
-        limits = (minimum(taus), maximum(taus), 0, 1),
+        ylabel = L"EVR",
+        limits = (0.20, maximum(taus), 0, 1.05),
     )
 
     hlines!(ax, [1.0], color = :gray45, linestyle = :dash, label = "100%")
