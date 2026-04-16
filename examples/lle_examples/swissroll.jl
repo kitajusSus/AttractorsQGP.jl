@@ -9,7 +9,7 @@ using GLMakie
 using LinearAlgebra
 const dx = 1e-3
 
-# skopiowane z src/examples/ncbj_lle.jl
+# skopiowane z examples/ncbj_lle.jl
 
 
 
@@ -156,10 +156,13 @@ function swissroll_dane(N)
 end
 
 function ex_swissroll(; N=2000, K=12)
-    X, labels = swissroll_dane(N)
-    wagi = ncbj4_lle_basic(X, K)
-    Y = ncbj5_nowy_manifold(wagi)
 
+    X, labels = swissroll_dane(N)
+    # println("Wygenerowane dane Swiss Roll (X) \n  ", X )
+    wagi = ncbj4_lle_basic(X, K)
+    # println("Macierz wag W:\n", wagi)
+    Y = ncbj5_nowy_manifold(wagi)
+    # println("Nowe Wektory Y (2D):\n", Y)
     fig = plot_examples_lle(X, Y, labels)
     display(fig)
     print("Press Enter to continue...")
