@@ -161,14 +161,14 @@ function helix_dane(N)
     return X, t
 end
 
-function ex_helix(; N=2000, K=12)
+function ex_helix(; N=2000, K=20)
     X, labels = helix_dane(N)
     wagi = ncbj4_lle_basic(X, K)
     Y = ncbj5_nowy_manifold(wagi)
     fig = plot_examples_lle(X, Y, labels)
     display(fig)
-    println("Naciśnij Enter, aby zakończyć...")
-    readline()
+    # println("Naciśnij Enter, aby zakończyć...")
+    # readline()
     return fig
 end
 
