@@ -42,14 +42,11 @@ ncbj3_calculate_wagi_dla_x_i!(sasiedzi, wybrany_punkt, ile_sąsiadów)
 
 ```
 
-
-
-
 ## Dodane nowe funkcje i porządna "refactoryzacja"
 
 jak uruchamiać przykłady? 
 
-```bash
+```julia
 julia src/examples/lle_examples/swissroll.jl
 julia src/examples/lle_examples/helix.jl
 ```
