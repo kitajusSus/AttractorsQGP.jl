@@ -11,3 +11,4 @@ function plot_examples_lle(X, labels, K, N=5000)
     
     return fig
 end
+

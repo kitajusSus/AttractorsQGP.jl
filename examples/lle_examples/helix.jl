@@ -1,10 +1,10 @@
-#
-# import Pkg
-# Pkg.activate(joinpath(@__DIR__, "../../..")) 
-#
-# using AtractorsQGP
-#
-#
+
+import Pkg
+Pkg.activate(joinpath(@__DIR__, "../..")) 
+
+using AtractorsQGP
+
+
 
 
 
@@ -125,14 +125,27 @@ function ncbj4_lle_svd(macierz_punktow::AbstractMatrix{T}, nn::Int) where {T<:Ab
     return W
 end
 
+
 function ncbj5_nowy_manifold(W)
+    N = size(W, 1)
     M = (I - W)' * (I - W)
     F = eigen(Symmetric(M))
-    Y = F.vectors[:, 2:3]'#.*sqrt(N)
+    Y = F.vectors[:, 2:3]'.*sqrt(N)
     
     return Y
 end
 
+function plot_examples_lle(X, Y, labels)
+    fig = Figure(size = (1200, 600))
+    
+    ax_3d = Axis3(fig[1, 1], title = "Oryginalna rozmaitość X (3D)", azimuth = 0.22 * π)
+    scatter!(ax_3d, X[1, :], X[2, :], X[3, :], color = labels, colormap = :jet, markersize = 8)
+
+    ax_2d = Axis(fig[1, 2], title = "Zredukowana przestrzeń Y (2D)")
+    scatter!(ax_2d, Y[1, :], Y[2, :], color = labels, colormap = :jet, markersize = 8)
+    
+    return fig
+end
 
 
 
@@ -152,7 +165,9 @@ function ex_helix(; N=2000, K=12)
     X, labels = helix_dane(N)
     wagi = ncbj4_lle_basic(X, K)
     Y = ncbj5_nowy_manifold(wagi)
-    return plot_examples_lle(X, Y, labels)
+    fig = plot_examples_lle(X, Y, labels)
+    display(fig)
+    return fig
 end
 
 
