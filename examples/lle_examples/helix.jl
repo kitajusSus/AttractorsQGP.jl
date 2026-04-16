@@ -167,9 +167,11 @@ function ex_helix(; N=2000, K=12)
     Y = ncbj5_nowy_manifold(wagi)
     fig = plot_examples_lle(X, Y, labels)
     display(fig)
+    println("Naciśnij Enter, aby zakończyć...")
+    readline()
     return fig
 end
 
 
 
-ex_helix()
+@time ex_helix()
