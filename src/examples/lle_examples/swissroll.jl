@@ -1,3 +1,10 @@
+import Pkg
+Pkg.activate(joinpath(@__DIR__, "../../..")) 
+
+using AtractorsQGP
+
+
+
 function swissroll_dane(N)
     τ = 1.5π .+ 3π .* rand(Float32, N)
     h = 21f0 .* rand(Float32, N)
@@ -12,3 +19,7 @@ function ex_swissroll(; N=2000, K=12)
     Y = ncbj5_nowy_manifold(wagi)
     return plot_examples_lle(X, Y, labels)
 end
+
+
+
+ex_swissroll()
