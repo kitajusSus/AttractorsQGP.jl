@@ -43,3 +43,6 @@ ncbj3_calculate_wagi_dla_x_i!(sasiedzi, wybrany_punkt, ile_sąsiadów)
 ```
 
 
+
+
+## Dodane nowe funkcje i porządna "refactoryzacja"
