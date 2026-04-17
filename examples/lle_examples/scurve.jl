@@ -115,7 +115,7 @@ function ncbj4_lle_svd(macierz_punktow::AbstractMatrix{T}, nn::Int) where {T<:Ab
 
     for i in 1:N
         sasiedzi, indeksy, x_i = ncbj2_sasiedzi(macierz_punktow, i, nn)
-        w = ncbj3_svd_wagi_dla_x_i(sasiedzi, x_i, 2) # zakładamy docelowy wymiar 2
+        w = ncbj3_svd_wagi_dla_x_i(sasiedzi, x_i, 10) # zakładamy docelowy wymiar 2
         @inbounds for k in 1:nn
             W[i, indeksy[k]] = w[k]
         end
@@ -139,7 +139,6 @@ function plot_examples_lle(X, Y, labels)
     
     ax_3d = Axis3(fig[1, 1], title = "Oryginalna rozmaitość X (3D)", azimuth = 0.22 * π)
     scatter!(ax_3d, X[1, :], X[2, :], X[3, :], color = labels, colormap = :jet, markersize = 8)
-
     ax_2d = Axis(fig[1, 2], title = "Zredukowana przestrzeń Y (2D)")
     scatter!(ax_2d, Y[1, :], Y[2, :], color = labels, colormap = :jet, markersize = 8)
     

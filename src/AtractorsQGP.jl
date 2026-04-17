@@ -57,7 +57,7 @@ export plot_phase_space_grid, plot_thermodynamics_evolution, plot_pca_summary, p
 export run_main
 
 
-include("examples/ncbj_lle.jl")
+include("../examples/ncbj_lle.jl")
 export ncbj1_macierz_wszystkich_punktow, ncbj2_sasiedzi, ncbj3_calculate_wagi_dla_x_i
 export ncbj3_svd_wagi_dla_x_i, ncbj4_lle_basic, ncbj4_lle_svd, ncbj5_nowy_manifold
 # include("examples/lle_examples/plots_lle.jl")
