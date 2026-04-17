@@ -1,16 +1,10 @@
-
-import Pkg
-Pkg.activate(joinpath(@__DIR__, "../..")) 
-
-using AtractorsQGP
-
-
-
-
-
 using GLMakie 
 using LinearAlgebra
 const dx = 1e-3
+include("../ncbj_lle.jl")
+# skopiowane z examples/ncbj_lle.jl
+include("plots_lle.jl")
+
 function helix_dane(N)
     t = LinRange(0f0, 4f0 * π, N)
     x = sin.(t) .+ 0.1f0 .* randn(Float32, N)
