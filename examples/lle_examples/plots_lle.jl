@@ -1,3 +1,4 @@
+
 function plot_examples_lle(X, Y, labels)
     fig = Figure(size = (1200, 600))
     
@@ -9,3 +10,4 @@ function plot_examples_lle(X, Y, labels)
     
     return fig
 end
+

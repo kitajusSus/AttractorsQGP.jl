@@ -28,6 +28,8 @@ function ncbj1_macierz_wszystkich_punktow(x::AbstractVector{T}) where {T<:Number
 end
 
 
+
+
 """
     ncbj2_sąsiedzi!(macierz_punktow::Matrix{Float32}, dla_jakiego_punktu::Int, nn::Int)
 - macierz punktów x_i najlepiej zrobiony z funkcji typu `ncbj1_macierz_wszyskich_punktów!()`
@@ -39,7 +41,6 @@ return 𝛈, indeksy_𝛈 , x_i
 return - 𝛈 - macierz sąsiadów dla punktu i
 indeksy_𝛈 - indeksy sąsiadów w macierzy punktów
 x_i - punkt dla którego szukamy sąsiadów
-
 """
 function ncbj2_sasiedzi(macierz_punktow::AbstractMatrix{T}, dla_jakiego_punktu::Int, nn::Int) where {T<:AbstractFloat}
     N = size(macierz_punktow, 2)
@@ -106,8 +107,6 @@ function ncbj3_svd_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::AbstractV
     return w
 end
 
-
-
 """
     ncbj3_calculate_wagi_dla_x_i(sasiedzi::Matrix{Float32}, x_i::Vector{Float32}; dx::Float32 = 1e-3)
 """
@@ -125,10 +124,6 @@ function ncbj3_calculate_wagi_dla_x_i(sasiedzi::AbstractMatrix{<:Real}, x_i::Abs
 end
 
 
-# ncbj4_lle(macierz_punktow::Matrix{Float32}, nn::Int; dx::Float32 = 1e-3)
-# dodałem stały typ T<:AbstractFloat, żeby można było używać zarówno Float32 jak i Float64
-# i z górki
-#  zmieniłem typ na AbstractMatrix by nie było probelmu z transponowaniem macierzy
 function ncbj4_lle_basic(macierz_punktow::AbstractMatrix{T}, nn::Int; dx=dx) where {T<:AbstractFloat}
     N = size(macierz_punktow, 2)
     W = zeros(T, N, N)
@@ -159,17 +154,14 @@ function ncbj4_lle_svd(macierz_punktow::AbstractMatrix{T}, nn::Int) where {T<:Ab
     return W
 end
 
-
-
 function ncbj5_nowy_manifold(W)
+    N = size(W, 1)
     M = (I - W)' * (I - W)
     F = eigen(Symmetric(M))
-    Y = F.vectors[:, 2:3]'#.*sqrt(N)
+    Y = F.vectors[:, 2:3]'.*sqrt(N)
     
     return Y
 end
-
-
 
 # tutaj rysune 
 # function examples_lle_data(dataset = "matlab", N = 5000, thickness = 2)
