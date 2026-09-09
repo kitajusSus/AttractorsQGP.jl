@@ -129,16 +129,16 @@ result = train_pinn(model, config; n_epochs=3000)
 function train_pinn(
         model::AbstractHydroModel,
         config::PINNConfig = PINNConfig();
-        n_epochs::Int = 5000,
-        batch_size_colloc::Int = 256,
-        batch_size_ic::Int = 64,
-        learning_rate::Float64 = 1.0e-3,
-        λ_physics::Float64 = 1.0,
-        λ_ic::Float64 = 10.0,
-        h::Float64 = 1.0e-4,
-        seed::Int = 42,
+        n_epochs::Integer = 5000,
+        batch_size_colloc::Integer = 256,
+        batch_size_ic::Integer = 64,
+        learning_rate::Real = 1.0e-3,
+        λ_physics::Real = 1.0,
+        λ_ic::Real = 10.0,
+        h::Real = 1.0e-4,
+        seed::Integer = 42,
         verbose::Bool = true,
-        log_every::Int = 100,
+        log_every::Integer = 100,
     )
     rng = MersenneTwister(seed)
 
