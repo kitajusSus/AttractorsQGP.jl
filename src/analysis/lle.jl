@@ -91,7 +91,7 @@ end
 
 function run_lle_for_selected_taus(
         dataset::AbstractMatrix{<:Real},
-        target_taus::Vector{Float64};
+        target_taus::AbstractVector{<:Real};
         k::Integer = 20,
         d::Integer = 2,
         atol::Real = 1.0e-3,
