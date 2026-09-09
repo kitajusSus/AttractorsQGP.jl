@@ -356,7 +356,7 @@ function plot_phase_space_grid_3d(
     n = length(times)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
-    fig = Figure(size = (450 * ncols, 400 * nrows))
+    fig = Figure(size = (480 * ncols, 420 * nrows), figure_padding = (60, 40, 50, 40))
 
     for (i, t) in enumerate(times)
         row = (i - 1) ÷ ncols + 1
@@ -380,7 +380,10 @@ function plot_phase_space_grid_3d(
             ylabel = ylbl,
             zlabel = zlbl,
             azimuth = azimuth,
-            elevation = elevation
+            elevation = elevation,
+            xlabeloffset = 40,
+            ylabeloffset = 40,
+            zlabeloffset = 55
         )
 
         if !isnothing(limits)
@@ -1963,3 +1966,1213 @@ end
 function plot_phase_space_lpca_dims(dataset::AbstractArray{<:Real, 3}, args...; kwargs...)
     return plot_phase_space_lpca_dims(to_2d_local_plots(dataset), args...; kwargs...)
 end
+
+# ==============================================================================
+# Publication LPCA Visualizations: K-Dependency, Normalization, Invariance, Stats
+# ==============================================================================
+
+"""
+    plot_k_dependency_bands(k_results; figure_size)
+    plot_k_dependency_bands(dataset; k_pairs, tau_values, ...)
+
+Plots average local dimension trajectories with shaded uncertainty bands between k_base and k_expanded.
+"""
+function plot_k_dependency_bands(
+    k_results::AbstractVector{<:NamedTuple};
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    palette = [:crimson, :dodgerblue, :forestgreen, :darkorange, :purple, :goldenrod, :darkcyan]
+
+    for (index, item) in enumerate(k_results)
+        color = palette[mod1(index, length(palette))]
+        k_base = item.k_base
+        k_expanded = item.k_expanded
+        tau_values = item.tau_values
+        mean_k1 = item.mean_dimension_k1
+        mean_k2 = item.mean_dimension_k2
+
+        band!(
+            axis,
+            tau_values,
+            mean_k1,
+            mean_k2;
+            color = (color, 0.25)
+        )
+
+        lines!(
+            axis,
+            tau_values,
+            mean_k1;
+            linewidth = 2.5,
+            color = color,
+            label = L"K = %$(k_base), %$(k_expanded)"
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+function plot_k_dependency_bands(
+    dataset::AbstractArray{<:Real};
+    k_pairs = [(5, 10), (10, 20), (20, 40), (40, 80)],
+    tau_values = range(0.2, 5.0, length = 15),
+    kwargs...
+)
+    results = evaluate_k_dependency(dataset, k_pairs, tau_values)
+    return plot_k_dependency_bands(results; kwargs...)
+end
+
+"""
+    plot_normalization_multipanel(method_results; methods_to_plot)
+    plot_normalization_multipanel(dataset; methods, k_pairs, tau_values, ...)
+
+Creates a multi-panel figure (2x2 grid) comparing normalization methods.
+"""
+function plot_normalization_multipanel(
+    method_results::Dict{Symbol, Vector{NamedTuple}};
+    methods_to_plot::AbstractVector{Symbol} = [:none, :max, :minmax, :zscore]
+)
+    set_publication_theme()
+
+    palette = [:crimson, :dodgerblue, :forestgreen, :darkorange, :purple, :goldenrod]
+
+    panel_count = length(methods_to_plot)
+    column_count = panel_count <= 2 ? panel_count : 2
+    row_count = ceil(Int, panel_count / column_count)
+
+    figure = Figure(size = (520 * column_count, 420 * row_count))
+
+    for (panel_index, method) in enumerate(methods_to_plot)
+        row = div(panel_index - 1, column_count) + 1
+        col = mod1(panel_index, column_count)
+
+        axis = Axis(
+            figure[row, col],
+            xlabel = L"\tau\,[\mathrm{fm}/c]",
+            ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+            xautolimitmargin = (0.0, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+
+        results_for_method = method_results[method]
+        for (k_index, item) in enumerate(results_for_method)
+            color = palette[mod1(k_index, length(palette))]
+            band!(
+                axis,
+                item.tau_values,
+                item.mean_dimension_k1,
+                item.mean_dimension_k2;
+                color = (color, 0.25)
+            )
+            lines!(
+                axis,
+                item.tau_values,
+                item.mean_dimension_k1;
+                linewidth = 2.0,
+                color = color,
+                label = L"K = %$(item.k_base), %$(item.k_expanded)"
+            )
+        end
+
+        if row == 1 && col == column_count
+            axislegend(axis, position = :rt)
+        end
+    end
+
+    return figure
+end
+
+function plot_normalization_multipanel(
+    dataset::AbstractArray{<:Real};
+    methods::AbstractVector{Symbol} = [:none, :max, :minmax, :zscore],
+    k_pairs = [(5, 10), (10, 20), (20, 40), (40, 80)],
+    tau_values = range(0.2, 5.0, length = 15),
+    kwargs...
+)
+    results = compare_normalization_methods(dataset, methods, k_pairs, tau_values)
+    return plot_normalization_multipanel(results; methods_to_plot = methods, kwargs...)
+end
+
+"""
+    plot_normalization_direct_overlay(dataset, normalization_methods, k_neighbor, tau_values; ...)
+"""
+function plot_normalization_direct_overlay(
+    dataset::AbstractMatrix{<:Real},
+    normalization_methods::AbstractVector{Symbol},
+    k_neighbor::Integer,
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    tolerance::Real = 0.01
+)
+    set_publication_theme()
+
+    figure = Figure(size = (900, 560))
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    labels = Dict(
+        :none => L"\text{Raw Units}",
+        :max => L"\text{Abs-Max Scaling } ([-1, 1])",
+        :minmax => L"\text{Min-Max Scaling } ([0, 1])",
+        :zscore => L"\text{Z-Score Standardization}"
+    )
+    palette = [:crimson, :dodgerblue, :forestgreen, :darkorange]
+
+    for (index, method) in enumerate(normalization_methods)
+        means = Float64[]
+        for tau in tau_values
+            _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+            normalized_slice = apply_normalization(raw_slice, method)
+            dims_i = dims(normalized_slice; k = k_neighbor, tol = tolerance)
+            push!(means, mean(dims_i))
+        end
+
+        color = palette[mod1(index, length(palette))]
+        lines!(
+            axis,
+            tau_values,
+            means;
+            linewidth = 3.0,
+            color = color,
+            label = get(labels, method, string(method))
+        )
+        scatter!(
+            axis,
+            tau_values,
+            means;
+            markersize = 8,
+            color = color
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+plot_normalization_direct_overlay(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
+    plot_normalization_direct_overlay(to_2d_local_plots(dataset), args...; kwargs...)
+
+"""
+    plot_coordinate_invariance(invariance_result_normalized, invariance_result_raw; figure_size)
+    plot_coordinate_invariance(variant_datasets, k_neighbor, tau_values; kwargs...)
+"""
+function plot_coordinate_invariance(
+    invariance_result_normalized::NamedTuple,
+    invariance_result_raw::NamedTuple;
+    figure_size::Tuple{Integer, Integer} = (1100, 520)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    tau_values = invariance_result_normalized.tau_values
+
+    axis_left = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    axis_right = Axis(
+        figure[1, 2],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    is_hjsw = invariance_result_normalized.model == :hjsw
+    variants = is_hjsw ? [
+        (:physical, L"\text{Physical: }(T, \mathcal{A}, \mathcal{B})", :dodgerblue, :solid, 3.0),
+        (:dimensionless, L"\text{Dimensionless: }(w, \mathcal{A}, \mathcal{B})", :crimson, :dash, 2.5),
+        (:scaled_10x, L"\text{Rescaled: }(10T, \mathcal{A}, \mathcal{B})", :forestgreen, :dot, 2.5)
+    ] : [
+        (:physical, L"\text{Physical: }(T, \mathcal{A})", :dodgerblue, :solid, 3.0),
+        (:dimensionless, L"\text{Dimensionless: }(w, \mathcal{A})", :crimson, :dash, 2.5),
+        (:scaled_10x, L"\text{Rescaled: }(10T, \mathcal{A})", :forestgreen, :dot, 2.5)
+    ]
+
+    for (key, label_text, color, line_style, width) in variants
+        lines!(
+            axis_left,
+            tau_values,
+            invariance_result_normalized.curves[key];
+            color = color,
+            linestyle = line_style,
+            linewidth = width,
+            label = label_text
+        )
+
+        lines!(
+            axis_right,
+            tau_values,
+            invariance_result_raw.curves[key];
+            color = color,
+            linestyle = line_style,
+            linewidth = width,
+            label = label_text
+        )
+    end
+
+    axislegend(axis_left, position = :rt)
+    axislegend(axis_right, position = :rt)
+
+    return figure
+end
+
+function plot_coordinate_invariance(
+    variant_datasets::NamedTuple,
+    k_neighbor::Integer,
+    tau_values::AbstractVector{<:Real};
+    kwargs...
+)
+    res_norm = test_coordinate_invariance(variant_datasets, k_neighbor, tau_values; normalize_method = :max)
+    res_raw = test_coordinate_invariance(variant_datasets, k_neighbor, tau_values; normalize_method = :none)
+    return plot_coordinate_invariance(res_norm, res_raw; kwargs...)
+end
+
+function plot_coordinate_invariance_single(
+    invariance_result::NamedTuple;
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    tau_values = invariance_result.tau_values
+
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    is_hjsw = invariance_result.model == :hjsw
+    variants = is_hjsw ? [
+        (:physical, L"\text{Physical: }(T, \mathcal{A}, \mathcal{B})", :dodgerblue, :solid, 3.0),
+        (:dimensionless, L"\text{Dimensionless: }(w, \mathcal{A}, \mathcal{B})", :crimson, :dash, 2.5),
+        (:scaled_10x, L"\text{Rescaled: }(10T, \mathcal{A}, \mathcal{B})", :forestgreen, :dot, 2.5)
+    ] : [
+        (:physical, L"\text{Physical: }(T, \mathcal{A})", :dodgerblue, :solid, 3.0),
+        (:dimensionless, L"\text{Dimensionless: }(w, \mathcal{A})", :crimson, :dash, 2.5),
+        (:scaled_10x, L"\text{Rescaled: }(10T, \mathcal{A})", :forestgreen, :dot, 2.5)
+    ]
+
+    for (key, label_text, color, line_style, width) in variants
+        lines!(
+            axis,
+            tau_values,
+            invariance_result.curves[key];
+            color = color,
+            linestyle = line_style,
+            linewidth = width,
+            label = label_text
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+"""
+    plot_dimension_distribution(distribution_result; figure_size)
+    plot_dimension_distribution(dataset, k_neighbor, tau_values; kwargs...)
+
+Generates a 2-panel figure:
+Left panel: Mean <d> vs Median with [Q25, Q75] interquartile band.
+Right panel: Evolution of discrete probabilities P(d = m) over tau.
+"""
+function plot_dimension_distribution(
+    distribution_result::NamedTuple;
+    figure_size::Tuple{Integer, Integer} = (1100, 500)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    tau_values = distribution_result.tau_values
+    embedding_dim = distribution_result.embedding_dimension
+
+    axis_left = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Local Dimension } d",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    axis_right = Axis(
+        figure[1, 2],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Fraction of Points } P(d)",
+        limits = (nothing, nothing, 0.0, 1.05),
+        xautolimitmargin = (0.0, 0.04)
+    )
+
+    band!(
+        axis_left,
+        tau_values,
+        distribution_result.q25_dimension,
+        distribution_result.q75_dimension;
+        color = (:dodgerblue, 0.25),
+        label = L"\text{IQR (25\% -- 75\%)}"
+    )
+
+    lines!(
+        axis_left,
+        tau_values,
+        distribution_result.mean_dimension;
+        color = :crimson,
+        linewidth = 3.0,
+        label = L"\text{Mean } \langle d \rangle"
+    )
+
+    lines!(
+        axis_left,
+        tau_values,
+        distribution_result.median_dimension;
+        color = :navy,
+        linewidth = 2.5,
+        linestyle = :dash,
+        label = L"\text{Median } d_{1/2}"
+    )
+
+    axislegend(axis_left, position = :rt)
+
+    dim_colors = [:forestgreen, :darkorange, :purple, :dodgerblue]
+    for dim_val in 1:embedding_dim
+        color = dim_colors[mod1(dim_val, length(dim_colors))]
+        fractions = distribution_result.dimension_fractions[:, dim_val]
+        lines!(
+            axis_right,
+            tau_values,
+            fractions;
+            color = color,
+            linewidth = 2.8,
+            label = L"P(d = %$dim_val)"
+        )
+        scatter!(
+            axis_right,
+            tau_values,
+            fractions;
+            color = color,
+            markersize = 7
+        )
+    end
+
+    axislegend(axis_right, position = :rt)
+
+    return figure
+end
+
+function plot_dimension_distribution(
+    dataset::AbstractArray{<:Real},
+    k_neighbor::Integer,
+    tau_values::AbstractVector{<:Real};
+    kwargs...
+)
+    res = analyze_dimension_distribution(dataset, k_neighbor, tau_values; kwargs...)
+    return plot_dimension_distribution(res)
+end
+
+function plot_dimension_mean_single(
+    distribution_result::NamedTuple;
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    tau_values = distribution_result.tau_values
+
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Local Dimension } d",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    band!(
+        axis,
+        tau_values,
+        distribution_result.q25_dimension,
+        distribution_result.q75_dimension;
+        color = (:dodgerblue, 0.25),
+        label = L"\text{IQR (25\% -- 75\%)}"
+    )
+
+    lines!(
+        axis,
+        tau_values,
+        distribution_result.mean_dimension;
+        color = :crimson,
+        linewidth = 3.0,
+        label = L"\text{Mean } \langle d \rangle"
+    )
+
+    lines!(
+        axis,
+        tau_values,
+        distribution_result.median_dimension;
+        color = :navy,
+        linewidth = 2.5,
+        linestyle = :dash,
+        label = L"\text{Median } d_{1/2}"
+    )
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+function plot_dimension_populations_single(
+    distribution_result::NamedTuple;
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    tau_values = distribution_result.tau_values
+    embedding_dim = distribution_result.embedding_dimension
+
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Fraction of Points } P(d)",
+        limits = (nothing, nothing, 0.0, 1.05),
+        xautolimitmargin = (0.0, 0.04)
+    )
+
+    dim_colors = [:forestgreen, :darkorange, :purple, :dodgerblue]
+    for dim_val in 1:embedding_dim
+        color = dim_colors[mod1(dim_val, length(dim_colors))]
+        fractions = distribution_result.dimension_fractions[:, dim_val]
+        lines!(
+            axis,
+            tau_values,
+            fractions;
+            color = color,
+            linewidth = 2.8,
+            label = L"P(d = %$dim_val)"
+        )
+        scatter!(
+            axis,
+            tau_values,
+            fractions;
+            color = color,
+            markersize = 7
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+"""
+    plot_tolerance_sensitivity(sensitivity_result; palette, figure_size)
+    plot_tolerance_sensitivity(mis_result, hjsw_result; palette, figure_size)
+"""
+function plot_tolerance_sensitivity(
+    sensitivity_result::NamedTuple;
+    palette = [:dodgerblue, :forestgreen, :darkorange, :crimson],
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+    tau_grid = sensitivity_result.tau_values
+    for (t_idx, tol_val) in enumerate(sensitivity_result.tolerances)
+        color = palette[mod1(t_idx, length(palette))]
+        means = sensitivity_result.results[Float64(tol_val)]
+        lines!(ax, tau_grid, means; color = color, linewidth = 2.5, label = L"\mathrm{tol} = %$(tol_val)")
+    end
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+function plot_tolerance_sensitivity(
+    mis_result::NamedTuple,
+    hjsw_result::NamedTuple;
+    palette = [:dodgerblue, :forestgreen, :darkorange, :crimson],
+    figure_size::Tuple{Integer, Integer} = (1100, 520)
+)
+    set_publication_theme()
+    fig = Figure(size = figure_size)
+    ax_mis = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+    ax_hjsw = Axis(
+        fig[1, 2],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+    tau_grid = mis_result.tau_values
+    for (t_idx, tol_val) in enumerate(mis_result.tolerances)
+        color = palette[mod1(t_idx, length(palette))]
+        lines!(ax_mis, tau_grid, mis_result.results[Float64(tol_val)]; color = color, linewidth = 2.5, label = L"\mathrm{tol} = %$(tol_val)")
+        lines!(ax_hjsw, tau_grid, hjsw_result.results[Float64(tol_val)]; color = color, linewidth = 2.5, label = L"\mathrm{tol} = %$(tol_val)")
+    end
+    axislegend(ax_mis, position = :rt)
+    return fig
+end
+
+"""
+    plot_colored_phase_space_slice_2d(slice_data; x_col_idx, y_col_idx, x_label, y_label, attractor_curve, figure_size)
+"""
+function plot_colored_phase_space_slice_2d(
+    slice_data::PointwiseDimensionSlice;
+    x_col_idx::Integer = 1,
+    y_col_idx::Integer = 2,
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    attractor_curve::Union{NamedTuple, Nothing} = nothing,
+    figure_size::Tuple{Integer, Integer} = (800, 600)
+)
+    set_publication_theme()
+
+    tau_str = string(round(slice_data.tau, digits = 2))
+    figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    axis = Axis(
+        figure[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 20,
+        xlabel = x_label,
+        ylabel = y_label,
+        xautolimitmargin = (0.04, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    x_values = slice_data.coordinates[:, x_col_idx]
+    y_values = slice_data.coordinates[:, y_col_idx]
+    dim_values = slice_data.dimensions
+
+    palette = Dict(
+        1.0 => (:crimson, L"d = 1"),
+        2.0 => (:dodgerblue, L"d = 2")
+    )
+
+    if !isnothing(attractor_curve)
+        lines!(
+            axis,
+            attractor_curve.x,
+            attractor_curve.y;
+            color = (:black, 0.6),
+            linewidth = 3.0,
+            linestyle = :dash,
+            label = L"\text{Attractor}"
+        )
+    end
+
+    for target_dim in (2.0, 1.0)
+        mask = isapprox.(dim_values, target_dim; atol = 0.1)
+        if any(mask)
+            color, label_text = palette[target_dim]
+            scatter!(
+                axis,
+                x_values[mask],
+                y_values[mask];
+                color = (color, 0.85),
+                markersize = 8,
+                strokewidth = 0.3,
+                strokecolor = (:black, 0.3),
+                label = label_text
+            )
+        end
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+"""
+    plot_colored_phase_space_grid_2d(dataset, tau_grid; feature_indices, x_label, y_label, k_neighbor, tolerance, normalize_method, figure_size)
+"""
+function plot_colored_phase_space_grid_2d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3],
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    k_neighbor::Integer = 24,
+    tolerance::Real = 0.01,
+    normalize_method::Symbol = :max,
+    figure_size::Tuple{Integer, Integer} = (1200, 1050)
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        axis = Axis(
+            figure[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 17,
+            xlabel = x_label,
+            ylabel = y_label,
+            xautolimitmargin = (0.04, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+
+        slice_data = compute_pointwise_dimensions(
+            dataset,
+            tau;
+            feature_indices = feature_indices,
+            k_neighbor = k_neighbor,
+            tolerance = tolerance,
+            normalize_method = normalize_method
+        )
+
+        x_vals = slice_data.coordinates[:, 1]
+        y_vals = slice_data.coordinates[:, 2]
+        d_vals = slice_data.dimensions
+
+        mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
+        mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
+
+        if any(mask_d2)
+            scatter!(
+                axis,
+                x_vals[mask_d2],
+                y_vals[mask_d2];
+                color = (:dodgerblue, 0.75),
+                markersize = 6,
+                strokewidth = 0.2,
+                strokecolor = (:black, 0.2),
+                label = L"d = 2"
+            )
+        end
+
+        if any(mask_d1)
+            scatter!(
+                axis,
+                x_vals[mask_d1],
+                y_vals[mask_d1];
+                color = (:crimson, 0.85),
+                markersize = 6,
+                strokewidth = 0.2,
+                strokecolor = (:black, 0.2),
+                label = L"d = 1"
+            )
+        end
+
+        if row == 1 && col == column_count
+            axislegend(axis, position = :rt)
+        end
+    end
+
+    return figure
+end
+
+"""
+    plot_colored_phase_space_grid_hjsw_projections(dataset, tau_grid; k_neighbor, tolerance, normalize_method, figure_size)
+"""
+function plot_colored_phase_space_grid_hjsw_projections(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    k_neighbor::Integer = 24,
+    tolerance::Real = 0.01,
+    normalize_method::Symbol = :max,
+    figure_size::Tuple{Integer, Integer} = (1200, 1050)
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        axis = Axis(
+            figure[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 17,
+            xlabel = L"\mathcal{A}",
+            ylabel = L"\mathcal{B}",
+            xautolimitmargin = (0.04, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+
+        slice_data = compute_pointwise_dimensions(
+            dataset,
+            tau;
+            feature_indices = [2, 3, 4],
+            k_neighbor = k_neighbor,
+            tolerance = tolerance,
+            normalize_method = normalize_method
+        )
+
+        a_vals = slice_data.coordinates[:, 2]
+        b_vals = slice_data.coordinates[:, 3]
+        d_vals = slice_data.dimensions
+
+        mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
+        mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
+        mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
+
+        if any(mask_d3)
+            scatter!(
+                axis,
+                a_vals[mask_d3],
+                b_vals[mask_d3];
+                color = (:dodgerblue, 0.60),
+                markersize = 5,
+                label = L"d = 3"
+            )
+        end
+
+        if any(mask_d2)
+            scatter!(
+                axis,
+                a_vals[mask_d2],
+                b_vals[mask_d2];
+                color = (:darkorange, 0.80),
+                markersize = 5,
+                label = L"d = 2"
+            )
+        end
+
+        if any(mask_d1)
+            scatter!(
+                axis,
+                a_vals[mask_d1],
+                b_vals[mask_d1];
+                color = (:crimson, 0.90),
+                markersize = 6,
+                label = L"d = 1"
+            )
+        end
+
+        if row == 1 && col == column_count
+            axislegend(axis, position = :rt)
+        end
+    end
+
+    return figure
+end
+
+"""
+    plot_colored_phase_space_slice_hjsw_3d(slice_data; x_label, y_label, z_label, azimuth, elevation, figure_size)
+"""
+function plot_colored_phase_space_slice_hjsw_3d(
+    slice_data::PointwiseDimensionSlice;
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    azimuth::Real = 1.3,
+    elevation::Real = 0.15,
+    figure_size::Tuple{Integer, Integer} = (900, 750)
+)
+    set_publication_theme()
+
+    tau_str = string(round(slice_data.tau, digits = 2))
+    figure = Figure(size = figure_size, figure_padding = (100, 60, 70, 50))
+    axis = Axis3(
+        figure[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 20,
+        xlabel = x_label,
+        ylabel = y_label,
+        zlabel = z_label,
+        azimuth = azimuth,
+        elevation = elevation,
+        xlabeloffset = 45,
+        ylabeloffset = 45,
+        zlabeloffset = 60
+    )
+
+    t_vals = slice_data.coordinates[:, 1]
+    a_vals = slice_data.coordinates[:, 2]
+    b_vals = slice_data.coordinates[:, 3]
+    d_vals = slice_data.dimensions
+
+    mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
+    mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
+    mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
+
+    if any(mask_d3)
+        scatter!(
+            axis,
+            t_vals[mask_d3],
+            a_vals[mask_d3],
+            b_vals[mask_d3];
+            color = (:dodgerblue, 0.50),
+            markersize = 6,
+            label = L"d = 3"
+        )
+    end
+
+    if any(mask_d2)
+        scatter!(
+            axis,
+            t_vals[mask_d2],
+            a_vals[mask_d2],
+            b_vals[mask_d2];
+            color = (:darkorange, 0.75),
+            markersize = 6,
+            label = L"d = 2"
+        )
+    end
+
+    if any(mask_d1)
+        scatter!(
+            axis,
+            t_vals[mask_d1],
+            a_vals[mask_d1],
+            b_vals[mask_d1];
+            color = (:crimson, 0.90),
+            markersize = 8,
+            label = L"d = 1"
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+
+"""
+    plot_parameterization_focus_2x2(sweep_result; colormap, figure_size, max_tau, draw_tunnel)
+"""
+function plot_parameterization_focus_2x2(
+    sweep_result::NamedTuple;
+    colormap::Symbol = :phase,
+    figure_size::Tuple{Integer, Integer} = (1180, 880),
+    max_tau::Real = 7.0,
+    draw_tunnel::Bool = true
+)
+    set_publication_theme()
+
+    fig = Figure(
+        size = figure_size,
+        figure_padding = (25, 25, 25, 25)
+    )
+
+    k_values = sweep_result.k_values
+    tau_indices = findall(t -> t <= max_tau + 1e-5, sweep_result.tau_values)
+    tau_plot = sweep_result.tau_values[tau_indices]
+    k_min = minimum(k_values)
+    k_max = maximum(k_values)
+    is_hjsw = sweep_result.model == :hjsw
+
+    panel_defs = is_hjsw ? [
+        (:physical, L"\mathbf{(a)}\quad (T, \mathcal{A}, \mathcal{B})", :solid, 1, 1),
+        (:dimensionless, L"\mathbf{(b)}\quad (w, \mathcal{A}, \mathcal{B})", :dash, 1, 2),
+        (:scaled_10x, L"\mathbf{(c)}\quad (10T, \mathcal{A}, \mathcal{B})", :dot, 2, 1),
+        (:mixed_scaled, L"\mathbf{(d)}\quad (10w, 2\mathcal{A}, \mathcal{B})", :dashdot, 2, 2)
+    ] : [
+        (:physical, L"\mathbf{(a)}\quad (T, \mathcal{A})", :solid, 1, 1),
+        (:dimensionless, L"\mathbf{(b)}\quad (w, \mathcal{A})", :dash, 1, 2),
+        (:scaled_10x, L"\mathbf{(c)}\quad (10T, \mathcal{A})", :dot, 2, 1),
+        (:mixed_scaled, L"\mathbf{(d)}\quad (10w, 2\mathcal{A})", :dashdot, 2, 2)
+    ]
+
+    axes_list = Axis[]
+
+    for (focused_key, panel_title, _, row, col) in panel_defs
+        ax = Axis(
+            fig[row, col],
+            xlabel = row == 2 ? L"\tau\,[\mathrm{fm}/c]" : "",
+            ylabel = col == 1 ? L"\text{Mean Local Dimension } \langle d \rangle" : "",
+            title = panel_title,
+            titlesize = 18,
+            xautolimitmargin = (0.02, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+        push!(axes_list, ax)
+
+        for (bg_key, _, bg_style, _, _) in panel_defs
+            if bg_key != focused_key && haskey(sweep_result.curves, bg_key)
+                if draw_tunnel
+                    band!(
+                        ax,
+                        tau_plot,
+                        sweep_result.envelopes[bg_key].min[tau_indices],
+                        sweep_result.envelopes[bg_key].max[tau_indices];
+                        color = (:gray85, 0.30)
+                    )
+                end
+
+                for k in k_values
+                    lines!(
+                        ax,
+                        tau_plot,
+                        sweep_result.curves[bg_key][k][tau_indices];
+                        color = (:gray65, 0.35),
+                        linewidth = 0.9,
+                        linestyle = bg_style
+                    )
+                end
+            end
+        end
+
+        if draw_tunnel && haskey(sweep_result.envelopes, focused_key)
+            band!(
+                ax,
+                tau_plot,
+                sweep_result.envelopes[focused_key].min[tau_indices],
+                sweep_result.envelopes[focused_key].max[tau_indices];
+                color = (:gray80, 0.18)
+            )
+        end
+
+        if haskey(sweep_result.curves, focused_key)
+            for k in k_values
+                norm_val = k_max > k_min ? (k - k_min) / (k_max - k_min) : 0.5
+                color_val = cgrad(colormap)[norm_val]
+                lines!(
+                    ax,
+                    tau_plot,
+                    sweep_result.curves[focused_key][k][tau_indices];
+                    color = color_val,
+                    linewidth = 1.8,
+                    linestyle = :solid
+                )
+            end
+        end
+
+        xlims!(ax, minimum(tau_plot), max_tau)
+        ylims!(ax, 0.95, is_hjsw ? 3.05 : 2.05)
+    end
+
+    linkaxes!(axes_list...)
+
+    Colorbar(
+        fig[1:2, 3],
+        limits = (k_min, k_max),
+        colormap = colormap,
+        label = L"\text{Nearest Neighbors } K",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_parameterization_focus_tripanel(sweep_result; colormap, figure_size, max_tau, draw_tunnel)
+"""
+function plot_parameterization_focus_tripanel(
+    sweep_result::NamedTuple;
+    colormap::Symbol = :phase,
+    figure_size::Tuple{Integer, Integer} = (1550, 460),
+    max_tau::Real = 7.0,
+    draw_tunnel::Bool = true
+)
+    set_publication_theme()
+
+    fig = Figure(
+        size = figure_size,
+        figure_padding = (30, 25, 25, 25)
+    )
+
+    k_values = sweep_result.k_values
+    tau_indices = findall(t -> t <= max_tau + 1e-5, sweep_result.tau_values)
+    tau_plot = sweep_result.tau_values[tau_indices]
+    k_min = minimum(k_values)
+    k_max = maximum(k_values)
+    is_hjsw = sweep_result.model == :hjsw
+
+    panel_defs = is_hjsw ? [
+        (:physical, L"\mathbf{(a)}\quad (T, \mathcal{A}, \mathcal{B})", :solid),
+        (:dimensionless, L"\mathbf{(b)}\quad (w, \mathcal{A}, \mathcal{B})", :dash),
+        (:scaled_10x, L"\mathbf{(c)}\quad (10T, \mathcal{A}, \mathcal{B})", :dot)
+    ] : [
+        (:physical, L"\mathbf{(a)}\quad (T, \mathcal{A})", :solid),
+        (:dimensionless, L"\mathbf{(b)}\quad (w, \mathcal{A})", :dash),
+        (:scaled_10x, L"\mathbf{(c)}\quad (10T, \mathcal{A})", :dot)
+    ]
+
+    axes_list = Axis[]
+
+    for (p_idx, (focused_key, panel_title, _)) in enumerate(panel_defs)
+        ax = Axis(
+            fig[1, p_idx],
+            xlabel = L"\tau\,[\mathrm{fm}/c]",
+            ylabel = p_idx == 1 ? L"\text{Mean Local Dimension } \langle d \rangle" : "",
+            title = panel_title,
+            titlesize = 18,
+            xautolimitmargin = (0.02, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+        push!(axes_list, ax)
+
+        for (bg_key, _, bg_style) in panel_defs
+            if bg_key != focused_key && haskey(sweep_result.curves, bg_key)
+                if draw_tunnel
+                    band!(
+                        ax,
+                        tau_plot,
+                        sweep_result.envelopes[bg_key].min[tau_indices],
+                        sweep_result.envelopes[bg_key].max[tau_indices];
+                        color = (:gray85, 0.35)
+                    )
+                end
+
+                for k in k_values
+                    lines!(
+                        ax,
+                        tau_plot,
+                        sweep_result.curves[bg_key][k][tau_indices];
+                        color = (:gray65, 0.40),
+                        linewidth = 1.0,
+                        linestyle = bg_style
+                    )
+                end
+            end
+        end
+
+        if draw_tunnel && haskey(sweep_result.envelopes, focused_key)
+            band!(
+                ax,
+                tau_plot,
+                sweep_result.envelopes[focused_key].min[tau_indices],
+                sweep_result.envelopes[focused_key].max[tau_indices];
+                color = (:gray80, 0.20)
+            )
+        end
+
+        if haskey(sweep_result.curves, focused_key)
+            for k in k_values
+                norm_val = k_max > k_min ? (k - k_min) / (k_max - k_min) : 0.5
+                color_val = cgrad(colormap)[norm_val]
+                lines!(
+                    ax,
+                    tau_plot,
+                    sweep_result.curves[focused_key][k][tau_indices];
+                    color = color_val,
+                    linewidth = 2.2,
+                    linestyle = :solid
+                )
+            end
+        end
+
+        xlims!(ax, minimum(tau_plot), max_tau)
+    end
+
+    linkaxes!(axes_list...)
+
+    Colorbar(
+        fig[1, 4],
+        limits = (k_min, k_max),
+        colormap = colormap,
+        label = L"\text{Nearest Neighbors } K",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_soft_weighted_dimension(scan_result; compare_hard = true, figure_size = (900, 560))
+    plot_soft_weighted_dimension(dataset; tau_values, kwargs...)
+
+Visualizes the continuous soft-weighted local dimension trajectory ⟨d⟩_W(τ)
+with a ±1σ_W weighted uncertainty band and optional comparison to hard-threshold LPCA.
+"""
+function plot_soft_weighted_dimension(
+    scan_result::NamedTuple;
+    compare_hard::Bool = true,
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    tau_vals = scan_result.tau_values
+    mean_w = scan_result.mean_dims
+    std_w = scan_result.std_dims
+
+    band!(
+        ax,
+        tau_vals,
+        mean_w .- std_w,
+        mean_w .+ std_w;
+        color = (:dodgerblue, 0.25),
+        label = L"\pm 1\sigma_W \text{ (Weighted Band)}"
+    )
+
+    lines!(
+        ax,
+        tau_vals,
+        mean_w;
+        color = :dodgerblue,
+        linewidth = 3.0,
+        label = L"\langle d \rangle_W \text{ (Soft-Weighted)}"
+    )
+
+    if compare_hard && hasfield(typeof(scan_result), :unweighted_hard_means)
+        lines!(
+            ax,
+            tau_vals,
+            scan_result.unweighted_hard_means;
+            color = :crimson,
+            linewidth = 2.0,
+            linestyle = :dash,
+            label = L"\langle d \rangle \text{ (Standard Hard LPCA)}"
+        )
+    end
+
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+function plot_soft_weighted_dimension(
+    dataset::AbstractArray{<:Real};
+    tau_values = range(0.2, 5.0, length = 20),
+    kwargs...
+)
+    res = scan_soft_weighted_dimension(dataset, tau_values; kwargs...)
+    return plot_soft_weighted_dimension(res)
+end
+
+
