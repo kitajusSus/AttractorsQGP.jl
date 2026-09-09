@@ -96,9 +96,9 @@ function pinn_loss(
         batch_ic::AbstractVector,
         model::AbstractHydroModel,
         config::PINNConfig;
-        λ_physics::Float64 = 1.0,
-        λ_ic::Float64 = 10.0,
-        h::Float64 = 1.0e-4,
+        λ_physics::Real = 1.0,
+        λ_ic::Real = 10.0,
+        h::Real = 1.0e-4,
     )
     λ1 = model.params.lambda1
     dτn = 2.0 / (config.τ_range[2] - config.τ_range[1])   # dτ_norm/dτ
