@@ -227,7 +227,7 @@ end
         dataset::AbstractMatrix{<:Real};
         n_components::Integer=2,
         method::Symbol=:minmax,
-        gamma::Float64=1.0,
+        gamma::Real=1.0,
         atol::Real=1e-8,
     )
 
@@ -247,7 +247,7 @@ function run_pca_per_time(
         dataset::AbstractMatrix{<:Real};
         n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
         atol::Real = 1.0e-8,
         feature_cols = nothing,
     )
@@ -283,7 +283,7 @@ end
         tau::Real;
         n_components::Integer=2,
         method::Symbol=:minmax,
-        gamma::Float64=1.0,
+        gamma::Real=1.0,
         atol::Real=1e-8,
         feature_cols::AbstractVector{<:Integer}=collect(2:size(dataset, 2)),
     )
@@ -295,7 +295,7 @@ function run_pca_for_tau(
         tau::Real;
         n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
         atol::Real = 1.0e-8,
         feature_cols = nothing,
     )
@@ -326,7 +326,7 @@ end
         temperature_unit::Symbol=:fm,
         n_components::Integer=2,
         method::Symbol=:minmax,
-        gamma::Float64=1.0,
+        gamma::Real=1.0,
         feature_cols::Union{AbstractVector{<:Integer}, Nothing}=nothing,
         atol::Real=1e-8,
         parallel::Symbol=:threads,
@@ -355,7 +355,7 @@ function run_evolution_pca_workflow(
         temperature_unit::Symbol = :fm,
         n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
         feature_cols::Union{AbstractVector{<:Integer}, Nothing} = nothing,
         atol::Real = 1.0e-8,
         parallel::Symbol = :threads,
