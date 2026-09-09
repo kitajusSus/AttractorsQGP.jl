@@ -5,7 +5,7 @@ using Statistics
 using Symbolics
 using Latexify
 
-function compute_polynomial_lle(data::AbstractMatrix{<:Real}, order::Int, tau::Float64)
+function compute_polynomial_lle(data::AbstractMatrix{<:Real}, order::Integer, tau::Real)
     dane = get_tau_slice(data, tau)[2]
     x = dane[:, 1]
     y = dane[:, 2]

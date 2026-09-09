@@ -28,7 +28,7 @@ end
 # d(r, τ)
 
 function estimate_scale_dimension(
-        X::Matrix{Float64};
+        X::AbstractMatrix{<:Real};
         r_grid = nothing
     )
 
