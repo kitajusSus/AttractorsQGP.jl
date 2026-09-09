@@ -3175,4 +3175,251 @@ function plot_soft_weighted_dimension(
     return plot_soft_weighted_dimension(res)
 end
 
+"""
+    plot_soft_k_dependency(dataset, k_values, tau_values; palette, figure_size, kwargs...)
+
+Plots Soft-Weighted dimension trajectories across multiple neighbor counts K,
+each with a ±1σ_W weighted band, highlighting the stability and lack of boundary jitter.
+"""
+function plot_soft_k_dependency(
+    dataset::AbstractArray{<:Real},
+    k_values::AbstractVector{<:Integer},
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    palette = [:dodgerblue, :forestgreen, :darkorange, :crimson, :purple],
+    figure_size::Tuple{Integer, Integer} = (900, 560),
+    kwargs...
+)
+    set_publication_theme()
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Weighted Local Dimension } \langle d \rangle_W",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    for (k_idx, k_val) in enumerate(k_values)
+        color = palette[mod1(k_idx, length(palette))]
+        scan_res = scan_soft_weighted_dimension(
+            dataset,
+            tau_values;
+            feature_indices = feature_indices,
+            k = k_val,
+            kwargs...
+        )
+
+        band!(
+            ax,
+            tau_values,
+            scan_res.mean_dims .- scan_res.std_dims,
+            scan_res.mean_dims .+ scan_res.std_dims;
+            color = (color, 0.20)
+        )
+
+        lines!(
+            ax,
+            tau_values,
+            scan_res.mean_dims;
+            color = color,
+            linewidth = 2.5,
+            label = L"K = %$(k_val)"
+        )
+    end
+
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+"""
+    plot_soft_phase_space_slice_2d(dataset, tau; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_soft_phase_space_slice_2d(
+    dataset::AbstractArray{<:Real},
+    tau::Real;
+    feature_indices::AbstractVector{<:Integer} = [2, 3],
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    colormap::Symbol = :viridis,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+    figure_size::Tuple{Integer, Integer} = (850, 600),
+    kwargs...
+)
+    set_publication_theme()
+
+    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    norm_slice = apply_normalization(raw_slice, :max)
+    res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
+
+    tau_str = string(round(tau, digits = 2))
+    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    ax = Axis(
+        fig[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 19,
+        xlabel = x_label,
+        ylabel = y_label,
+        xautolimitmargin = (0.04, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    sc = scatter!(
+        ax,
+        raw_slice[:, 1],
+        raw_slice[:, 2];
+        color = res.d_soft,
+        colormap = colormap,
+        colorrange = color_limits,
+        markersize = 7,
+        strokewidth = 0.2,
+        strokecolor = (:black, 0.2)
+    )
+
+    Colorbar(
+        fig[1, 2],
+        sc,
+        label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
+        width = 16,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_soft_phase_space_grid_2d(dataset, tau_grid; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_soft_phase_space_grid_2d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3],
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    colormap::Symbol = :viridis,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+    figure_size::Tuple{Integer, Integer} = (1250, 1050),
+    kwargs...
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+
+    sc_handle = nothing
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        ax = Axis(
+            fig[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 17,
+            xlabel = x_label,
+            ylabel = y_label,
+            xautolimitmargin = (0.04, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        norm_slice = apply_normalization(raw_slice, :max)
+        res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
+
+        sc = scatter!(
+            ax,
+            raw_slice[:, 1],
+            raw_slice[:, 2];
+            color = res.d_soft,
+            colormap = colormap,
+            colorrange = color_limits,
+            markersize = 6,
+            strokewidth = 0.2,
+            strokecolor = (:black, 0.2)
+        )
+        if sc_handle === nothing
+            sc_handle = sc
+        end
+    end
+
+    Colorbar(
+        fig[1:row_count, column_count + 1],
+        sc_handle,
+        label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_soft_phase_space_slice_3d(dataset, tau; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_soft_phase_space_slice_3d(
+    dataset::AbstractArray{<:Real},
+    tau::Real;
+    feature_indices::AbstractVector{<:Integer} = [2, 3, 4],
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    colormap::Symbol = :viridis,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
+    azimuth::Real = 1.3,
+    elevation::Real = 0.15,
+    figure_size::Tuple{Integer, Integer} = (950, 750),
+    kwargs...
+)
+    set_publication_theme()
+
+    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    norm_slice = apply_normalization(raw_slice, :max)
+    res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
+
+    tau_str = string(round(tau, digits = 2))
+    fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
+    ax = Axis3(
+        fig[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 20,
+        xlabel = x_label,
+        ylabel = y_label,
+        zlabel = z_label,
+        azimuth = azimuth,
+        elevation = elevation,
+        xlabeloffset = 45,
+        ylabeloffset = 45,
+        zlabeloffset = 60
+    )
+
+    sc = scatter!(
+        ax,
+        raw_slice[:, 1],
+        raw_slice[:, 2],
+        raw_slice[:, 3];
+        color = res.d_soft,
+        colormap = colormap,
+        colorrange = color_limits,
+        markersize = 6
+    )
+
+    Colorbar(
+        fig[1, 2],
+        sc,
+        label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+
 

@@ -92,7 +92,7 @@ function run_pca(data::AbstractMatrix{<:Real}; n_components::Integer = 2)
 end
 
 """
-    run_pca_kernel(data::AbstractMatrix{<:Real}; n_components::Integer=2, gamma::Float64=1.0)
+    run_pca_kernel(data::AbstractMatrix{<:Real}; n_components::Integer=2, gamma::Real=1.0)
 
 Run RBF kernel PCA for `data`.
 
@@ -109,8 +109,8 @@ For large `n_samples`, full kernel PCA may require O(n_samples^2) memory.
 function run_pca_kernel(
         data::AbstractMatrix{<:Real};
         n_components::Integer = 2,
-        gamma::Float64 = 1.0,
-        max_kernel_gb::Float64 = 8.0,
+        gamma::Real = 1.0,
+        max_kernel_gb::Real = 8.0,
     )
     @assert size(data, 1) > 1 "Need at least two samples."
     @assert size(data, 2) > 0 "Need at least one feature."

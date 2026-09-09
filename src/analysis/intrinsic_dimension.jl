@@ -3,7 +3,7 @@ using Statistics
 using Distances
 using NearestNeighbors
 
-function participation_ratio(vals::Vector{Float64})
+function participation_ratio(vals::AbstractVector{<:Real})
     vals = vals[vals .> 0]
     return (sum(vals)^2) / sum(vals .^ 2)
 end
@@ -26,7 +26,7 @@ end
 Oblicza LID dla pojedynczego punktu na podstawie wektora odległości k-sąsiadów.
 `dists` powinien zawierać odległości od 1-szego do k-tego prawdziwego sąsiada (bez odległości do samego siebie).
 """
-function lid_point(dists::Vector{Float64})
+function lid_point(dists::AbstractVector{<:Real})
     k = length(dists)
 
     rk = dists[end] # Ostatni element to maksymalna odległość r_k
@@ -41,7 +41,7 @@ function lid_point(dists::Vector{Float64})
     return k / log_sum
 end
 
-function estimate_lid(X::Matrix{Float64}; k::Int = 20)
+function estimate_lid(X::AbstractMatrix{<:Real}; k::Integer = 20)
     N = size(X, 1)
 
     tree = KDTree(permutedims(X))
@@ -57,7 +57,7 @@ end
 
 # 3. TWO-NN (Facco et al.)
 
-function estimate_twonn(X::Matrix{Float64})
+function estimate_twonn(X::AbstractMatrix{<:Real})
     N = size(X, 1)
 
     tree = KDTree(permutedims(X))
@@ -81,10 +81,10 @@ end
 Effective dimension from singular values of Jacobian.
 σ_i = singular values of J
 """
-function spectral_dimension(σ::Vector{Float64})
+function spectral_dimension(σ::AbstractVector{<:Real})
     σ = σ[σ .> 0]
 
-    return (sum(σ^2)^2) / sum(σ^4)
+    return (sum(σ .^ 2)^2) / sum(σ .^ 4)
 end
 
 
@@ -95,9 +95,9 @@ end
 
 function scan_intrinsic_dimensions(
         dataset::AbstractMatrix{<:Real};
-        k::Int = 20,
+        k::Integer = 20,
         atol::Real = 1.0e-3,
-        feature_cols::Union{Nothing, Vector{Int}} = nothing
+        feature_cols::Union{Nothing, AbstractVector{<:Integer}} = nothing
     )
 
     cols = isnothing(feature_cols) ? collect(2:size(dataset, 2)) : feature_cols
