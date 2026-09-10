@@ -3796,6 +3796,159 @@ function plot_unified_lpca_comparison(
     return fig
 end
 
+"""
+    plot_soft_phase_space_grid_3d(dataset, tau_grid; feature_indices, x_label, y_label, z_label, colormap, color_limits, markersize, kwargs...)
+"""
+function plot_soft_phase_space_grid_3d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3, 4],
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    colormap::Symbol = :devon,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
+    azimuth::Real = 1.3,
+    elevation::Real = 0.15,
+    markersize::Real = 5,
+    kwargs...
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    fig = Figure(size = (500 * column_count + 100, 440 * row_count), figure_padding = (60, 40, 50, 40))
+
+    sc_handle = nothing
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        ax = Axis3(
+            fig[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 18,
+            xlabel = x_label,
+            ylabel = y_label,
+            zlabel = z_label,
+            azimuth = azimuth,
+            elevation = elevation,
+            xlabeloffset = 35,
+            ylabeloffset = 35,
+            zlabeloffset = 45
+        )
+
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        norm_slice = apply_normalization(raw_slice, :max)
+        res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
+
+        sc = scatter!(
+            ax,
+            raw_slice[:, 1],
+            raw_slice[:, 2],
+            raw_slice[:, 3];
+            color = res.d_soft,
+            colormap = colormap,
+            colorrange = color_limits,
+            markersize = markersize
+        )
+        if sc_handle === nothing
+            sc_handle = sc
+        end
+    end
+
+    Colorbar(
+        fig[1:row_count, column_count + 1],
+        sc_handle,
+        label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_pr_phase_space_grid_3d(dataset, tau_grid; feature_indices, x_label, y_label, z_label, colormap, color_limits, markersize, kwargs...)
+"""
+function plot_pr_phase_space_grid_3d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3, 4],
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    colormap::Symbol = :devon,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
+    azimuth::Real = 1.3,
+    elevation::Real = 0.15,
+    markersize::Real = 5,
+    kwargs...
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    fig = Figure(size = (500 * column_count + 100, 440 * row_count), figure_padding = (60, 40, 50, 40))
+
+    sc_handle = nothing
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        ax = Axis3(
+            fig[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 18,
+            xlabel = x_label,
+            ylabel = y_label,
+            zlabel = z_label,
+            azimuth = azimuth,
+            elevation = elevation,
+            xlabeloffset = 35,
+            ylabeloffset = 35,
+            zlabeloffset = 45
+        )
+
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        norm_slice = apply_normalization(raw_slice, :max)
+        res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+        sc = scatter!(
+            ax,
+            raw_slice[:, 1],
+            raw_slice[:, 2],
+            raw_slice[:, 3];
+            color = res.d_pr,
+            colormap = colormap,
+            colorrange = color_limits,
+            markersize = markersize
+        )
+        if sc_handle === nothing
+            sc_handle = sc
+        end
+    end
+
+    Colorbar(
+        fig[1:row_count, column_count + 1],
+        sc_handle,
+        label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+
 
 
 
