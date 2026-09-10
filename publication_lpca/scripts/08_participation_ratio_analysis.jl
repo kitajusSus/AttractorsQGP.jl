@@ -115,17 +115,18 @@ function run_participation_ratio_experiment(;
         save(joinpath(output_directory, "pr_phase_space_slice_hjsw_3d_tau_$(tau_tag).pdf"), fig_s3d)
     end
 
-    # 2D. 2D Projection Grid on (A, B) plane
-    println("  - Generating 2D projection grid on (A, B) for HJSW...")
-    fig_hjsw_grid_ab = plot_pr_phase_space_grid_2d(
+    # 2D. 3D Phase Space Grid
+    println("  - Generating 3D phase space grid for HJSW...")
+    fig_hjsw_grid_3d = plot_pr_phase_space_grid_3d(
         hjsw_raw, grid_taus;
-        feature_indices = [3, 4],
-        x_label = L"\mathcal{A}",
-        y_label = L"\mathcal{B}",
+        feature_indices = [2, 3, 4],
+        x_label = L"T\,[\mathrm{MeV}]",
+        y_label = L"\mathcal{A}",
+        z_label = L"\mathcal{B}",
         color_limits = (1.0, 3.0),
         k = k_fixed
     )
-    save(joinpath(output_directory, "pr_phase_space_grid_hjsw_projections_AB.pdf"), fig_hjsw_grid_ab)
+    save(joinpath(output_directory, "pr_phase_space_grid_hjsw_3d.pdf"), fig_hjsw_grid_3d)
 
     # =========================================================================
     # Part 3: Unified 3-Method Comparison (Side-by-Side MIS vs HJSW)
