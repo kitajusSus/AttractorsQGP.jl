@@ -1174,4 +1174,141 @@ end
 scan_soft_weighted_dimension(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
     scan_soft_weighted_dimension(to_2d_local_lpca(dataset), args...; kwargs...)
 
+"""
+    compute_local_pr_dimension(
+        points::AbstractMatrix{<:Real};
+        k::Integer = 16,
+        use_density_weights::Bool = true
+    ) -> NamedTuple
+
+Calculates the local Participation Ratio (PR) dimension:
+    d_PR(x_i) = (Tr C_i)^2 / Tr(C_i^2) = (sum_j lambda_j)^2 / sum_j lambda_j^2
+where C_i is the local covariance matrix evaluated on the k nearest neighbors.
+Does not require any spectral cutoff threshold (tol) or sigmoid parameter (delta).
+"""
+function compute_local_pr_dimension(
+    points::AbstractMatrix{<:Real};
+    k::Integer = 16,
+    use_density_weights::Bool = true
+)
+    N, D = size(points)
+    eff_k = min(k, N - 1)
+    @assert eff_k >= 2 "At least 3 points are needed to compute local PR dimension."
+
+    kdtree = KDTree(points')
+    idxs, dists = knn(kdtree, points', eff_k + 1, true)
+
+    d_pr = zeros(Float64, N)
+    weights = ones(Float64, N)
+
+    k_dists = [d[end] for d in dists]
+    sigma_R = median(k_dists)
+    if sigma_R <= 0.0
+        sigma_R = 1.0
+    end
+
+    centered_pts = zeros(Float64, eff_k + 1, D)
+    cov_buf = zeros(Float64, D, D)
+
+    for i in 1:N
+        neighbor_indices = idxs[i]
+        local_pts = @view points[neighbor_indices, :]
+
+        for c in 1:D
+            mean_c = 0.0
+            for r in 1:(eff_k + 1)
+                mean_c += local_pts[r, c]
+            end
+            mean_c /= (eff_k + 1)
+            for r in 1:(eff_k + 1)
+                centered_pts[r, c] = local_pts[r, c] - mean_c
+            end
+        end
+
+        mul!(cov_buf, centered_pts', centered_pts)
+        cov_buf ./= eff_k
+
+        evals = eigvals!(Symmetric(cov_buf))
+        for j in 1:D
+            evals[j] = max(evals[j], 0.0)
+        end
+
+        sum_evals = sum(evals)
+        sum_evals_sq = sum(evals .^ 2)
+
+        if sum_evals_sq > 0.0
+            d_pr[i] = (sum_evals^2) / sum_evals_sq
+        else
+            d_pr[i] = 1.0
+        end
+
+        if use_density_weights
+            weights[i] = exp(-(k_dists[i]^2) / (2.0 * sigma_R^2))
+        else
+            weights[i] = 1.0
+        end
+    end
+
+    total_w = sum(weights)
+    if total_w <= 0.0
+        weights .= 1.0
+        total_w = Float64(N)
+    end
+
+    mean_dim = sum(weights .* d_pr) / total_w
+    var_dim = sum(weights .* ((d_pr .- mean_dim) .^ 2)) / total_w
+
+    return (
+        mean = mean_dim,
+        std = sqrt(max(0.0, var_dim)),
+        d_pr = d_pr,
+        weights = weights
+    )
+end
+
+"""
+    scan_local_pr_dimension(dataset, tau_values; feature_indices, normalize_method, k, use_density_weights) -> NamedTuple
+
+Scans local Participation Ratio (PR) dimension across proper time tau slices.
+"""
+function scan_local_pr_dimension(
+    dataset::AbstractMatrix{<:Real},
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    normalize_method::Symbol = :max,
+    k::Integer = 16,
+    use_density_weights::Bool = true
+)
+    n_slices = length(tau_values)
+    mean_dims = zeros(Float64, n_slices)
+    std_dims = zeros(Float64, n_slices)
+    unweighted_means = zeros(Float64, n_slices)
+
+    for (idx, tau) in enumerate(tau_values)
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        norm_slice = apply_normalization(raw_slice, normalize_method)
+
+        res = compute_local_pr_dimension(
+            norm_slice;
+            k = k,
+            use_density_weights = use_density_weights
+        )
+
+        mean_dims[idx] = res.mean
+        std_dims[idx] = res.std
+        unweighted_means[idx] = mean(res.d_pr)
+    end
+
+    return (
+        tau_values = copy(tau_values),
+        mean_dims = mean_dims,
+        std_dims = std_dims,
+        unweighted_means = unweighted_means,
+        k = k
+    )
+end
+scan_local_pr_dimension(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
+    scan_local_pr_dimension(to_2d_local_lpca(dataset), args...; kwargs...)
+
+
 

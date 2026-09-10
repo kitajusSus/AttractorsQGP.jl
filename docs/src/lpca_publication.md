@@ -178,10 +178,48 @@ save("fig5_parameterization_focus.pdf", fig5)
 
 ---
 
-## 5. Running Automated Script Pipelines
+## 5. Participation Ratio (PR) Dimension (Parameter-Free Method)
 
-To re-run the entire batch of publication experiments and generate all figures at once:
+The Participation Ratio (PR) calculates the effective number of active phase space dimensions from the eigenvalue spectrum of the local covariance matrix without introducing any arbitrary cutoff thresholds (`tol`) or sigmoid parameters (`delta`):
+
+```math
+d_{\mathrm{PR}}(x_i) = \frac{(\mathrm{Tr}\, C_i)^2}{\mathrm{Tr}(C_i^2)} = \frac{\left(\sum_{j=1}^D \lambda_j\right)^2}{\sum_{j=1}^D \lambda_j^2}
+```
+
+- When $D$ modes are equally active: $d_{\mathrm{PR}} \approx D$.
+- When $m$ modes dominate and the rest vanish: $d_{\mathrm{PR}} \approx m$.
+- On the 1D hydrodynamic attractor: $d_{\mathrm{PR}} \to 1.0$.
+
+### Interactive REPL Recipe
+
+```julia
+using AttractorsQGP
+using CairoMakie
+
+# Load HJSW dataset
+dataset_hjsw = load_hydro_dataset("datasets/hjsw_lpca/hjsw_matched_seed5.h5")
+tau_grid = [0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.25, 1.5, 2.0, 2.5, 3.5, 5.0, 7.5, 10.0]
+
+# Compute Participation Ratio evolution across tau
+pr_scan = scan_local_pr_dimension(dataset_hjsw, tau_grid; feature_indices = [2, 3, 4], k = 20)
+
+# Optional: compare against Soft-Weighted LPCA
+soft_scan = scan_soft_weighted_dimension(dataset_hjsw, tau_grid; feature_indices = [2, 3, 4], k = 20)
+
+fig = plot_local_pr_dimension(pr_scan; soft_scan = soft_scan)
+save("pr_vs_soft_hjsw.pdf", fig)
+
+# Plot local PR dimension distribution in 3D phase space (using :devon colormap)
+fig_3d = plot_pr_phase_space_slice_3d(dataset_hjsw, 0.65; feature_indices = [2, 3, 4], colormap = :devon)
+save("pr_phase_space_slice_hjsw_3d_tau_0.65.pdf", fig_3d)
+```
+
+---
+
+## 6. Running Automated Script Pipelines
+
+To re-run the entire batch of publication experiments (Steps 1 through 8) and generate all figures at once:
 ```bash
 julia --project=. publication_lpca/scripts/run_all_experiments.jl
 ```
-All vector PDFs and PNGs will be placed in `publication_lpca/plots/`, and numerical data tables in `publication_lpca/results/`.
+All vector PDFs will be placed in `publication_lpca/plots/`, and numerical data tables in `publication_lpca/results/`.
