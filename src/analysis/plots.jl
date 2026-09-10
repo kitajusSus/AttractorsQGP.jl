@@ -3421,5 +3421,190 @@ function plot_soft_phase_space_slice_3d(
     return fig
 end
 
+"""
+    plot_local_pr_dimension(
+        pr_scan::NamedTuple;
+        soft_scan::Union{NamedTuple, Nothing} = nothing,
+        palette = (:darkviolet, :teal),
+        figure_size::Tuple{Integer, Integer} = (850, 520)
+    )
+
+Plots the Participation Ratio dimension evolution d_PR(tau) with a +/- 1 sigma band.
+Optionally overlays Soft-Weighted LPCA for direct comparison.
+"""
+function plot_local_pr_dimension(
+    pr_scan::NamedTuple;
+    soft_scan::Union{NamedTuple, Nothing} = nothing,
+    palette = (:darkviolet, :teal),
+    figure_size::Tuple{Integer, Integer} = (850, 520)
+)
+    set_publication_theme()
+
+    tau_values = pr_scan.tau_values
+    mean_dims = pr_scan.mean_dims
+    std_dims = pr_scan.std_dims
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Participation Ratio Dimension } \langle d_{\mathrm{PR}} \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    band!(
+        ax,
+        tau_values,
+        mean_dims .- std_dims,
+        mean_dims .+ std_dims;
+        color = (palette[1], 0.22),
+        label = L"\pm 1\sigma_{\mathrm{PR}}"
+    )
+
+    lines!(
+        ax,
+        tau_values,
+        mean_dims;
+        color = palette[1],
+        linewidth = 3.0,
+        label = L"\langle d_{\mathrm{PR}} \rangle_W"
+    )
+
+    if soft_scan !== nothing
+        lines!(
+            ax,
+            soft_scan.tau_values,
+            soft_scan.mean_dims;
+            color = palette[2],
+            linewidth = 2.5,
+            linestyle = :dash,
+            label = L"\langle d_{\mathrm{soft}} \rangle_W"
+        )
+    end
+
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+"""
+    plot_pr_phase_space_slice_2d(dataset, tau; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_pr_phase_space_slice_2d(
+    dataset::AbstractArray{<:Real},
+    tau::Real;
+    feature_indices::AbstractVector{<:Integer} = [2, 3],
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    colormap::Symbol = :devon,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+    figure_size::Tuple{Integer, Integer} = (850, 600),
+    kwargs...
+)
+    set_publication_theme()
+
+    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    norm_slice = apply_normalization(raw_slice, :max)
+    res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+    tau_str = string(round(tau, digits = 2))
+    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    ax = Axis(
+        fig[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 19,
+        xlabel = x_label,
+        ylabel = y_label,
+        xautolimitmargin = (0.04, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    sc = scatter!(
+        ax,
+        raw_slice[:, 1],
+        raw_slice[:, 2];
+        color = res.d_pr,
+        colormap = colormap,
+        colorrange = color_limits,
+        markersize = 7,
+        strokewidth = 0.2,
+        strokecolor = (:black, 0.2)
+    )
+
+    Colorbar(
+        fig[1, 2],
+        sc,
+        label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
+        width = 16,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_pr_phase_space_slice_3d(dataset, tau; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_pr_phase_space_slice_3d(
+    dataset::AbstractArray{<:Real},
+    tau::Real;
+    feature_indices::AbstractVector{<:Integer} = [2, 3, 4],
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    colormap::Symbol = :devon,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
+    azimuth::Real = 1.3,
+    elevation::Real = 0.15,
+    figure_size::Tuple{Integer, Integer} = (950, 750),
+    kwargs...
+)
+    set_publication_theme()
+
+    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    norm_slice = apply_normalization(raw_slice, :max)
+    res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+    tau_str = string(round(tau, digits = 2))
+    fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
+    ax = Axis3(
+        fig[1, 1],
+        title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+        titlesize = 20,
+        xlabel = x_label,
+        ylabel = y_label,
+        zlabel = z_label,
+        azimuth = azimuth,
+        elevation = elevation,
+        xlabeloffset = 45,
+        ylabeloffset = 45,
+        zlabeloffset = 60
+    )
+
+    sc = scatter!(
+        ax,
+        raw_slice[:, 1],
+        raw_slice[:, 2],
+        raw_slice[:, 3];
+        color = res.d_pr,
+        colormap = colormap,
+        colorrange = color_limits,
+        markersize = 6
+    )
+
+    Colorbar(
+        fig[1, 2],
+        sc,
+        label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+
 
 
