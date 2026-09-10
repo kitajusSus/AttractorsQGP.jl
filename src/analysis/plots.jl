@@ -3605,6 +3605,198 @@ function plot_pr_phase_space_slice_3d(
     return fig
 end
 
+"""
+    plot_pr_k_dependency(dataset, k_values, tau_values; feature_indices, palette, figure_size, kwargs...)
+
+Plots Participation Ratio dimension trajectories d_PR(tau) across multiple neighbor counts K.
+"""
+function plot_pr_k_dependency(
+    dataset::AbstractArray{<:Real},
+    k_values::AbstractVector{<:Integer},
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    palette = [:dodgerblue, :forestgreen, :darkorange, :crimson, :purple],
+    figure_size::Tuple{Integer, Integer} = (900, 560),
+    kwargs...
+)
+    set_publication_theme()
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Participation Ratio Dimension } \langle d_{\mathrm{PR}} \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    for (k_idx, k_val) in enumerate(k_values)
+        color = palette[mod1(k_idx, length(palette))]
+        scan_res = scan_local_pr_dimension(
+            dataset,
+            tau_values;
+            feature_indices = feature_indices,
+            k = k_val,
+            kwargs...
+        )
+
+        band!(
+            ax,
+            tau_values,
+            scan_res.mean_dims .- scan_res.std_dims,
+            scan_res.mean_dims .+ scan_res.std_dims;
+            color = (color, 0.20)
+        )
+
+        lines!(
+            ax,
+            tau_values,
+            scan_res.mean_dims;
+            color = color,
+            linewidth = 2.5,
+            label = L"K = %$(k_val)"
+        )
+    end
+
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+"""
+    plot_pr_phase_space_grid_2d(dataset, tau_grid; feature_indices, colormap, color_limits, figure_size, kwargs...)
+"""
+function plot_pr_phase_space_grid_2d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3],
+    x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    colormap::Symbol = :devon,
+    color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+    figure_size::Tuple{Integer, Integer} = (1250, 1050),
+    kwargs...
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+
+    sc_handle = nothing
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        ax = Axis(
+            fig[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 17,
+            xlabel = x_label,
+            ylabel = y_label,
+            xautolimitmargin = (0.04, 0.04),
+            yautolimitmargin = (0.05, 0.05)
+        )
+
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        norm_slice = apply_normalization(raw_slice, :max)
+        res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+        sc = scatter!(
+            ax,
+            raw_slice[:, 1],
+            raw_slice[:, 2];
+            color = res.d_pr,
+            colormap = colormap,
+            colorrange = color_limits,
+            markersize = 6,
+            strokewidth = 0.2,
+            strokecolor = (:black, 0.2)
+        )
+        if sc_handle === nothing
+            sc_handle = sc
+        end
+    end
+
+    Colorbar(
+        fig[1:row_count, column_count + 1],
+        sc_handle,
+        label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
+        width = 18,
+        ticklabelsize = 14,
+        labelsize = 16
+    )
+
+    return fig
+end
+
+"""
+    plot_unified_lpca_comparison(
+        mis_dataset, hjsw_dataset, tau_grid;
+        k = 20, tol = 0.02, delta = 0.005,
+        figure_size = (1200, 520)
+    )
+
+Creates a side-by-side comparison figure:
+Left: Conformal MIS (2D -> 1D) comparing Hard LPCA, Soft LPCA, and Participation Ratio (PR).
+Right: HJSW Model (3D -> 2D -> 1D) comparing Hard LPCA, Soft LPCA, and Participation Ratio (PR).
+"""
+function plot_unified_lpca_comparison(
+    mis_dataset::AbstractArray{<:Real},
+    hjsw_dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    k::Integer = 20,
+    tol::Real = 0.02,
+    delta::Real = 0.005,
+    figure_size::Tuple{Integer, Integer} = (1200, 520)
+)
+    set_publication_theme()
+
+    mis_soft = scan_soft_weighted_dimension(mis_dataset, tau_grid; feature_indices = [2, 3], k = k, tol = tol, delta = delta)
+    mis_pr = scan_local_pr_dimension(mis_dataset, tau_grid; feature_indices = [2, 3], k = k)
+
+    hjsw_soft = scan_soft_weighted_dimension(hjsw_dataset, tau_grid; feature_indices = [2, 3, 4], k = k, tol = tol, delta = delta)
+    hjsw_pr = scan_local_pr_dimension(hjsw_dataset, tau_grid; feature_indices = [2, 3, 4], k = k)
+
+    fig = Figure(size = figure_size)
+    ax_mis = Axis(
+        fig[1, 1],
+        title = L"\text{Conformal MIS (Initial 2D: } T, \mathcal{A})",
+        titlesize = 19,
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Estimated Dimension } d(\tau)",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+    ax_hjsw = Axis(
+        fig[1, 2],
+        title = L"\text{HJSW Model (Initial 3D: } T, \mathcal{A}, \mathcal{B})",
+        titlesize = 19,
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Estimated Dimension } d(\tau)",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    lines!(ax_mis, tau_grid, mis_soft.unweighted_hard_means; color = :gray50, linewidth = 2.0, linestyle = :dot, label = L"\text{Hard LPCA}")
+    lines!(ax_mis, tau_grid, mis_soft.mean_dims; color = :dodgerblue, linewidth = 2.8, label = L"\text{Soft-Weighted LPCA}")
+    band!(ax_mis, tau_grid, mis_pr.mean_dims .- mis_pr.std_dims, mis_pr.mean_dims .+ mis_pr.std_dims; color = (:darkviolet, 0.18))
+    lines!(ax_mis, tau_grid, mis_pr.mean_dims; color = :darkviolet, linewidth = 2.8, linestyle = :dash, label = L"\text{Participation Ratio (PR)}")
+
+    lines!(ax_hjsw, tau_grid, hjsw_soft.unweighted_hard_means; color = :gray50, linewidth = 2.0, linestyle = :dot, label = L"\text{Hard LPCA}")
+    lines!(ax_hjsw, tau_grid, hjsw_soft.mean_dims; color = :dodgerblue, linewidth = 2.8, label = L"\text{Soft-Weighted LPCA}")
+    band!(ax_hjsw, tau_grid, hjsw_pr.mean_dims .- hjsw_pr.std_dims, hjsw_pr.mean_dims .+ hjsw_pr.std_dims; color = (:darkviolet, 0.18))
+    lines!(ax_hjsw, tau_grid, hjsw_pr.mean_dims; color = :darkviolet, linewidth = 2.8, linestyle = :dash, label = L"\text{Participation Ratio (PR)}")
+
+    axislegend(ax_mis, position = :rt)
+    axislegend(ax_hjsw, position = :rt)
+
+    return fig
+end
+
+
 
 
 
