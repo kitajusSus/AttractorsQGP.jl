@@ -705,9 +705,9 @@ end
 #
 function plot_pca_evr_over_time(
         dataset::AbstractMatrix{<:Real};
-        n_components::Int = 2,
+        n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
         feature_cols::AbstractVector = collect(2:size(dataset, 2)),
         plot_title::Union{String, LaTeXString} = L"\text{Explained Variance Ratio (EVR) w funkcji czasu}",
         x_label::Union{String, LaTeXString} = L"\tau\,[\mathrm{fm}/c]",
@@ -774,7 +774,7 @@ function plot_pca_bar_variance(
         dataset::AbstractMatrix{<:Real};
         tau::Real = 1.14,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
         feature_cols::Union{AbstractVector{<:Integer}, Nothing} = nothing
     )
     set_publication_theme()
@@ -832,11 +832,11 @@ end
 function plot_pca_summary(
         dataset::AbstractMatrix{<:Real};
         tau::Union{Nothing, Real} = nothing,
-        tau_tol::Float64 = 1.0e-8,
+        tau_tol::Real = 1.0e-8,
         tau_mode::Symbol = :nearest,
-        n_components::Int = 2,
+        n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
+        gamma::Real = 1.0,
     )
 
     set_publication_theme()
@@ -924,11 +924,11 @@ end
 function animate_pca_evolution(
         dataset::AbstractMatrix{<:Real};
         filename::String = "pca_evolution.gif",
-        fps::Int = 15,
-        n_components::Int = 2,
+        fps::Integer = 15,
+        n_components::Integer = 2,
         method::Symbol = :minmax,
-        gamma::Float64 = 1.0,
-        tau_tol::Float64 = 1.0e-8
+        gamma::Real = 1.0,
+        tau_tol::Real = 1.0e-8
     )
     set_publication_theme()
 
@@ -1426,7 +1426,7 @@ end
 
 function plot_lle_results_for_taus(
         dataset::AbstractMatrix{<:Real},
-        target_taus::Vector{Float64};
+        target_taus::AbstractVector{<:Real};
         k::Integer = 20,
         d::Integer = 2,
         atol::Real = 1.0e-3,
@@ -1505,7 +1505,7 @@ end
 
 function plot_lle_spectrum_scan_analysis(
         dataset::AbstractMatrix{<:Real},
-        taus::Vector{Float64};
+        taus::AbstractVector{<:Real};
         k_values = 5:5:50
     )
 
@@ -1543,8 +1543,8 @@ end
 
 @views function plot_local_pca(
         dataset_loaded::AbstractMatrix{<:Real};
-        n_slices::Int = 15,
-        tablica_k::Vector{Int} = [10, 20, 40, 80, 160],
+        n_slices::Integer = 15,
+        tablica_k::AbstractVector{<:Integer} = [10, 20, 40, 80, 160],
         feature_cols::AbstractVector{<:Integer} = 2:size(dataset_loaded, 2),
         normalize::Union{Symbol, Function} = :max,
         title::Union{String, Nothing} = nothing
@@ -1596,18 +1596,18 @@ end
 """
     plot_local_pca_regularizations(
         dataset_loaded::AbstractMatrix{<:Real};
-        n_slices::Int = 15,
-        tablica_k::Vector{Int} = [10, 20, 40, 80],
+        n_slices::Integer = 15,
+        tablica_k::AbstractVector{<:Integer} = [10, 20, 40, 80],
         feature_cols::AbstractVector{<:Integer} = 2:size(dataset_loaded, 2),
-        methods::Vector{Symbol} = [:max, :minmax, :zscore, :none]
+        methods::AbstractVector{Symbol} = [:max, :minmax, :zscore, :none]
     )
 """
 @views function plot_local_pca_regularizations(
         dataset_loaded::AbstractMatrix{<:Real};
-        n_slices::Int = 15,
-        tablica_k::Vector{Int} = [10, 20, 40, 80],
+        n_slices::Integer = 15,
+        tablica_k::AbstractVector{<:Integer} = [10, 20, 40, 80],
         feature_cols::AbstractVector{<:Integer} = 2:size(dataset_loaded, 2),
-        methods::Vector{Symbol} = [:max, :minmax, :zscore, :none]
+        methods::AbstractVector{Symbol} = [:max, :minmax, :zscore, :none]
     )
     set_publication_theme()
 
@@ -3242,7 +3242,7 @@ function plot_soft_phase_space_slice_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :viridis,
+    colormap::Symbol = :devon,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
     figure_size::Tuple{Integer, Integer} = (850, 600),
     kwargs...
@@ -3298,7 +3298,7 @@ function plot_soft_phase_space_grid_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :viridis,
+    colormap::Symbol = :devon,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
     figure_size::Tuple{Integer, Integer} = (1250, 1050),
     kwargs...
@@ -3369,7 +3369,7 @@ function plot_soft_phase_space_slice_3d(
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    colormap::Symbol = :viridis,
+    colormap::Symbol = :devon,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
     azimuth::Real = 1.3,
     elevation::Real = 0.15,
