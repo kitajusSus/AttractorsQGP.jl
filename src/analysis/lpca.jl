@@ -134,409 +134,10 @@ end
 end
 
 
-# nizej jest testowe nie ważnbe
-@views function dynamic_lpca_analysis(
-        dataset::AbstractMatrix{<:Real};
-        K::Int = 15,
-        eta::Real = 0.95,
-        delta::Real = 0.05,
-        feature_cols::Union{AbstractVector{<:Integer}, Nothing} = nothing
-    )
-    taus = sort(unique(Float64.(dataset[:, 1])))
-    d_bar = zeros(length(taus))
-    cols = isnothing(feature_cols) ? (2:size(dataset, 2)) : feature_cols
-    d = length(cols)
-
-    for (nτ, τ) in enumerate(taus)
-        mask = dataset[:, 1] .== τ
-        X_tau = dataset[mask, cols]
-        n_points = size(X_tau, 1)
-        k = min(K, n_points - 1)
-
-        if k < 2
-            d_bar[nτ] = 1.0
-            continue
-        end
-
-        X_norm = normalize_max(X_tau)
-        tree = KDTree(X_norm')
-
-        idxs, _ = knn(tree, X_norm', k + 1, true)
-        d_sum = 0
-
-        X_local_buf = zeros(Float64, k, d)
-
-        for i in 1:n_points
-            neighbors = idxs[i][2:end]
-
-            X_local = X_local_buf[1:k, :]
-            for r in 1:k
-                for c in 1:d
-                    X_local[r, c] = X_norm[neighbors[r], c]
-                end
-            end
-
-            X_local .-= mean(X_local, dims = 1)
-            S = svdvals!(X_local)
-
-            λ_sum = 0.0
-            for s in S
-                λ_sum += s^2
-            end
-
-            if λ_sum ≈ 0.0
-                d_sum += 1
-                continue
-            end
-
-            evr = 0.0
-            d_val = 1
-            for j in eachindex(S)
-                evr += (S[j]^2) / λ_sum
-                if evr >= eta
-                    d_val = j
-                    break
-                end
-            end
-            d_sum += d_val
-        end
-        d_bar[nτ] = d_sum / n_points
-    end
-
-    tau_LPCA = NaN
-    threshold = 1.0 + delta
-    for i in eachindex(taus)
-        if all(d_bar[i:end] .<= threshold)
-            tau_LPCA = taus[i]
-            break
-        end
-    end
-
-    return (; taus, d_bar, tau_LPCA)
-end
-
-
-@views function compute_lpca_entropy(
-        dataset::AbstractMatrix{<:Real},
-        k::Int;
-        n_slices::Union{Nothing, Int} = nothing,
-        feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-        tol::Real = 1.0e-8
-    )
-    taus = sort(unique(dataset[:, 1]))
-    if n_slices === nothing
-        selected_taus = taus
-    else
-        idxs = round.(Int, range(1, length(taus), length = n_slices))
-        selected_taus = taus[idxs]
-    end
-
-    n_selected = length(selected_taus)
-    tau_values = zeros(Float64, n_selected)
-    mean_entropy = zeros(Float64, n_selected)
-    std_entropy = zeros(Float64, n_selected)
-
-    d = length(feature_cols)
-
-    for (idx, τ) in enumerate(selected_taus)
-        _, X_tau = get_tau_slice(dataset, τ; feature_cols = feature_cols)
-        X_norm = normalize_max(X_tau)
-        n_points = size(X_norm, 1)
-        k_local = min(k, n_points)
-
-        if k_local < 2
-            tau_values[idx] = τ
-            mean_entropy[idx] = 0.0
-            std_entropy[idx] = 0.0
-            continue
-        end
-
-        tree = KDTree(X_norm')
-        idxs_knn, _ = knn(tree, X_norm', k_local, true)
-        entropies = zeros(n_points)
-
-        Y_buf = zeros(Float64, k_local, d)
-        C_buf = zeros(Float64, d, d)
-
-        for i in 1:n_points
-            neighbors_idx = idxs_knn[i]
-
-            Y = Y_buf[1:k_local, :]
-            for r in 1:k_local
-                for c in 1:d
-                    Y[r, c] = X_norm[neighbors_idx[r], c]
-                end
-            end
-
-            μ = mean(Y, dims = 1)
-            Y .-= μ
-
-            C = C_buf[1:d, 1:d]
-            mul!(C, Y', Y)
-            C ./= k_local
-
-            λ = eigvals!(Symmetric(C))
-            λ .= max.(λ, 0.0)
-            λ_sum = sum(λ)
-
-            if λ_sum ≈ 0.0
-                continue
-            end
-
-            S = 0.0
-            r_count = 0
-            for val in λ
-                λ_norm_val = val / λ_sum
-                if λ_norm_val > tol
-                    S -= λ_norm_val * log(λ_norm_val)
-                    r_count += 1
-                end
-            end
-
-            if r_count <= 1
-                continue
-            end
-
-            entropies[i] = S / log(r_count)
-        end
-
-        tau_values[idx] = τ
-        mean_entropy[idx] = mean(entropies)
-        std_entropy[idx] = std(entropies)
-    end
-    return tau_values, mean_entropy, std_entropy
-end
-
-function compute_stable_lpca_collapse(
-        dataset::AbstractMatrix{<:Real};
-        zakres_K::AbstractVector{<:Integer} = [10, 20, 30, 40],
-        Scrit::Real = 0.2,
-        delta_k::Real = 0.05,
-        n_slices::Union{Nothing, Int} = nothing,
-        feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-        tol::Real = 1.0e-8,
-        norm_type::Symbol = :embedding
-    )
-    taus = sort(unique(dataset[:, 1]))
-    if n_slices !== nothing
-        idxs = round.(Int, range(1, length(taus), length = n_slices))
-        wybrane_tau = taus[idxs]
-    else
-        wybrane_tau = taus
-    end
-
-    n_taus = length(wybrane_tau)
-    n_k = length(zakres_K)
-    k_max = maximum(zakres_K)
-    d = length(feature_cols)
-
-    S_PCA_matrix = zeros(Float64, n_taus, n_k)
-
-    for (tau_idx, tau) in enumerate(wybrane_tau)
-        _, X_tau = get_tau_slice(dataset, tau; feature_cols = feature_cols)
-        X_norm = normalize_max(X_tau)
-
-        n_points, d_size = size(X_norm)
-        k_max_actual = min(k_max, n_points)
-        if k_max_actual < 2
-            continue
-        end
-
-        tree = KDTree(X_norm')
-        knn_idxs, _ = knn(tree, X_norm', k_max_actual, true)
-
-        Y_buf = zeros(Float64, k_max_actual, d)
-        C_buf = zeros(Float64, d, d)
-
-        for (k_idx, k_val) in enumerate(zakres_K)
-            k_actual = min(k_val, n_points)
-            if k_actual < 2
-                S_PCA_matrix[tau_idx, k_idx] = 0.0
-                continue
-            end
-
-            entropies = zeros(Float64, n_points)
-            for i in 1:n_points
-                @views neighbor_idxs = knn_idxs[i][1:k_actual]
-
-                Y = Y_buf[1:k_actual, :]
-                for r in 1:k_actual
-                    for c in 1:d
-                        Y[r, c] = X_norm[neighbor_idxs[r], c]
-                    end
-                end
-
-                μ = mean(Y, dims = 1)
-                Y .-= μ
-
-                C = C_buf[1:d, 1:d]
-                mul!(C, Y', Y)
-                C ./= k_actual
-
-                λ = eigvals!(Symmetric(C))
-                λ .= max.(λ, 0.0)
-                sum_λ = sum(λ)
-
-                if sum_λ ≈ 0.0
-                    entropies[i] = 0.0
-                    continue
-                end
-
-                S_i = 0.0
-                r_count = 0
-                for val in λ
-                    λ_norm = val / sum_λ
-                    if λ_norm > tol
-                        S_i -= λ_norm * log(λ_norm)
-                        r_count += 1
-                    end
-                end
-
-                if norm_type == :embedding
-                    entropies[i] = S_i / log(d)
-                elseif norm_type == :active
-                    entropies[i] = r_count <= 1 ? 0.0 : S_i / log(r_count)
-                else
-                    entropies[i] = S_i
-                end
-            end
-            S_PCA_matrix[tau_idx, k_idx] = mean(entropies)
-        end
-    end
-
-    S_PCA_mean = mean(S_PCA_matrix, dims = 2)[:]
-    S_PCA_std = std(S_PCA_matrix, dims = 2)[:]
-
-    tau_LPCA_k = fill(NaN, n_k)
-    for (k_idx, k_val) in enumerate(zakres_K)
-        for (tau_idx, tau) in enumerate(wybrane_tau)
-            if S_PCA_matrix[tau_idx, k_idx] < Scrit
-                tau_LPCA_k[k_idx] = tau
-                break
-            end
-        end
-    end
-
-    tau_LPCA_stable = NaN
-    for (tau_idx, tau) in enumerate(wybrane_tau)
-        if S_PCA_mean[tau_idx] < Scrit && S_PCA_std[tau_idx] < delta_k
-            tau_LPCA_stable = tau
-            break
-        end
-    end
-
-    return (;
-        taus = wybrane_tau,
-        S_PCA_matrix,
-        S_PCA_mean,
-        S_PCA_std,
-        tau_LPCA_k,
-        tau_LPCA_stable,
-    )
-end
-
-@views function compute_lpca_principal_angles(
-        dataset::AbstractMatrix{<:Real};
-        k::Int = 20,
-        subspace_dim::Int = 1,
-        n_slices::Union{Nothing, Int} = nothing,
-        feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2))
-    )
-    taus = sort(unique(dataset[:, 1]))
-    if n_slices !== nothing
-        idxs = round.(Int, range(1, length(taus), length = n_slices))
-        wybrane_tau = taus[idxs]
-    else
-        wybrane_tau = taus
-    end
-
-    mean_angles = Float64[]
-    std_angles = Float64[]
-    all_angles_per_tau = Vector{Vector{Float64}}()
-
-    for tau in wybrane_tau
-        _, X_tau = get_tau_slice(dataset, tau; feature_cols = feature_cols)
-        X_norm = normalize_max(X_tau)
-
-        n_points, d = size(X_norm)
-        k_actual = min(k, n_points)
-        if k_actual < 2
-            push!(mean_angles, 0.0)
-            push!(std_angles, 0.0)
-            push!(all_angles_per_tau, Float64[])
-            continue
-        end
-
-        tree = KDTree(X_norm')
-        knn_idxs, _ = knn(tree, X_norm', k_actual, true)
-
-        m = min(subspace_dim, d)
-        V = Vector{Matrix{Float64}}(undef, n_points)
-
-        for i in 1:n_points
-            neighbor_idxs = knn_idxs[i]
-            neighbors = X_norm[neighbor_idxs, :]
-            μ = mean(neighbors, dims = 1)
-            Y = neighbors .- μ
-
-            F = svd(Y)
-            V[i] = Matrix{Float64}(F.V[:, 1:m])
-        end
-
-        angles = Float64[]
-        for i in 1:n_points
-            if length(knn_idxs[i]) < 2
-                continue
-            end
-            j = knn_idxs[i][2]
-
-            M_proj = V[i]' * V[j]
-            sigmas = svdvals(M_proj)
-            sigmas = clamp.(sigmas, 0.0, 1.0)
-
-            for σ in sigmas
-                push!(angles, acos(σ) * (180.0 / π))
-            end
-        end
-
-        if isempty(angles)
-            push!(mean_angles, 0.0)
-            push!(std_angles, 0.0)
-            push!(all_angles_per_tau, Float64[])
-        else
-            push!(mean_angles, mean(angles))
-            push!(std_angles, std(angles))
-            push!(all_angles_per_tau, angles)
-        end
-    end
-
-    return (;
-        taus = wybrane_tau,
-        mean_angles,
-        std_angles,
-        all_angles_per_tau,
-    )
-end
-
-
 function to_2d_local_lpca(dataset::AbstractArray{<:Real, 3})
     dataset_2d = reshape(permutedims(dataset, (2, 1, 3)), :, size(dataset, 3))
     valid_rows = .!isnan.(dataset_2d[:, 1])
     return dataset_2d[valid_rows, :]
-end
-
-
-function dynamic_lpca_analysis(dataset::AbstractArray{<:Real, 3}, args...; kwargs...)
-    return dynamic_lpca_analysis(to_2d_local_lpca(dataset), args...; kwargs...)
-end
-function compute_lpca_entropy(dataset::AbstractArray{<:Real, 3}, args...; kwargs...)
-    return compute_lpca_entropy(to_2d_local_lpca(dataset), args...; kwargs...)
-end
-function compute_stable_lpca_collapse(dataset::AbstractArray{<:Real, 3}, args...; kwargs...)
-    return compute_stable_lpca_collapse(to_2d_local_lpca(dataset), args...; kwargs...)
-end
-function compute_lpca_principal_angles(dataset::AbstractArray{<:Real, 3}, args...; kwargs...)
-    return compute_lpca_principal_angles(to_2d_local_lpca(dataset), args...; kwargs...)
 end
 
 # ==============================================================================
@@ -550,10 +151,10 @@ Converts physical temperature T to dimensionless scaling variable w = tau * T.
 Works on 2D matrices [rows, features] and 3D arrays [trajectories, time, features].
 """
 function transform_to_dimensionless(
-    dataset::AbstractMatrix{<:Real};
-    time_index::Integer = 1,
-    temperature_index::Integer = 2
-)
+        dataset::AbstractMatrix{<:Real};
+        time_index::Integer = 1,
+        temperature_index::Integer = 2
+    )
     transformed = copy(dataset)
     for row in axes(transformed, 1)
         proper_time = transformed[row, time_index]
@@ -564,10 +165,10 @@ function transform_to_dimensionless(
 end
 
 function transform_to_dimensionless(
-    dataset::AbstractArray{<:Real, 3};
-    time_index::Integer = 1,
-    temperature_index::Integer = 2
-)
+        dataset::AbstractArray{<:Real, 3};
+        time_index::Integer = 1,
+        temperature_index::Integer = 2
+    )
     transformed = copy(dataset)
     for traj in axes(transformed, 1)
         for t in axes(transformed, 2)
@@ -584,20 +185,20 @@ Rescales the temperature column by `scale_factor` (e.g. 10 * T) to test scale in
 Works on 2D matrices and 3D arrays.
 """
 function rescale_temperature(
-    dataset::AbstractMatrix{<:Real},
-    scale_factor::Real;
-    temperature_index::Integer = 2
-)
+        dataset::AbstractMatrix{<:Real},
+        scale_factor::Real;
+        temperature_index::Integer = 2
+    )
     transformed = copy(dataset)
     transformed[:, temperature_index] .*= scale_factor
     return transformed
 end
 
 function rescale_temperature(
-    dataset::AbstractArray{<:Real, 3},
-    scale_factor::Real;
-    temperature_index::Integer = 2
-)
+        dataset::AbstractArray{<:Real, 3},
+        scale_factor::Real;
+        temperature_index::Integer = 2
+    )
     transformed = copy(dataset)
     transformed[:, :, temperature_index] .*= scale_factor
     return transformed
@@ -610,10 +211,10 @@ Creates mixed rescaled coordinates (e.g. 10w, 2A, B) or (10w, 2A).
 Works on 2D matrices and 3D arrays.
 """
 function create_mixed_scaled(
-    dimensionless_data::AbstractMatrix{<:Real};
-    w_scale::Real = 10.0,
-    a_scale::Real = 2.0
-)
+        dimensionless_data::AbstractMatrix{<:Real};
+        w_scale::Real = 10.0,
+        a_scale::Real = 2.0
+    )
     res = Matrix{Float64}(copy(dimensionless_data))
     res[:, 2] .*= w_scale
     res[:, 3] .*= a_scale
@@ -621,10 +222,10 @@ function create_mixed_scaled(
 end
 
 function create_mixed_scaled(
-    dimensionless_data::AbstractArray{<:Real, 3};
-    w_scale::Real = 10.0,
-    a_scale::Real = 2.0
-)
+        dimensionless_data::AbstractArray{<:Real, 3};
+        w_scale::Real = 10.0,
+        a_scale::Real = 2.0
+    )
     res = Array{Float64, 3}(copy(dimensionless_data))
     res[:, :, 2] .*= w_scale
     res[:, :, 3] .*= a_scale
@@ -665,14 +266,14 @@ load_hydro_dataset(path::AbstractString) = load_dataset(path)
     evaluate_k_pair(dataset, k_base, k_expanded, tau_values; feature_indices, normalize_method, tolerance)
 """
 function evaluate_k_pair(
-    dataset::AbstractMatrix{<:Real},
-    k_base::Integer,
-    k_expanded::Integer,
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max,
-    tolerance::Real = 0.01
-)
+        dataset::AbstractMatrix{<:Real},
+        k_base::Integer,
+        k_expanded::Integer,
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        tolerance::Real = 0.01
+    )
     slice_count = length(tau_values)
     mean_dimension_k1 = zeros(Float64, slice_count)
     std_dimension_k1 = zeros(Float64, slice_count)
@@ -710,7 +311,7 @@ function evaluate_k_pair(
         std_dimension_k1 = std_dimension_k1,
         mean_dimension_k2 = mean_dimension_k2,
         std_dimension_k2 = std_dimension_k2,
-        relative_difference = relative_difference
+        relative_difference = relative_difference,
     )
 end
 evaluate_k_pair(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = evaluate_k_pair(to_2d_local_lpca(dataset), args...; kwargs...)
@@ -719,13 +320,13 @@ evaluate_k_pair(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = evaluat
     evaluate_k_dependency(dataset, k_pairs, tau_values; feature_indices, normalize_method, tolerance)
 """
 function evaluate_k_dependency(
-    dataset::AbstractMatrix{<:Real},
-    k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max,
-    tolerance::Real = 0.01
-)
+        dataset::AbstractMatrix{<:Real},
+        k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        tolerance::Real = 0.01
+    )
     results = NamedTuple[]
     for (k_base, k_expanded) in k_pairs
         pair_result = evaluate_k_pair(
@@ -747,13 +348,13 @@ evaluate_k_dependency(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = e
     compare_normalization_methods(dataset, normalization_methods, k_pairs, tau_values; feature_indices, tolerance)
 """
 function compare_normalization_methods(
-    dataset::AbstractMatrix{<:Real},
-    normalization_methods::AbstractVector{Symbol},
-    k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    tolerance::Real = 0.01
-)
+        dataset::AbstractMatrix{<:Real},
+        normalization_methods::AbstractVector{Symbol},
+        k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        tolerance::Real = 0.01
+    )
     method_results = Dict{Symbol, Vector{NamedTuple}}()
     for method in normalization_methods
         method_results[method] = evaluate_k_dependency(
@@ -773,12 +374,12 @@ compare_normalization_methods(dataset::AbstractArray{<:Real, 3}, args...; kwargs
     test_coordinate_invariance(variant_datasets, k_neighbor, tau_values; normalize_method, tolerance)
 """
 function test_coordinate_invariance(
-    variant_datasets::NamedTuple,
-    k_neighbor::Integer,
-    tau_values::AbstractVector{<:Real};
-    normalize_method::Symbol = :max,
-    tolerance::Real = 0.01
-)
+        variant_datasets::NamedTuple,
+        k_neighbor::Integer,
+        tau_values::AbstractVector{<:Real};
+        normalize_method::Symbol = :max,
+        tolerance::Real = 0.01
+    )
     variant_keys = [:physical, :dimensionless, :scaled_10x]
     dimension_curves = Dict{Symbol, Vector{Float64}}()
 
@@ -807,7 +408,7 @@ function test_coordinate_invariance(
         tau_values = copy(tau_values),
         curves = dimension_curves,
         max_difference_scaled = max_difference_scaled,
-        max_difference_dimensionless = max_difference_dimensionless
+        max_difference_dimensionless = max_difference_dimensionless,
     )
 end
 
@@ -815,13 +416,13 @@ end
     analyze_dimension_distribution(dataset, k_neighbor, tau_values; feature_indices, normalize_method, tolerance)
 """
 function analyze_dimension_distribution(
-    dataset::AbstractMatrix{<:Real},
-    k_neighbor::Integer,
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max,
-    tolerance::Real = 0.01
-)
+        dataset::AbstractMatrix{<:Real},
+        k_neighbor::Integer,
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        tolerance::Real = 0.01
+    )
     embedding_dimension = length(feature_indices)
     slice_count = length(tau_values)
 
@@ -859,7 +460,7 @@ function analyze_dimension_distribution(
         median_dimension = median_dimension,
         q25_dimension = q25_dimension,
         q75_dimension = q75_dimension,
-        dimension_fractions = dimension_fractions
+        dimension_fractions = dimension_fractions,
     )
 end
 analyze_dimension_distribution(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = analyze_dimension_distribution(to_2d_local_lpca(dataset), args...; kwargs...)
@@ -868,13 +469,13 @@ analyze_dimension_distribution(dataset::AbstractArray{<:Real, 3}, args...; kwarg
     analyze_tolerance_sensitivity(dataset, tolerances, k_neighbor, tau_values; feature_indices, normalize_method)
 """
 function analyze_tolerance_sensitivity(
-    dataset::AbstractMatrix{<:Real},
-    tolerances::AbstractVector{<:Real},
-    k_neighbor::Integer,
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max
-)
+        dataset::AbstractMatrix{<:Real},
+        tolerances::AbstractVector{<:Real},
+        k_neighbor::Integer,
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max
+    )
     results = Dict{Float64, Vector{Float64}}()
     for tol_val in tolerances
         means = Float64[]
@@ -891,7 +492,7 @@ function analyze_tolerance_sensitivity(
         k_neighbor = k_neighbor,
         tolerances = copy(tolerances),
         tau_values = copy(tau_values),
-        results = results
+        results = results,
     )
 end
 analyze_tolerance_sensitivity(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = analyze_tolerance_sensitivity(to_2d_local_lpca(dataset), args...; kwargs...)
@@ -900,12 +501,12 @@ analyze_tolerance_sensitivity(dataset::AbstractArray{<:Real, 3}, args...; kwargs
     compute_parameterization_k_sweep(variant_datasets, k_values, tau_values; normalize_method, tolerance)
 """
 function compute_parameterization_k_sweep(
-    variant_datasets::NamedTuple,
-    k_values::AbstractVector{<:Integer},
-    tau_values::AbstractVector{<:Real};
-    normalize_method::Symbol = :max,
-    tolerance::Real = 0.01
-)
+        variant_datasets::NamedTuple,
+        k_values::AbstractVector{<:Integer},
+        tau_values::AbstractVector{<:Real};
+        normalize_method::Symbol = :max,
+        tolerance::Real = 0.01
+    )
     variant_candidates = (:physical, :dimensionless, :scaled_10x, :mixed_scaled)
     variant_keys = Tuple(k for k in variant_candidates if hasfield(typeof(variant_datasets), k))
 
@@ -950,7 +551,7 @@ function compute_parameterization_k_sweep(
         k_values = copy(k_values),
         tau_values = copy(tau_values),
         curves = curves,
-        envelopes = envelopes
+        envelopes = envelopes,
     )
 end
 
@@ -959,7 +560,7 @@ end
 
 Stores coordinates and corresponding local dimensions at a specific proper time.
 """
-struct PointwiseDimensionSlice{T<:Real}
+struct PointwiseDimensionSlice{T <: Real}
     tau::T
     coordinates::Matrix{T}
     dimensions::Vector{T}
@@ -967,17 +568,18 @@ struct PointwiseDimensionSlice{T<:Real}
 end
 
 """
-    compute_pointwise_dimensions(dataset, tau; feature_indices, feature_names, k_neighbor, tolerance, normalize_method)
+    compute_pointwise_dimensions(dataset, tau; feature_indices, feature_names, k_neighbor, tolerance, normalize_method, return_normalized)
 """
 function compute_pointwise_dimensions(
-    dataset::AbstractMatrix{<:Real},
-    tau::Real;
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    feature_names::AbstractVector{Symbol} = Symbol[],
-    k_neighbor::Integer = 24,
-    tolerance::Real = 0.01,
-    normalize_method::Symbol = :max
-)
+        dataset::AbstractMatrix{<:Real},
+        tau::Real;
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        feature_names::AbstractVector{Symbol} = Symbol[],
+        k_neighbor::Integer = 24,
+        tolerance::Real = 0.01,
+        normalize_method::Symbol = :max,
+        return_normalized::Bool = false
+    )
     tau_col = dataset[:, 1]
     rows = findall(isapprox.(tau_col, tau; atol = 1.0e-5))
     if isempty(rows)
@@ -990,14 +592,54 @@ function compute_pointwise_dimensions(
     normalized_features = apply_normalization(raw_features, normalize_method)
     local_dims = dims(normalized_features; k = k_neighbor, tol = tolerance)
 
+    coords_to_return = return_normalized ? normalized_features : raw_features
+
     return PointwiseDimensionSlice(
         Float64(tau),
-        raw_features,
+        coords_to_return,
         local_dims,
         isempty(feature_names) ? [Symbol("x$i") for i in 1:length(feature_indices)] : feature_names
     )
 end
 compute_pointwise_dimensions(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = compute_pointwise_dimensions(to_2d_local_lpca(dataset), args...; kwargs...)
+
+"""
+    compute_pointwise_pr(dataset, tau; feature_indices, feature_names, k, normalize_method, return_normalized, use_density_weights)
+"""
+function compute_pointwise_pr(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real;
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        feature_names::AbstractVector{Symbol} = Symbol[],
+        k::Integer = 24,
+        normalize_method::Symbol = :max,
+        return_normalized::Bool = false,
+        use_density_weights::Bool = true
+    )
+    tau_col = dataset[:, 1]
+    rows = findall(isapprox.(tau_col, tau; atol = 1.0e-5))
+    if isempty(rows)
+        nearest_idx = argmin(abs.(tau_col .- tau))
+        nearest_tau = tau_col[nearest_idx]
+        rows = findall(isapprox.(tau_col, nearest_tau; atol = 1.0e-5))
+    end
+
+    raw_features = Matrix{Float64}(dataset[rows, feature_indices])
+    normalized_features = apply_normalization(raw_features, normalize_method)
+    res = compute_local_pr_dimension(normalized_features; k = k, use_density_weights = use_density_weights)
+
+    coords_to_return = return_normalized ? normalized_features : raw_features
+
+    return (
+        tau = Float64(tau),
+        coordinates = coords_to_return,
+        pr_values = res.d_pr,
+        mean_pr = res.mean,
+        std_pr = res.std,
+        feature_names = isempty(feature_names) ? [Symbol("x$i") for i in 1:length(feature_indices)] : feature_names
+    )
+end
+compute_pointwise_pr(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = compute_pointwise_pr(to_2d_local_lpca(dataset), args...; kwargs...)
 
 # ==============================================================================
 # Soft-Weighted Local PCA (Sigmoidal Spectral Cutoff & Sampling Reliability)
@@ -1020,16 +662,16 @@ Calculates a continuous (soft) local dimension using a sigmoidal spectral cutoff
 and weighted statistics taking into account local sampling density and optional clock variable (w = tau * T).
 """
 function compute_soft_weighted_dimension(
-    points::AbstractMatrix{<:Real};
-    k::Integer = 16,
-    tol::Real = 0.02,
-    delta::Real = 0.005,
-    tau_val::Union{Real, Nothing} = nothing,
-    temp_col_idx::Integer = 1,
-    w_focus::Union{Real, Nothing} = nothing,
-    sigma_w::Union{Real, Nothing} = nothing,
-    use_density_weights::Bool = true
-)
+        points::AbstractMatrix{<:Real};
+        k::Integer = 16,
+        tol::Real = 0.02,
+        delta::Real = 0.005,
+        tau_val::Union{Real, Nothing} = nothing,
+        temp_col_idx::Integer = 1,
+        w_focus::Union{Real, Nothing} = nothing,
+        sigma_w::Union{Real, Nothing} = nothing,
+        use_density_weights::Bool = true
+    )
     N, D = size(points)
     eff_k = min(k, N - 1)
     @assert eff_k >= 2 "At least 3 points are needed to compute local PCA dimension."
@@ -1113,7 +755,7 @@ function compute_soft_weighted_dimension(
         mean = mean_dim,
         std = sqrt(max(0.0, var_dim)),
         d_soft = d_soft,
-        weights = weights
+        weights = weights,
     )
 end
 
@@ -1121,18 +763,18 @@ end
     scan_soft_weighted_dimension(dataset, tau_values; feature_indices, normalize_method, k, tol, delta, kwargs...) -> NamedTuple
 """
 function scan_soft_weighted_dimension(
-    dataset::AbstractMatrix{<:Real},
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max,
-    k::Integer = 16,
-    tol::Real = 0.02,
-    delta::Real = 0.005,
-    temp_col_in_features::Integer = 1,
-    w_focus::Union{Real, Nothing} = nothing,
-    sigma_w::Union{Real, Nothing} = nothing,
-    use_density_weights::Bool = true
-)
+        dataset::AbstractMatrix{<:Real},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        k::Integer = 16,
+        tol::Real = 0.02,
+        delta::Real = 0.005,
+        temp_col_in_features::Integer = 1,
+        w_focus::Union{Real, Nothing} = nothing,
+        sigma_w::Union{Real, Nothing} = nothing,
+        use_density_weights::Bool = true
+    )
     n_slices = length(tau_values)
     mean_dims = zeros(Float64, n_slices)
     std_dims = zeros(Float64, n_slices)
@@ -1168,7 +810,7 @@ function scan_soft_weighted_dimension(
         unweighted_hard_means = unweighted_hard_means,
         k = k,
         tol = tol,
-        delta = delta
+        delta = delta,
     )
 end
 scan_soft_weighted_dimension(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
@@ -1187,10 +829,10 @@ where C_i is the local covariance matrix evaluated on the k nearest neighbors.
 Does not require any spectral cutoff threshold (tol) or sigmoid parameter (delta).
 """
 function compute_local_pr_dimension(
-    points::AbstractMatrix{<:Real};
-    k::Integer = 16,
-    use_density_weights::Bool = true
-)
+        points::AbstractMatrix{<:Real};
+        k::Integer = 16,
+        use_density_weights::Bool = true
+    )
     N, D = size(points)
     eff_k = min(k, N - 1)
     @assert eff_k >= 2 "At least 3 points are needed to compute local PR dimension."
@@ -1262,7 +904,7 @@ function compute_local_pr_dimension(
         mean = mean_dim,
         std = sqrt(max(0.0, var_dim)),
         d_pr = d_pr,
-        weights = weights
+        weights = weights,
     )
 end
 
@@ -1272,13 +914,13 @@ end
 Scans local Participation Ratio (PR) dimension across proper time tau slices.
 """
 function scan_local_pr_dimension(
-    dataset::AbstractMatrix{<:Real},
-    tau_values::AbstractVector{<:Real};
-    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    normalize_method::Symbol = :max,
-    k::Integer = 16,
-    use_density_weights::Bool = true
-)
+        dataset::AbstractMatrix{<:Real},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        k::Integer = 16,
+        use_density_weights::Bool = true
+    )
     n_slices = length(tau_values)
     mean_dims = zeros(Float64, n_slices)
     std_dims = zeros(Float64, n_slices)
@@ -1304,11 +946,8 @@ function scan_local_pr_dimension(
         mean_dims = mean_dims,
         std_dims = std_dims,
         unweighted_means = unweighted_means,
-        k = k
+        k = k,
     )
 end
 scan_local_pr_dimension(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
     scan_local_pr_dimension(to_2d_local_lpca(dataset), args...; kwargs...)
-
-
-

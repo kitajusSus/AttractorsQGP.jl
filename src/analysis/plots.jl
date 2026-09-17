@@ -342,8 +342,8 @@ function plot_phase_space_grid_3d(
         limits = nothing,
         attractor = nothing,
         attractor_points::Int = 150,
-        azimuth::Real = 1.3,
-        elevation::Real = 0.15,
+        azimuth::Real = -1.2,
+        elevation::Real = 0.20,
         n_points_scatter::Int = 5000
     )
     set_publication_theme()
@@ -376,6 +376,7 @@ function plot_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
+            titlesize = 16,
             xlabel = xlbl,
             ylabel = ylbl,
             zlabel = zlbl,
@@ -383,7 +384,10 @@ function plot_phase_space_grid_3d(
             elevation = elevation,
             xlabeloffset = 40,
             ylabeloffset = 40,
-            zlabeloffset = 55
+            zlabeloffset = 50,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            zticks = LinearTicks(4)
         )
 
         if !isnothing(limits)
@@ -1979,7 +1983,8 @@ Plots average local dimension trajectories with shaded uncertainty bands between
 """
 function plot_k_dependency_bands(
     k_results::AbstractVector{<:NamedTuple};
-    figure_size::Tuple{Integer, Integer} = (900, 560)
+    figure_size::Tuple{Integer, Integer} = (900, 560),
+    tau_max::Union{Nothing, Real} = 6.0
 )
     set_publication_theme()
 
@@ -1991,6 +1996,10 @@ function plot_k_dependency_bands(
         xautolimitmargin = (0.0, 0.04),
         yautolimitmargin = (0.05, 0.05)
     )
+
+    if !isnothing(tau_max)
+        xlims!(axis, 0.0, Float64(tau_max))
+    end
 
     palette = [:crimson, :dodgerblue, :forestgreen, :darkorange, :purple, :goldenrod, :darkcyan]
 
@@ -2042,7 +2051,8 @@ Creates a multi-panel figure (2x2 grid) comparing normalization methods.
 """
 function plot_normalization_multipanel(
     method_results::Dict{Symbol, Vector{NamedTuple}};
-    methods_to_plot::AbstractVector{Symbol} = [:none, :max, :minmax, :zscore]
+    methods_to_plot::AbstractVector{Symbol} = [:none, :max, :minmax, :zscore],
+    tau_max::Union{Nothing, Real} = 6.0
 )
     set_publication_theme()
 
@@ -2065,6 +2075,10 @@ function plot_normalization_multipanel(
             xautolimitmargin = (0.0, 0.04),
             yautolimitmargin = (0.05, 0.05)
         )
+
+        if !isnothing(tau_max)
+            xlims!(axis, 0.0, Float64(tau_max))
+        end
 
         results_for_method = method_results[method]
         for (k_index, item) in enumerate(results_for_method)
@@ -2114,7 +2128,8 @@ function plot_normalization_direct_overlay(
     k_neighbor::Integer,
     tau_values::AbstractVector{<:Real};
     feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
-    tolerance::Real = 0.01
+    tolerance::Real = 0.01,
+    tau_max::Union{Nothing, Real} = 6.0
 )
     set_publication_theme()
 
@@ -2126,6 +2141,10 @@ function plot_normalization_direct_overlay(
         xautolimitmargin = (0.0, 0.04),
         yautolimitmargin = (0.05, 0.05)
     )
+
+    if !isnothing(tau_max)
+        xlims!(axis, 0.0, Float64(tau_max))
+    end
 
     labels = Dict(
         :none => L"\text{Raw Units}",
@@ -2165,6 +2184,74 @@ function plot_normalization_direct_overlay(
     axislegend(axis, position = :rt)
     return figure
 end
+
+"""
+    plot_pr_normalization_direct_overlay(dataset, normalization_methods, k_neighbor, tau_values; ...)
+"""
+function plot_pr_normalization_direct_overlay(
+    dataset::AbstractMatrix{<:Real},
+    normalization_methods::AbstractVector{Symbol},
+    k_neighbor::Integer,
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    tau_max::Union{Nothing, Real} = 6.0,
+    figure_size::Tuple{Integer, Integer} = (900, 560)
+)
+    set_publication_theme()
+
+    figure = Figure(size = figure_size)
+    axis = Axis(
+        figure[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local PR Dimension } \langle d_{\mathrm{PR}} \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    if !isnothing(tau_max)
+        xlims!(axis, 0.0, Float64(tau_max))
+    end
+
+    labels = Dict(
+        :none => L"\text{Raw Units}",
+        :max => L"\text{Abs-Max Scaling } ([-1, 1])",
+        :minmax => L"\text{Min-Max Scaling } ([0, 1])",
+        :zscore => L"\text{Z-Score Standardization}"
+    )
+    palette = [:crimson, :dodgerblue, :forestgreen, :darkorange]
+
+    for (index, method) in enumerate(normalization_methods)
+        means = Float64[]
+        for tau in tau_values
+            _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+            normalized_slice = apply_normalization(raw_slice, method)
+            res = compute_local_pr_dimension(normalized_slice; k = k_neighbor)
+            push!(means, res.mean)
+        end
+
+        color = palette[mod1(index, length(palette))]
+        lines!(
+            axis,
+            tau_values,
+            means;
+            linewidth = 3.0,
+            color = color,
+            label = get(labels, method, string(method))
+        )
+        scatter!(
+            axis,
+            tau_values,
+            means;
+            markersize = 8,
+            color = color
+        )
+    end
+
+    axislegend(axis, position = :rt)
+    return figure
+end
+plot_pr_normalization_direct_overlay(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
+    plot_pr_normalization_direct_overlay(to_2d_local_plots(dataset), args...; kwargs...)
 plot_normalization_direct_overlay(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
     plot_normalization_direct_overlay(to_2d_local_plots(dataset), args...; kwargs...)
 
@@ -2544,8 +2631,32 @@ function plot_tolerance_sensitivity(
     return fig
 end
 
+function _get_dim_color(d::Real, d_max::Real, colormap = :managua100)
+    if colormap isa Makie.PlotUtils.CategoricalColorGradient || colormap isa Makie.PlotUtils.ColorGradient
+        n = length(colormap)
+        if d_max <= 1.0
+            return colormap[1]
+        end
+        idx = clamp(round(Int, 1 + (Float64(d) - 1.0) / (Float64(d_max) - 1.0) * (n - 1)), 1, n)
+        return colormap[idx]
+    end
+    cs = if colormap isa Symbol
+        haskey(ColorSchemes.colorschemes, colormap) ? ColorSchemes.colorschemes[colormap] : ColorSchemes.colorschemes[:managua100]
+    elseif colormap isa ColorSchemes.ColorScheme
+        colormap
+    elseif colormap isa Makie.Reverse
+        inner = colormap.data
+        inner_cs = inner isa Symbol ? (haskey(ColorSchemes.colorschemes, inner) ? ColorSchemes.colorschemes[inner] : ColorSchemes.colorschemes[:managua100]) : inner
+        reverse(inner_cs)
+    else
+        ColorSchemes.colorschemes[:managua100]
+    end
+    t = d_max > 1.0 ? clamp((Float64(d) - 1.0) / (Float64(d_max) - 1.0), 0.0, 1.0) : 0.0
+    return ColorSchemes.get(cs, t)
+end
+
 """
-    plot_colored_phase_space_slice_2d(slice_data; x_col_idx, y_col_idx, x_label, y_label, attractor_curve, figure_size)
+    plot_colored_phase_space_slice_2d(slice_data; x_col_idx, y_col_idx, x_label, y_label, attractor_curve, colormap, figure_size)
 """
 function plot_colored_phase_space_slice_2d(
     slice_data::PointwiseDimensionSlice;
@@ -2554,6 +2665,7 @@ function plot_colored_phase_space_slice_2d(
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
     attractor_curve::Union{NamedTuple, Nothing} = nothing,
+    colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
     figure_size::Tuple{Integer, Integer} = (800, 600)
 )
     set_publication_theme()
@@ -2574,9 +2686,12 @@ function plot_colored_phase_space_slice_2d(
     y_values = slice_data.coordinates[:, y_col_idx]
     dim_values = slice_data.dimensions
 
+    c1 = _get_dim_color(1.0, 2.0, colormap)
+    c2 = _get_dim_color(2.0, 2.0, colormap)
+
     palette = Dict(
-        1.0 => (:crimson, L"d = 1"),
-        2.0 => (:dodgerblue, L"d = 2")
+        1.0 => (c1, L"d = 1"),
+        2.0 => (c2, L"d = 2")
     )
 
     if !isnothing(attractor_curve)
@@ -2612,8 +2727,9 @@ function plot_colored_phase_space_slice_2d(
     return figure
 end
 
+
 """
-    plot_colored_phase_space_grid_2d(dataset, tau_grid; feature_indices, x_label, y_label, k_neighbor, tolerance, normalize_method, figure_size)
+    plot_colored_phase_space_grid_2d(dataset, tau_grid; feature_indices, x_label, y_label, k_neighbor, tolerance, normalize_method, colormap, figure_size)
 """
 function plot_colored_phase_space_grid_2d(
     dataset::AbstractArray{<:Real},
@@ -2624,7 +2740,9 @@ function plot_colored_phase_space_grid_2d(
     k_neighbor::Integer = 24,
     tolerance::Real = 0.01,
     normalize_method::Symbol = :max,
-    figure_size::Tuple{Integer, Integer} = (1200, 1050)
+    return_normalized::Bool = false,
+    colormap = :managua100,
+    figure_size::Tuple{Integer, Integer} = (1400, 1200)
 )
     set_publication_theme()
 
@@ -2632,7 +2750,13 @@ function plot_colored_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    figure = Figure(size = figure_size, figure_padding = (50, 40, 35, 35))
+    colgap!(figure.layout, 35)
+    rowgap!(figure.layout, 35)
+
+    c2 = _get_dim_color(2.0, 2.0, colormap)
+    c1 = _get_dim_color(1.0, 2.0, colormap)
+    legend_placed = false
 
     for (index, tau) in enumerate(tau_grid)
         row = div(index - 1, column_count) + 1
@@ -2642,10 +2766,12 @@ function plot_colored_phase_space_grid_2d(
         axis = Axis(
             figure[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 18,
             xlabel = x_label,
             ylabel = y_label,
-            xautolimitmargin = (0.04, 0.04),
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            xautolimitmargin = (0.05, 0.05),
             yautolimitmargin = (0.05, 0.05)
         )
 
@@ -2655,7 +2781,8 @@ function plot_colored_phase_space_grid_2d(
             feature_indices = feature_indices,
             k_neighbor = k_neighbor,
             tolerance = tolerance,
-            normalize_method = normalize_method
+            normalize_method = normalize_method,
+            return_normalized = return_normalized
         )
 
         x_vals = slice_data.coordinates[:, 1]
@@ -2670,7 +2797,7 @@ function plot_colored_phase_space_grid_2d(
                 axis,
                 x_vals[mask_d2],
                 y_vals[mask_d2];
-                color = (:dodgerblue, 0.75),
+                color = (c2, 0.75),
                 markersize = 6,
                 strokewidth = 0.2,
                 strokecolor = (:black, 0.2),
@@ -2683,7 +2810,7 @@ function plot_colored_phase_space_grid_2d(
                 axis,
                 x_vals[mask_d1],
                 y_vals[mask_d1];
-                color = (:crimson, 0.85),
+                color = (c1, 0.85),
                 markersize = 6,
                 strokewidth = 0.2,
                 strokecolor = (:black, 0.2),
@@ -2691,8 +2818,12 @@ function plot_colored_phase_space_grid_2d(
             )
         end
 
-        if row == 1 && col == column_count
+        if !legend_placed && any(mask_d1) && any(mask_d2)
             axislegend(axis, position = :rt)
+            legend_placed = true
+        elseif !legend_placed && index == slice_count
+            axislegend(axis, position = :rt)
+            legend_placed = true
         end
     end
 
@@ -2700,7 +2831,7 @@ function plot_colored_phase_space_grid_2d(
 end
 
 """
-    plot_colored_phase_space_grid_hjsw_projections(dataset, tau_grid; k_neighbor, tolerance, normalize_method, figure_size)
+    plot_colored_phase_space_grid_hjsw_projections(dataset, tau_grid; k_neighbor, tolerance, normalize_method, colormap, figure_size)
 """
 function plot_colored_phase_space_grid_hjsw_projections(
     dataset::AbstractArray{<:Real},
@@ -2708,6 +2839,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
     k_neighbor::Integer = 24,
     tolerance::Real = 0.01,
     normalize_method::Symbol = :max,
+    colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
     figure_size::Tuple{Integer, Integer} = (1200, 1050)
 )
     set_publication_theme()
@@ -2717,6 +2849,11 @@ function plot_colored_phase_space_grid_hjsw_projections(
     row_count = ceil(Int, slice_count / column_count)
 
     figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+
+    c3 = _get_dim_color(3.0, 3.0, colormap)
+    c2 = _get_dim_color(2.0, 3.0, colormap)
+    c1 = _get_dim_color(1.0, 3.0, colormap)
+    legend_placed = false
 
     for (index, tau) in enumerate(tau_grid)
         row = div(index - 1, column_count) + 1
@@ -2755,7 +2892,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 axis,
                 a_vals[mask_d3],
                 b_vals[mask_d3];
-                color = (:dodgerblue, 0.60),
+                color = (c3, 0.60),
                 markersize = 5,
                 label = L"d = 3"
             )
@@ -2766,7 +2903,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 axis,
                 a_vals[mask_d2],
                 b_vals[mask_d2];
-                color = (:darkorange, 0.80),
+                color = (c2, 0.80),
                 markersize = 5,
                 label = L"d = 2"
             )
@@ -2777,14 +2914,18 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 axis,
                 a_vals[mask_d1],
                 b_vals[mask_d1];
-                color = (:crimson, 0.90),
+                color = (c1, 0.90),
                 markersize = 6,
                 label = L"d = 1"
             )
         end
 
-        if row == 1 && col == column_count
+        if !legend_placed && any(mask_d3) && any(mask_d2)
             axislegend(axis, position = :rt)
+            legend_placed = true
+        elseif !legend_placed && index == slice_count
+            axislegend(axis, position = :rt)
+            legend_placed = true
         end
     end
 
@@ -2792,15 +2933,16 @@ function plot_colored_phase_space_grid_hjsw_projections(
 end
 
 """
-    plot_colored_phase_space_slice_hjsw_3d(slice_data; x_label, y_label, z_label, azimuth, elevation, figure_size)
+    plot_colored_phase_space_slice_hjsw_3d(slice_data; x_label, y_label, z_label, azimuth, elevation, colormap, figure_size)
 """
 function plot_colored_phase_space_slice_hjsw_3d(
     slice_data::PointwiseDimensionSlice;
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    azimuth::Real = 1.3,
-    elevation::Real = 0.15,
+    azimuth::Real = -1.2,
+    elevation::Real = 0.20,
+    colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
     figure_size::Tuple{Integer, Integer} = (900, 750)
 )
     set_publication_theme()
@@ -2816,15 +2958,22 @@ function plot_colored_phase_space_slice_hjsw_3d(
         zlabel = z_label,
         azimuth = azimuth,
         elevation = elevation,
-        xlabeloffset = 45,
-        ylabeloffset = 45,
-        zlabeloffset = 60
+        xlabeloffset = 40,
+        ylabeloffset = 40,
+        zlabeloffset = 50,
+        xticks = LinearTicks(4),
+        yticks = LinearTicks(4),
+        zticks = LinearTicks(4)
     )
 
     t_vals = slice_data.coordinates[:, 1]
     a_vals = slice_data.coordinates[:, 2]
     b_vals = slice_data.coordinates[:, 3]
     d_vals = slice_data.dimensions
+
+    c3 = _get_dim_color(3.0, 3.0, colormap)
+    c2 = _get_dim_color(2.0, 3.0, colormap)
+    c1 = _get_dim_color(1.0, 3.0, colormap)
 
     mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
     mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
@@ -2836,7 +2985,7 @@ function plot_colored_phase_space_slice_hjsw_3d(
             t_vals[mask_d3],
             a_vals[mask_d3],
             b_vals[mask_d3];
-            color = (:dodgerblue, 0.50),
+            color = (c3, 0.50),
             markersize = 6,
             label = L"d = 3"
         )
@@ -2848,7 +2997,7 @@ function plot_colored_phase_space_slice_hjsw_3d(
             t_vals[mask_d2],
             a_vals[mask_d2],
             b_vals[mask_d2];
-            color = (:darkorange, 0.75),
+            color = (c2, 0.75),
             markersize = 6,
             label = L"d = 2"
         )
@@ -2860,7 +3009,7 @@ function plot_colored_phase_space_slice_hjsw_3d(
             t_vals[mask_d1],
             a_vals[mask_d1],
             b_vals[mask_d1];
-            color = (:crimson, 0.90),
+            color = (c1, 0.90),
             markersize = 8,
             label = L"d = 1"
         )
@@ -2868,6 +3017,107 @@ function plot_colored_phase_space_slice_hjsw_3d(
 
     axislegend(axis, position = :rt)
     return figure
+end
+
+"""
+    plot_colored_phase_space_grid_3d(dataset, tau_grid; feature_indices, x_label, y_label, z_label, k_neighbor, tolerance, normalize_method, colormap, azimuth, elevation, markersize, figure_size)
+"""
+function plot_colored_phase_space_grid_3d(
+    dataset::AbstractArray{<:Real},
+    tau_grid::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = [2, 3, 4],
+    x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
+    y_label::LaTeXString = L"\mathcal{A}",
+    z_label::LaTeXString = L"\mathcal{B}",
+    k_neighbor::Integer = 24,
+    tolerance::Real = 0.01,
+    normalize_method::Symbol = :max,
+    return_normalized::Bool = false,
+    colormap = :managua100,
+    azimuth::Real = 1.2,
+    elevation::Real = 0.20,
+    xreversed::Bool = true,
+    markersize::Real = 5,
+    figure_size::Union{Nothing, Tuple{Integer, Integer}} = nothing
+)
+    set_publication_theme()
+
+    slice_count = length(tau_grid)
+    column_count = min(3, slice_count)
+    row_count = ceil(Int, slice_count / column_count)
+
+    figsize = isnothing(figure_size) ? (580 * column_count + 120, 500 * row_count) : figure_size
+    fig = Figure(size = figsize, figure_padding = (65, 50, 45, 45))
+    colgap!(fig.layout, 40)
+    rowgap!(fig.layout, 40)
+
+    c3 = _get_dim_color(3.0, 3.0, colormap)
+    c2 = _get_dim_color(2.0, 3.0, colormap)
+    c1 = _get_dim_color(1.0, 3.0, colormap)
+    legend_placed = false
+
+    for (index, tau) in enumerate(tau_grid)
+        row = div(index - 1, column_count) + 1
+        col = mod1(index, column_count)
+
+        tau_str = string(round(tau, digits = 2))
+        ax = Axis3(
+            fig[row, col],
+            title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
+            titlesize = 17,
+            xlabel = x_label,
+            ylabel = y_label,
+            zlabel = z_label,
+            azimuth = azimuth,
+            elevation = elevation,
+            xreversed = xreversed,
+            xlabeloffset = 35,
+            ylabeloffset = 35,
+            zlabeloffset = 45,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            zticks = LinearTicks(4)
+        )
+
+        slice_data = compute_pointwise_dimensions(
+            dataset,
+            tau;
+            feature_indices = feature_indices,
+            k_neighbor = k_neighbor,
+            tolerance = tolerance,
+            normalize_method = normalize_method,
+            return_normalized = return_normalized
+        )
+
+        t_vals = slice_data.coordinates[:, 1]
+        a_vals = slice_data.coordinates[:, 2]
+        b_vals = slice_data.coordinates[:, 3]
+        d_vals = slice_data.dimensions
+
+        mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
+        mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
+        mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
+
+        if any(mask_d3)
+            scatter!(ax, t_vals[mask_d3], a_vals[mask_d3], b_vals[mask_d3]; color = (c3, 0.50), markersize = markersize, label = L"d = 3")
+        end
+        if any(mask_d2)
+            scatter!(ax, t_vals[mask_d2], a_vals[mask_d2], b_vals[mask_d2]; color = (c2, 0.75), markersize = markersize, label = L"d = 2")
+        end
+        if any(mask_d1)
+            scatter!(ax, t_vals[mask_d1], a_vals[mask_d1], b_vals[mask_d1]; color = (c1, 0.90), markersize = markersize + 1, label = L"d = 1")
+        end
+
+        if !legend_placed && any(mask_d3) && any(mask_d2)
+            axislegend(ax, position = :rt)
+            legend_placed = true
+        elseif !legend_placed && index == slice_count
+            axislegend(ax, position = :rt)
+            legend_placed = true
+        end
+    end
+
+    return fig
 end
 
 """
@@ -3242,7 +3492,7 @@ function plot_soft_phase_space_slice_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
     figure_size::Tuple{Integer, Integer} = (850, 600),
     kwargs...
@@ -3298,7 +3548,7 @@ function plot_soft_phase_space_grid_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
     figure_size::Tuple{Integer, Integer} = (1250, 1050),
     kwargs...
@@ -3369,7 +3619,7 @@ function plot_soft_phase_space_slice_3d(
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
     azimuth::Real = 1.3,
     elevation::Real = 0.15,
@@ -3496,7 +3746,7 @@ function plot_pr_phase_space_slice_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
     figure_size::Tuple{Integer, Integer} = (850, 600),
     kwargs...
@@ -3553,17 +3803,19 @@ function plot_pr_phase_space_slice_3d(
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
-    azimuth::Real = 1.3,
-    elevation::Real = 0.15,
+    azimuth::Real = -1.2,
+    elevation::Real = 0.20,
+    normalize_method::Symbol = :max,
+    return_normalized::Bool = false,
     figure_size::Tuple{Integer, Integer} = (950, 750),
     kwargs...
 )
     set_publication_theme()
 
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    norm_slice = apply_normalization(raw_slice, :max)
+    norm_slice = apply_normalization(raw_slice, normalize_method)
     res = compute_local_pr_dimension(norm_slice; kwargs...)
 
     tau_str = string(round(tau, digits = 2))
@@ -3577,16 +3829,20 @@ function plot_pr_phase_space_slice_3d(
         zlabel = z_label,
         azimuth = azimuth,
         elevation = elevation,
-        xlabeloffset = 45,
-        ylabeloffset = 45,
-        zlabeloffset = 60
+        xlabeloffset = 40,
+        ylabeloffset = 40,
+        zlabeloffset = 50,
+        xticks = LinearTicks(4),
+        yticks = LinearTicks(4),
+        zticks = LinearTicks(4)
     )
 
+    pts = return_normalized ? norm_slice : raw_slice
     sc = scatter!(
         ax,
-        raw_slice[:, 1],
-        raw_slice[:, 2],
-        raw_slice[:, 3];
+        pts[:, 1],
+        pts[:, 2],
+        pts[:, 3];
         color = res.d_pr,
         colormap = colormap,
         colorrange = color_limits,
@@ -3671,9 +3927,11 @@ function plot_pr_phase_space_grid_2d(
     feature_indices::AbstractVector{<:Integer} = [2, 3],
     x_label::LaTeXString = L"T\,[\mathrm{fm}^{-1}]",
     y_label::LaTeXString = L"\mathcal{A}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
-    figure_size::Tuple{Integer, Integer} = (1250, 1050),
+    normalize_method::Symbol = :max,
+    return_normalized::Bool = false,
+    figure_size::Tuple{Integer, Integer} = (1450, 1200),
     kwargs...
 )
     set_publication_theme()
@@ -3682,7 +3940,9 @@ function plot_pr_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    fig = Figure(size = figure_size, figure_padding = (50, 45, 35, 35))
+    colgap!(fig.layout, 35)
+    rowgap!(fig.layout, 35)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -3693,21 +3953,24 @@ function plot_pr_phase_space_grid_2d(
         ax = Axis(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 18,
             xlabel = x_label,
             ylabel = y_label,
-            xautolimitmargin = (0.04, 0.04),
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            xautolimitmargin = (0.05, 0.05),
             yautolimitmargin = (0.05, 0.05)
         )
 
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        norm_slice = apply_normalization(raw_slice, :max)
+        norm_slice = apply_normalization(raw_slice, normalize_method)
         res = compute_local_pr_dimension(norm_slice; kwargs...)
 
+        pts = return_normalized ? norm_slice : raw_slice
         sc = scatter!(
             ax,
-            raw_slice[:, 1],
-            raw_slice[:, 2];
+            pts[:, 1],
+            pts[:, 2];
             color = res.d_pr,
             colormap = colormap,
             colorrange = color_limits,
@@ -3806,7 +4069,7 @@ function plot_soft_phase_space_grid_3d(
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
     azimuth::Real = 1.3,
     elevation::Real = 0.15,
@@ -3882,11 +4145,14 @@ function plot_pr_phase_space_grid_3d(
     x_label::LaTeXString = L"T\,[\mathrm{MeV}]",
     y_label::LaTeXString = L"\mathcal{A}",
     z_label::LaTeXString = L"\mathcal{B}",
-    colormap::Symbol = :devon,
+    colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
-    azimuth::Real = 1.3,
-    elevation::Real = 0.15,
+    azimuth::Real = 1.2,
+    elevation::Real = 0.20,
+    xreversed::Bool = true,
     markersize::Real = 5,
+    normalize_method::Symbol = :max,
+    return_normalized::Bool = false,
     kwargs...
 )
     set_publication_theme()
@@ -3895,7 +4161,9 @@ function plot_pr_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = (500 * column_count + 100, 440 * row_count), figure_padding = (60, 40, 50, 40))
+    fig = Figure(size = (580 * column_count + 150, 500 * row_count), figure_padding = (65, 50, 45, 45))
+    colgap!(fig.layout, 40)
+    rowgap!(fig.layout, 40)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -3906,26 +4174,31 @@ function plot_pr_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 18,
+            titlesize = 17,
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
             azimuth = azimuth,
             elevation = elevation,
+            xreversed = xreversed,
             xlabeloffset = 35,
             ylabeloffset = 35,
-            zlabeloffset = 45
+            zlabeloffset = 45,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            zticks = LinearTicks(4)
         )
 
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        norm_slice = apply_normalization(raw_slice, :max)
+        norm_slice = apply_normalization(raw_slice, normalize_method)
         res = compute_local_pr_dimension(norm_slice; kwargs...)
 
+        pts = return_normalized ? norm_slice : raw_slice
         sc = scatter!(
             ax,
-            raw_slice[:, 1],
-            raw_slice[:, 2],
-            raw_slice[:, 3];
+            pts[:, 1],
+            pts[:, 2],
+            pts[:, 3];
             color = res.d_pr,
             colormap = colormap,
             colorrange = color_limits,

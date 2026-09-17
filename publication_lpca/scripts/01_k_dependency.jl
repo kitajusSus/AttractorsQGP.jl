@@ -35,8 +35,8 @@ function run_k_dependency_experiment(;
         (100, 200)
     ]
 
-    # 2. Select uniform evaluation proper times tau in [0.2, 10.0]
-    tau_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 7.5, 10.0]
+    # 2. Select uniform evaluation proper times tau in [0.2, 6.0] (cut at 6 fm)
+    tau_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 6.0]
 
     # -------------------------------------------------------------
     # A. Conformal MIS Analysis
@@ -55,7 +55,7 @@ function run_k_dependency_experiment(;
         normalize_method = :max,
         tolerance = 0.01
     )
-    fig_mis_phys = plot_k_dependency_bands(mis_physical_results)
+    fig_mis_phys = plot_k_dependency_bands(mis_physical_results; tau_max = 6.0)
     save(joinpath(output_directory, "k_dependency_mis_physical_coordinates_TA.pdf"), fig_mis_phys)
 
     # A2. MIS Dimensionless scaling coordinates (w, A)
@@ -68,7 +68,7 @@ function run_k_dependency_experiment(;
         normalize_method = :max,
         tolerance = 0.01
     )
-    fig_mis_dimless = plot_k_dependency_bands(mis_dimless_results)
+    fig_mis_dimless = plot_k_dependency_bands(mis_dimless_results; tau_max = 6.0)
     save(joinpath(output_directory, "k_dependency_mis_dimensionless_coordinates_wA.pdf"), fig_mis_dimless)
 
     # -------------------------------------------------------------
@@ -88,7 +88,7 @@ function run_k_dependency_experiment(;
         normalize_method = :max,
         tolerance = 0.01
     )
-    fig_hjsw_phys = plot_k_dependency_bands(hjsw_physical_results)
+    fig_hjsw_phys = plot_k_dependency_bands(hjsw_physical_results; tau_max = 6.0)
     save(joinpath(output_directory, "k_dependency_hjsw_physical_coordinates_TAB.pdf"), fig_hjsw_phys)
 
     # B2. HJSW Dimensionless coordinates (w, A, B)
@@ -101,7 +101,7 @@ function run_k_dependency_experiment(;
         normalize_method = :max,
         tolerance = 0.01
     )
-    fig_hjsw_dimless = plot_k_dependency_bands(hjsw_dimless_results)
+    fig_hjsw_dimless = plot_k_dependency_bands(hjsw_dimless_results; tau_max = 6.0)
     save(joinpath(output_directory, "k_dependency_hjsw_dimensionless_coordinates_wAB.pdf"), fig_hjsw_dimless)
 
     # -------------------------------------------------------------

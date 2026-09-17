@@ -28,7 +28,7 @@ function run_normalization_experiment(;
 
     normalization_methods = [:none, :max, :minmax, :zscore]
     k_pairs = [(6, 12), (12, 24), (24, 48), (100, 200)]
-    tau_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 7.5, 10.0]
+    tau_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 6.0]
 
     # -------------------------------------------------------------
     # A. Conformal MIS Normalization Tests
@@ -47,20 +47,38 @@ function run_normalization_experiment(;
     )
     fig_mis_multipanel = plot_normalization_multipanel(
         mis_norm_results;
-        methods_to_plot = normalization_methods
+        methods_to_plot = normalization_methods,
+        tau_max = 6.0
+    )
+    fig_mis_multipanel = plot_normalization_multipanel(
+        mis_norm_results;
+        methods_to_plot = normalization_methods,
+        tau_max = 6.0
     )
     save(joinpath(output_directory, "normalization_methods_multipanel_mis.pdf"), fig_mis_multipanel)
 
-    println("  - Computing direct overlay comparison at K=24 for MIS...")
+    println("  - Computing direct overlay comparison at K=24 for MIS (dims)...")
     fig_mis_overlay = plot_normalization_direct_overlay(
         mis_raw,
         normalization_methods,
         24,
         tau_grid;
         feature_indices = [2, 3],
-        tolerance = 0.01
+        tolerance = 0.01,
+        tau_max = 6.0
     )
     save(joinpath(output_directory, "normalization_methods_direct_overlay_fixed_k24_mis.pdf"), fig_mis_overlay)
+
+    println("  - Computing direct overlay comparison at K=24 for MIS (PR)...")
+    fig_mis_pr_overlay = plot_pr_normalization_direct_overlay(
+        mis_raw,
+        normalization_methods,
+        24,
+        tau_grid;
+        feature_indices = [2, 3],
+        tau_max = 6.0
+    )
+    save(joinpath(output_directory, "normalization_methods_direct_overlay_fixed_k24_mis_pr.pdf"), fig_mis_pr_overlay)
 
     # -------------------------------------------------------------
     # B. HJSW Normalization Tests
@@ -79,20 +97,33 @@ function run_normalization_experiment(;
     )
     fig_hjsw_multipanel = plot_normalization_multipanel(
         hjsw_norm_results;
-        methods_to_plot = normalization_methods
+        methods_to_plot = normalization_methods,
+        tau_max = 6.0
     )
     save(joinpath(output_directory, "normalization_methods_multipanel_hjsw.pdf"), fig_hjsw_multipanel)
 
-    println("  - Computing direct overlay comparison at K=24 for HJSW...")
+    println("  - Computing direct overlay comparison at K=24 for HJSW (dims)...")
     fig_hjsw_overlay = plot_normalization_direct_overlay(
         hjsw_raw,
         normalization_methods,
         24,
         tau_grid;
         feature_indices = [2, 3, 4],
-        tolerance = 0.01
+        tolerance = 0.01,
+        tau_max = 6.0
     )
     save(joinpath(output_directory, "normalization_methods_direct_overlay_fixed_k24_hjsw.pdf"), fig_hjsw_overlay)
+
+    println("  - Computing direct overlay comparison at K=24 for HJSW (PR)...")
+    fig_hjsw_pr_overlay = plot_pr_normalization_direct_overlay(
+        hjsw_raw,
+        normalization_methods,
+        24,
+        tau_grid;
+        feature_indices = [2, 3, 4],
+        tau_max = 6.0
+    )
+    save(joinpath(output_directory, "normalization_methods_direct_overlay_fixed_k24_hjsw_pr.pdf"), fig_hjsw_pr_overlay)
 
     # -------------------------------------------------------------
     # C. Save CSV Summary Table

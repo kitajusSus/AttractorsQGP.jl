@@ -28,8 +28,8 @@ function run_phase_space_grids_experiment(;
 
     println("=== Starting 05_phase_space_grids Experiment ===")
 
-    # Standard 9-slice grid corresponding to paper figures
-    grid_times = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 1.0, 2.5, 5.0]
+    # Standard 9-slice grid corresponding to paper figures (identical across all publication scripts)
+    grid_times = Float64[0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.5]
     k_eval = 24
     tol_eval = 0.01
 
@@ -40,16 +40,18 @@ function run_phase_space_grids_experiment(;
     mis_raw = load_hydro_dataset(mis_dataset_path)
     mis_variants = prepare_dataset_variants(mis_raw, :mis)
 
-    # A1. MIS Standard 2D Grids (PDF only)
+    # A1. MIS Standard 2D Grids
     println("  - Standard 2D grid for MIS (T, A)...")
     fig_mis_TA = plot_phase_space_grid(mis_raw, grid_times, :T, :A)
     save(joinpath(output_directory, "phase_space_grid_mis_coords_T_A.pdf"), fig_mis_TA)
+    save(joinpath(output_directory, "phase_space_grid_mis_coords_T_A.png"), fig_mis_TA)
 
     println("  - Standard 2D grid for MIS (w, A)...")
     fig_mis_wA = plot_phase_space_grid(mis_raw, grid_times, :tauT, :A)
     save(joinpath(output_directory, "phase_space_grid_mis_coords_w_A.pdf"), fig_mis_wA)
+    save(joinpath(output_directory, "phase_space_grid_mis_coords_w_A.png"), fig_mis_wA)
 
-    # A2. MIS Colored 2D Grids by Local Dimension (PDF only)
+    # A2. MIS Colored 2D Grids by Local Dimension
     println("  - Colored 2D grid for MIS (T, A) by local dimension d in {1, 2}...")
     fig_mis_colored_TA = plot_colored_phase_space_grid_2d(
         mis_variants.physical,
@@ -62,6 +64,7 @@ function run_phase_space_grids_experiment(;
         normalize_method = :max
     )
     save(joinpath(output_directory, "phase_space_colored_grid_mis_coords_T_A.pdf"), fig_mis_colored_TA)
+    save(joinpath(output_directory, "phase_space_colored_grid_mis_coords_T_A.png"), fig_mis_colored_TA)
 
     println("  - Colored 2D grid for MIS (w, A) by local dimension d in {1, 2}...")
     fig_mis_colored_wA = plot_colored_phase_space_grid_2d(

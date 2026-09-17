@@ -19,6 +19,7 @@ for sym in [
     :compare_normalization_methods,
     :plot_normalization_multipanel,
     :plot_normalization_direct_overlay,
+    :plot_pr_normalization_direct_overlay,
     :test_coordinate_invariance,
     :plot_coordinate_invariance,
     :plot_coordinate_invariance_single,
@@ -30,6 +31,7 @@ for sym in [
     :plot_tolerance_sensitivity,
     :PointwiseDimensionSlice,
     :compute_pointwise_dimensions,
+    :compute_pointwise_pr,
     :compute_soft_weighted_dimension,
     :scan_soft_weighted_dimension,
     :plot_soft_weighted_dimension,
@@ -37,9 +39,17 @@ for sym in [
     :plot_colored_phase_space_grid_2d,
     :plot_colored_phase_space_grid_hjsw_projections,
     :plot_colored_phase_space_slice_hjsw_3d,
+    :plot_colored_phase_space_grid_3d,
     :compute_parameterization_k_sweep,
     :plot_parameterization_focus_tripanel,
-    :plot_parameterization_focus_2x2
+    :plot_parameterization_focus_2x2,
+    :compute_local_pr_dimension,
+    :scan_local_pr_dimension,
+    :plot_local_pr_dimension,
+    :plot_pr_phase_space_slice_2d,
+    :plot_pr_phase_space_grid_2d,
+    :plot_pr_phase_space_slice_3d,
+    :plot_pr_phase_space_grid_3d
 ]
     @eval export $sym
     @eval const $sym = AttractorsQGP.$sym
