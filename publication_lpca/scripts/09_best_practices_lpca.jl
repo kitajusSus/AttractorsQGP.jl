@@ -1,13 +1,3 @@
-"""
-    Script 09: Best Practices in Local PCA for Attractors in QGP
-    Generates publication figures comparing:
-    1. Discrete dimension coloring dims() [separate PDF/PNG]
-    2. Continuous dimension coloring pr() (Participation Ratio) [separate PDF/PNG]
-    Across multiple data standardization/normalization schemes (:none, :max, :minmax, :zscore, dimensionless).
-    All multi-panel grids evaluated at identical proper time moments tau in [0.25, 2.5] fm/c.
-    All mean dimension evolution trajectories truncated at tau = 6.0 fm/c.
-"""
-
 using AttractorsQGP
 using CairoMakie
 using Printf
@@ -19,19 +9,18 @@ end
 using .PublicationLPCA
 
 function run_best_practices_lpca_experiment(;
-    mis_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "mis_matched_seed5.h5"),
-    hjsw_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
-    output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "best_practices_lpca"),
-    results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
-)
+        mis_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "mis_matched_seed5.h5"),
+        hjsw_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
+        output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "best_practices_lpca"),
+        results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
+    )
     mkpath(output_directory)
     mkpath(results_directory)
     CairoMakie.activate!()
 
     println("=== Starting 09_best_practices_lpca Experiment ===")
 
-    # Synchronized 9-panel time grid starting strictly at initial moment tau = 0.20 fm/c
-    grid_taus = Float64[0.20, 0.25, 0.35, 0.45, 0.55, 0.65, 0.80, 1.00, 2.50]
+    grid_taus = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 2.5]
     tau_evolution_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 6.0]
 
     k_eval = 24
@@ -44,7 +33,7 @@ function run_best_practices_lpca_experiment(;
         (name = "max", method = :max, return_norm = true, xlabel = L"T / T_{\mathrm{max}}", ylabel = L"\mathcal{A} / \mathcal{A}_{\mathrm{max}}", dataset_type = :physical),
         (name = "minmax", method = :minmax, return_norm = true, xlabel = L"T_{\mathrm{minmax}}", ylabel = L"\mathcal{A}_{\mathrm{minmax}}", dataset_type = :physical),
         (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"A_z", dataset_type = :physical),
-        (name = "dimensionless", method = :max, return_norm = false, xlabel = L"w = \tau T", ylabel = L"\mathcal{A}", dataset_type = :dimensionless)
+        (name = "dimensionless", method = :max, return_norm = false, xlabel = L"w = \tau T", ylabel = L"\mathcal{A}", dataset_type = :dimensionless),
     ]
 
     hjsw_norm_configs = [
@@ -52,7 +41,7 @@ function run_best_practices_lpca_experiment(;
         (name = "max", method = :max, return_norm = true, xlabel = L"T / T_{\mathrm{max}}", ylabel = L"\mathcal{A} / \mathcal{A}_{\mathrm{max}}", zlabel = L"\mathcal{B} / \mathcal{B}_{\mathrm{max}}", dataset_type = :physical),
         (name = "minmax", method = :minmax, return_norm = true, xlabel = L"T_{\mathrm{minmax}}", ylabel = L"\mathcal{A}_{\mathrm{minmax}}", zlabel = L"\mathcal{B}_{\mathrm{minmax}}", dataset_type = :physical),
         (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"A_z", zlabel = L"B_z", dataset_type = :physical),
-        (name = "dimensionless", method = :max, return_norm = false, xlabel = L"w = \tau T", ylabel = L"\mathcal{A}", zlabel = L"\mathcal{B}", dataset_type = :dimensionless)
+        (name = "dimensionless", method = :max, return_norm = false, xlabel = L"w = \tau T", ylabel = L"\mathcal{A}", zlabel = L"\mathcal{B}", dataset_type = :dimensionless),
     ]
 
     # =========================================================================
@@ -146,7 +135,7 @@ function run_best_practices_lpca_experiment(;
             return_normalized = cfg.return_norm,
             colormap = colormap_choice,
             azimuth = 1.2,
-            elevation = 0.20,
+            elevation = 0.2,
             xreversed = true
         )
         save(joinpath(output_directory, "grid_hjsw_$(cfg.name)_dims.pdf"), fig_hjsw_dims)
@@ -165,7 +154,7 @@ function run_best_practices_lpca_experiment(;
             return_normalized = cfg.return_norm,
             k = k_eval,
             azimuth = 1.2,
-            elevation = 0.20,
+            elevation = 0.2,
             xreversed = true
         )
         save(joinpath(output_directory, "grid_hjsw_$(cfg.name)_pr.pdf"), fig_hjsw_pr)
@@ -194,7 +183,7 @@ function run_best_practices_lpca_experiment(;
     )
     save(joinpath(output_directory, "mean_dimension_vs_tau_hjsw_pr.pdf"), fig_hjsw_ev_pr)
 
-    println("\n=== 09_best_practices_lpca Completed Successfully! ===")
+    return println("\n=== 09_best_practices_lpca Completed Successfully! ===")
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

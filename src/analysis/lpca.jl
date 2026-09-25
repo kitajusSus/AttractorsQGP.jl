@@ -345,6 +345,123 @@ end
 evaluate_k_dependency(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = evaluate_k_dependency(to_2d_local_lpca(dataset), args...; kwargs...)
 
 """
+    evaluate_k_pair_pr(dataset, k_base, k_expanded, tau_values; feature_indices, normalize_method, use_density_weights)
+"""
+function evaluate_k_pair_pr(
+        dataset::AbstractMatrix{<:Real},
+        k_base::Integer,
+        k_expanded::Integer,
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        use_density_weights::Bool = false
+    )
+    slice_count = length(tau_values)
+    mean_dimension_k1 = zeros(Float64, slice_count)
+    std_dimension_k1 = zeros(Float64, slice_count)
+    mean_dimension_k2 = zeros(Float64, slice_count)
+    std_dimension_k2 = zeros(Float64, slice_count)
+    relative_difference = zeros(Float64, slice_count)
+
+    for (index, tau) in enumerate(tau_values)
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        normalized_slice = apply_normalization(raw_slice, normalize_method)
+
+        res_k1 = compute_local_pr_dimension(
+            normalized_slice;
+            k = k_base,
+            use_density_weights = use_density_weights
+        )
+        res_k2 = compute_local_pr_dimension(
+            normalized_slice;
+            k = k_expanded,
+            use_density_weights = use_density_weights
+        )
+
+        mean_k1 = res_k1.mean
+        mean_k2 = res_k2.mean
+
+        mean_dimension_k1[index] = mean_k1
+        std_dimension_k1[index] = res_k1.std
+        mean_dimension_k2[index] = mean_k2
+        std_dimension_k2[index] = res_k2.std
+
+        if mean_k1 > 0
+            relative_difference[index] = ((mean_k2 - mean_k1) / mean_k1) * 100
+        else
+            relative_difference[index] = 0.0
+        end
+    end
+
+    return (
+        k_base = k_base,
+        k_expanded = k_expanded,
+        tau_values = copy(tau_values),
+        mean_dimension_k1 = mean_dimension_k1,
+        std_dimension_k1 = std_dimension_k1,
+        mean_dimension_k2 = mean_dimension_k2,
+        std_dimension_k2 = std_dimension_k2,
+        relative_difference = relative_difference,
+    )
+end
+evaluate_k_pair_pr(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = evaluate_k_pair_pr(to_2d_local_lpca(dataset), args...; kwargs...)
+
+"""
+    evaluate_k_dependency_pr(dataset, k_pairs, tau_values; feature_indices, normalize_method, use_density_weights)
+"""
+function evaluate_k_dependency_pr(
+        dataset::AbstractMatrix{<:Real},
+        k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :max,
+        use_density_weights::Bool = false
+    )
+    results = NamedTuple[]
+    for (k_base, k_expanded) in k_pairs
+        pair_result = evaluate_k_pair_pr(
+            dataset,
+            k_base,
+            k_expanded,
+            tau_values;
+            feature_indices = feature_indices,
+            normalize_method = normalize_method,
+            use_density_weights = use_density_weights
+        )
+        push!(results, pair_result)
+    end
+    return results
+end
+evaluate_k_dependency_pr(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = evaluate_k_dependency_pr(to_2d_local_lpca(dataset), args...; kwargs...)
+
+"""
+    compare_normalization_methods_pr(dataset, normalization_methods, k_pairs, tau_values; feature_indices, use_density_weights)
+"""
+function compare_normalization_methods_pr(
+        dataset::AbstractMatrix{<:Real},
+        normalization_methods::AbstractVector{Symbol},
+        k_pairs::AbstractVector{<:Tuple{<:Integer, <:Integer}},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        use_density_weights::Bool = false
+    )
+    method_results = Dict{Symbol, Vector{NamedTuple}}()
+    for method in normalization_methods
+        method_results[method] = evaluate_k_dependency_pr(
+            dataset,
+            k_pairs,
+            tau_values;
+            feature_indices = feature_indices,
+            normalize_method = method,
+            use_density_weights = use_density_weights
+        )
+    end
+    return method_results
+end
+compare_normalization_methods_pr(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = compare_normalization_methods_pr(to_2d_local_lpca(dataset), args...; kwargs...)
+
+
+"""
     compare_normalization_methods(dataset, normalization_methods, k_pairs, tau_values; feature_indices, tolerance)
 """
 function compare_normalization_methods(
@@ -464,6 +581,122 @@ function analyze_dimension_distribution(
     )
 end
 analyze_dimension_distribution(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = analyze_dimension_distribution(to_2d_local_lpca(dataset), args...; kwargs...)
+
+"""
+    sweep_k_dimensions_over_tau(dataset, k_range, tau_values; feature_indices, normalize_method, tolerance)
+
+Computes the dependency of both discrete dimension dims() and continuous Participation Ratio pr()
+as a function of neighborhood size K in k_range, across multiple proper time slices tau_values.
+Returns a NamedTuple containing Dict{Float64, NamedTuple} mapping each tau to:
+(k_values, mean_dims, std_dims, mean_pr, std_pr).
+"""
+function sweep_k_dimensions_over_tau(
+        dataset::AbstractMatrix{<:Real},
+        k_range::AbstractVector{<:Integer},
+        tau_values::AbstractVector{<:Real};
+        feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize_method::Symbol = :zscore,
+        tolerance::Real = 0.01
+    )
+    max_k = maximum(k_range)
+    D = length(feature_indices)
+    k_vec = collect(k_range)
+    n_k = length(k_vec)
+    
+    results = Dict{Float64, NamedTuple}()
+    
+    # Preallocate buffers for speed
+    pts_buf = zeros(Float64, max_k + 1, D)
+    cov_buf = zeros(Float64, D, D)
+
+    for tau in tau_values
+        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        normalized_slice = apply_normalization(raw_slice, normalize_method)
+        N = size(normalized_slice, 1)
+
+        tree = KDTree(transpose(normalized_slice))
+        all_idxs, _ = knn(tree, transpose(normalized_slice), max_k + 1, true)
+
+        mean_dims = zeros(Float64, n_k)
+        std_dims = zeros(Float64, n_k)
+        mean_pr = zeros(Float64, n_k)
+        std_pr = zeros(Float64, n_k)
+
+        d_vals = zeros(Float64, N)
+        pr_vals = zeros(Float64, N)
+
+        for (k_idx, k) in enumerate(k_vec)
+            for i in 1:N
+                nbrs = @view all_idxs[i][1:(k + 1)]
+                for c in 1:D
+                    m_c = 0.0
+                    for r in 1:(k + 1)
+                        pts_buf[r, c] = normalized_slice[nbrs[r], c]
+                        m_c += pts_buf[r, c]
+                    end
+                    m_c /= (k + 1)
+                    for r in 1:(k + 1)
+                        pts_buf[r, c] -= m_c
+                    end
+                end
+
+                local_pts = @view pts_buf[1:(k + 1), :]
+                mul!(cov_buf, transpose(local_pts), local_pts)
+                cov_buf ./= k
+
+                evals = eigvals!(Symmetric(cov_buf))
+                for j in 1:D
+                    evals[j] = max(evals[j], 0.0)
+                end
+                sum_e = sum(evals)
+                sum_e2 = sum(evals .^ 2)
+
+                # Discrete dims
+                if sum_e > 0.0
+                    cnt = 0
+                    for j in 1:D
+                        if (evals[j] / sum_e) > tolerance
+                            cnt += 1
+                        end
+                    end
+                    d_vals[i] = cnt
+                else
+                    d_vals[i] = 1.0
+                end
+
+                # Continuous PR
+                if sum_e2 > 0.0
+                    pr_vals[i] = (sum_e^2) / sum_e2
+                else
+                    pr_vals[i] = 1.0
+                end
+            end
+
+            mean_dims[k_idx] = mean(d_vals)
+            std_dims[k_idx] = std(d_vals)
+            mean_pr[k_idx] = mean(pr_vals)
+            std_pr[k_idx] = std(pr_vals)
+        end
+
+        results[Float64(tau)] = (
+            k_values = copy(k_vec),
+            mean_dims = mean_dims,
+            std_dims = std_dims,
+            mean_pr = mean_pr,
+            std_pr = std_pr
+        )
+    end
+
+    return (
+        k_values = copy(k_vec),
+        tau_values = copy(tau_values),
+        results = results,
+        normalize_method = normalize_method,
+        tolerance = tolerance
+    )
+end
+sweep_k_dimensions_over_tau(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
+    sweep_k_dimensions_over_tau(to_2d_local_lpca(dataset), args...; kwargs...)
 
 """
     analyze_tolerance_sensitivity(dataset, tolerances, k_neighbor, tau_values; feature_indices, normalize_method)

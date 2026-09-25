@@ -18,33 +18,25 @@ using CSV
 using DataFrames
 
 function run_participation_ratio_experiment(;
-    mis_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "mis_matched_seed5.h5"),
-    hjsw_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
-    output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "participation_ratio"),
-    results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
-)
+        mis_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "mis_matched_seed5.h5"),
+        hjsw_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
+        output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "participation_ratio"),
+        results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
+    )
     mkpath(output_directory)
     mkpath(results_directory)
     CairoMakie.activate!()
-
-    println("=================================================================")
-    println("   STARTING EXPERIMENT 08: COMPREHENSIVE PARTICIPATION RATIO     ")
-    println("=================================================================")
-
     tau_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.25, 1.5, 2.0, 2.5, 3.5, 5.0, 7.5, 10.0]
-    k_fixed = 20
+    k_fixed = 9
     k_test_values = [10, 20, 40, 80, 160]
-    grid_taus = [0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.5]
-    slice_taus = [0.25, 0.65, 2.50]
+    grid_taus = [0.2, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.5]
+    slice_taus = [0.2, 0.65, 2.5]
 
     # =========================================================================
     # Part 1: Conformal MIS Model (Initial 2D: T, A)
     # =========================================================================
     println("\n[1/4] Processing Conformal MIS Model (Initial 2D Phase Space)...")
     mis_raw = load_hydro_dataset(mis_dataset_path)
-
-    # 1A. Direct PR vs Soft LPCA comparison
-    println("  - Computing PR vs Soft LPCA...")
     mis_pr_scan = scan_local_pr_dimension(mis_raw, tau_grid; feature_indices = [2, 3], normalize_method = :max, k = k_fixed)
     mis_soft_scan = scan_soft_weighted_dimension(mis_raw, tau_grid; feature_indices = [2, 3], normalize_method = :max, k = k_fixed, tol = 0.02, delta = 0.005)
 

@@ -1983,6 +1983,7 @@ Plots average local dimension trajectories with shaded uncertainty bands between
 """
 function plot_k_dependency_bands(
     k_results::AbstractVector{<:NamedTuple};
+    ylabel::Union{LaTeXString, String} = L"\text{Mean Local Dimension } \langle d \rangle",
     figure_size::Tuple{Integer, Integer} = (900, 560),
     tau_max::Union{Nothing, Real} = 6.0
 )
@@ -1992,7 +1993,7 @@ function plot_k_dependency_bands(
     axis = Axis(
         figure[1, 1],
         xlabel = L"\tau\,[\mathrm{fm}/c]",
-        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        ylabel = ylabel,
         xautolimitmargin = (0.0, 0.04),
         yautolimitmargin = (0.05, 0.05)
     )
@@ -2044,6 +2045,302 @@ function plot_k_dependency_bands(
 end
 
 """
+    plot_k_sweep_curve(sweep_data; method = :dims, tau_subset = nothing, palette = ..., figure_size = (920, 580), y_limits = nothing, title = nothing)
+
+Plots the detected dimension as a function of neighborhood size K in [K_min, K_max].
+Each colored curve corresponds to a different proper time tau slice with a shaded ±1σ band.
+method can be :dims (for discrete dims()) or :pr (for Participation Ratio pr()).
+"""
+function plot_k_sweep_curve(
+    sweep_data::NamedTuple;
+    method::Symbol = :dims,
+    tau_subset::Union{Nothing, AbstractVector{<:Real}} = nothing,
+    palette = [:dodgerblue, :darkcyan, :forestgreen, :goldenrod, :darkorange, :crimson, :purple, :darkmagenta],
+    figure_size::Tuple{Integer, Integer} = (920, 580),
+    y_limits::Union{Nothing, Tuple{<:Real, <:Real}} = nothing,
+    title::Union{Nothing, LaTeXString, String} = nothing
+)
+    set_publication_theme()
+
+    k_values = sweep_data.k_values
+    all_taus = sweep_data.tau_values
+    taus_to_plot = isnothing(tau_subset) ? all_taus : tau_subset
+
+    y_label = method === :dims ?
+        L"\text{Local Dimension } \langle d \rangle" :
+        L"\text{Participation Ratio Dimension } \langle d_{\mathrm{PR}} \rangle"
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\text{Neighborhood Size } K",
+        ylabel = y_label,
+        title = isnothing(title) ? "" : title,
+        titlesize = 18,
+        xautolimitmargin = (0.02, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    if !isnothing(y_limits)
+        ylims!(ax, Float64(y_limits[1]), Float64(y_limits[2]))
+    end
+    xlims!(ax, Float64(minimum(k_values)), Float64(maximum(k_values)))
+
+    for (t_idx, tau) in enumerate(taus_to_plot)
+        tau_key = Float64(tau)
+        found_key = nothing
+        for k in keys(sweep_data.results)
+            if isapprox(k, tau_key; atol = 1e-4)
+                found_key = k
+                break
+            end
+        end
+        if found_key === nothing
+            continue
+        end
+
+        res = sweep_data.results[found_key]
+        color = palette[mod1(t_idx, length(palette))]
+
+        mean_vec = method === :dims ? res.mean_dims : res.mean_pr
+        std_vec = method === :dims ? res.std_dims : res.std_pr
+
+        band!(
+            ax,
+            k_values,
+            mean_vec .- std_vec,
+            mean_vec .+ std_vec;
+            color = (color, 0.20)
+        )
+
+        tau_str = string(round(tau, digits = 2))
+        lines!(
+            ax,
+            k_values,
+            mean_vec;
+            color = color,
+            linewidth = 2.5,
+            label = L"\tau = %$(tau_str)\,\mathrm{fm}/c"
+        )
+    end
+
+    axislegend(ax, position = :rt, nbanks = 2, labelsize = 13)
+    return fig
+end
+
+"""
+    plot_d_vs_tau_multi_k(sweep_data; method = :dims, k_subset = [3, 5, 8, 12, 16, 24, 35, 50], tau_max = 6.0, palette = ..., figure_size = (920, 580), title = nothing)
+
+Plots dimension trajectories d(tau) across proper time tau where the color of each curve represents the neighborhood size K.
+Includes shaded ±1σ ensemble dispersion bands for each K.
+method can be :dims (for discrete dims()) or :pr (for Participation Ratio pr()).
+"""
+function plot_d_vs_tau_multi_k(
+    sweep_data::NamedTuple;
+    method::Symbol = :dims,
+    k_subset::AbstractVector{<:Integer} = [3, 5, 8, 12, 16, 24, 35, 50],
+    tau_max::Union{Nothing, Real} = 6.0,
+    palette = [:navy, :dodgerblue, :darkcyan, :forestgreen, :goldenrod, :darkorange, :crimson, :darkmagenta],
+    figure_size::Tuple{Integer, Integer} = (920, 580),
+    show_std::Bool = true,
+    linewidth::Real = 2.5,
+    y_limits::Union{Nothing, Tuple{<:Real, <:Real}} = nothing,
+    title::Union{Nothing, LaTeXString, String} = nothing
+)
+    set_publication_theme()
+
+    tau_values = sort(collect(sweep_data.tau_values))
+    if !isnothing(tau_max)
+        tau_values = filter(t -> t <= tau_max + 1e-4, tau_values)
+    end
+    n_tau = length(tau_values)
+
+    all_k = sweep_data.k_values
+    available_k = filter(k -> k in all_k, k_subset)
+
+    y_label = method === :dims ?
+        L"\text{Local Dimension } \langle d \rangle" :
+        L"\text{Participation Ratio Dimension } \langle d_{\mathrm{PR}} \rangle"
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = y_label,
+        title = isnothing(title) ? "" : title,
+        titlesize = 18,
+        xautolimitmargin = (0.01, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    if !isnothing(tau_max)
+        xlims!(ax, 0.0, Float64(tau_max))
+    end
+    if !isnothing(y_limits)
+        ylims!(ax, Float64(y_limits[1]), Float64(y_limits[2]))
+    end
+
+    for (idx_k, k_val) in enumerate(available_k)
+        color = palette[mod1(idx_k, length(palette))]
+        k_pos = findfirst(==(k_val), all_k)
+
+        mean_traj = zeros(Float64, n_tau)
+        std_traj = zeros(Float64, n_tau)
+
+        for (t_idx, tau) in enumerate(tau_values)
+            tau_key = Float64(tau)
+            found_key = nothing
+            for k in keys(sweep_data.results)
+                if isapprox(k, tau_key; atol = 1e-4)
+                    found_key = k
+                    break
+                end
+            end
+            if found_key !== nothing
+                res = sweep_data.results[found_key]
+                mean_traj[t_idx] = method === :dims ? res.mean_dims[k_pos] : res.mean_pr[k_pos]
+                std_traj[t_idx] = method === :dims ? res.std_dims[k_pos] : res.std_pr[k_pos]
+            end
+        end
+
+        if show_std
+            band!(
+                ax,
+                tau_values,
+                mean_traj .- std_traj,
+                mean_traj .+ std_traj;
+                color = (color, 0.18)
+            )
+        end
+
+        lines!(
+            ax,
+            tau_values,
+            mean_traj;
+            color = color,
+            linewidth = linewidth,
+            label = L"K = %$(k_val)"
+        )
+    end
+
+    axislegend(ax, position = :rt, nbanks = 2, labelsize = 13)
+    return fig
+end
+
+"""
+    plot_d_vs_tau_k_averaged(sweep_data; method = :dims, tau_max = 6.0, figure_size = (920, 580), show_envelope = true, show_std = true, title = nothing)
+
+Plots the mean local dimension d(tau) averaged across the entire neighborhood range K in [K_min, K_max],
+with a shaded band representing the standard deviation over all chosen K (quantifying K-selection uncertainty).
+Optional envelope shows [min_K, max_K].
+"""
+function plot_d_vs_tau_k_averaged(
+    sweep_data::NamedTuple;
+    method::Symbol = :dims,
+    tau_max::Union{Nothing, Real} = 6.0,
+    line_color = :dodgerblue,
+    figure_size::Tuple{Integer, Integer} = (920, 580),
+    show_std::Bool = true,
+    show_envelope::Bool = true,
+    linewidth::Real = 2.8,
+    y_limits::Union{Nothing, Tuple{<:Real, <:Real}} = nothing,
+    title::Union{Nothing, LaTeXString, String} = nothing
+)
+    set_publication_theme()
+
+    tau_values = sort(collect(sweep_data.tau_values))
+    if !isnothing(tau_max)
+        tau_values = filter(t -> t <= tau_max + 1e-4, tau_values)
+    end
+    n_tau = length(tau_values)
+
+    min_k = minimum(sweep_data.k_values)
+    max_k = maximum(sweep_data.k_values)
+
+    mean_k_traj = zeros(Float64, n_tau)
+    std_k_traj = zeros(Float64, n_tau)
+    min_k_traj = zeros(Float64, n_tau)
+    max_k_traj = zeros(Float64, n_tau)
+
+    for (t_idx, tau) in enumerate(tau_values)
+        tau_key = Float64(tau)
+        found_key = nothing
+        for k in keys(sweep_data.results)
+            if isapprox(k, tau_key; atol = 1e-4)
+                found_key = k
+                break
+            end
+        end
+        if found_key !== nothing
+            res = sweep_data.results[found_key]
+            vals = method === :dims ? res.mean_dims : res.mean_pr
+            mean_k_traj[t_idx] = mean(vals)
+            std_k_traj[t_idx] = std(vals)
+            min_k_traj[t_idx] = minimum(vals)
+            max_k_traj[t_idx] = maximum(vals)
+        end
+    end
+
+    y_label = method === :dims ?
+        L"\text{Averaged Dimension } \langle d \rangle_{K}" :
+        L"\text{Averaged PR Dimension } \langle d_{\mathrm{PR}} \rangle_{K}"
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = y_label,
+        title = isnothing(title) ? "" : title,
+        titlesize = 18,
+        xautolimitmargin = (0.01, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    if !isnothing(tau_max)
+        xlims!(ax, 0.0, Float64(tau_max))
+    end
+    if !isnothing(y_limits)
+        ylims!(ax, Float64(y_limits[1]), Float64(y_limits[2]))
+    end
+
+    if show_envelope
+        band!(
+            ax,
+            tau_values,
+            min_k_traj,
+            max_k_traj;
+            color = (line_color, 0.12),
+            label = L"\text{Envelope } [\min_K, \max_K]"
+        )
+    end
+
+    if show_std
+        band!(
+            ax,
+            tau_values,
+            mean_k_traj .- std_k_traj,
+            mean_k_traj .+ std_k_traj;
+            color = (line_color, 0.28),
+            label = L"\pm 1\sigma_K \text{ (uncertainty over } K \in [%$(min_k), %$(max_k)])"
+        )
+    end
+
+    lines!(
+        ax,
+        tau_values,
+        mean_k_traj;
+        color = line_color,
+        linewidth = linewidth,
+        label = L"\text{Mean over } K \in [%$(min_k), %$(max_k)]"
+    )
+
+    if show_envelope || show_std
+        axislegend(ax, position = :rt, labelsize = 13)
+    end
+    return fig
+end
+
+"""
     plot_normalization_multipanel(method_results; methods_to_plot)
     plot_normalization_multipanel(dataset; methods, k_pairs, tau_values, ...)
 
@@ -2052,6 +2349,7 @@ Creates a multi-panel figure (2x2 grid) comparing normalization methods.
 function plot_normalization_multipanel(
     method_results::Dict{Symbol, Vector{NamedTuple}};
     methods_to_plot::AbstractVector{Symbol} = [:none, :max, :minmax, :zscore],
+    ylabel::Union{LaTeXString, String} = L"\text{Mean Local Dimension } \langle d \rangle",
     tau_max::Union{Nothing, Real} = 6.0
 )
     set_publication_theme()
@@ -2071,7 +2369,7 @@ function plot_normalization_multipanel(
         axis = Axis(
             figure[row, col],
             xlabel = L"\tau\,[\mathrm{fm}/c]",
-            ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+            ylabel = ylabel,
             xautolimitmargin = (0.0, 0.04),
             yautolimitmargin = (0.05, 0.05)
         )
@@ -3873,6 +4171,8 @@ function plot_pr_k_dependency(
     feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
     palette = [:dodgerblue, :forestgreen, :darkorange, :crimson, :purple],
     figure_size::Tuple{Integer, Integer} = (900, 560),
+    tau_max::Union{Nothing, Real} = 6.0,
+    use_density_weights::Bool = false,
     kwargs...
 )
     set_publication_theme()
@@ -3886,6 +4186,10 @@ function plot_pr_k_dependency(
         yautolimitmargin = (0.05, 0.05)
     )
 
+    if !isnothing(tau_max)
+        xlims!(ax, 0.0, Float64(tau_max))
+    end
+
     for (k_idx, k_val) in enumerate(k_values)
         color = palette[mod1(k_idx, length(palette))]
         scan_res = scan_local_pr_dimension(
@@ -3893,6 +4197,7 @@ function plot_pr_k_dependency(
             tau_values;
             feature_indices = feature_indices,
             k = k_val,
+            use_density_weights = use_density_weights,
             kwargs...
         )
 
@@ -3908,6 +4213,73 @@ function plot_pr_k_dependency(
             ax,
             tau_values,
             scan_res.mean_dims;
+            color = color,
+            linewidth = 2.5,
+            label = L"K = %$(k_val)"
+        )
+    end
+
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+"""
+    plot_dims_k_dependency(dataset, k_values, tau_values; feature_indices, palette, figure_size, tau_max, tolerance, normalize_method, show_std_band, kwargs...)
+
+Plots hard threshold dimension trajectories <d>(tau) across multiple neighbor counts K with shaded ±1σ bands.
+"""
+function plot_dims_k_dependency(
+    dataset::AbstractArray{<:Real},
+    k_values::AbstractVector{<:Integer},
+    tau_values::AbstractVector{<:Real};
+    feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+    palette = [:dodgerblue, :forestgreen, :darkorange, :crimson, :purple],
+    figure_size::Tuple{Integer, Integer} = (900, 560),
+    tau_max::Union{Nothing, Real} = 6.0,
+    tolerance::Real = 0.01,
+    normalize_method::Symbol = :max,
+    show_std_band::Bool = true
+)
+    set_publication_theme()
+
+    fig = Figure(size = figure_size)
+    ax = Axis(
+        fig[1, 1],
+        xlabel = L"\tau\,[\mathrm{fm}/c]",
+        ylabel = L"\text{Mean Local Dimension } \langle d \rangle",
+        xautolimitmargin = (0.0, 0.04),
+        yautolimitmargin = (0.05, 0.05)
+    )
+
+    if !isnothing(tau_max)
+        xlims!(ax, 0.0, Float64(tau_max))
+    end
+
+    for (k_idx, k_val) in enumerate(k_values)
+        color = palette[mod1(k_idx, length(palette))]
+        dist_res = analyze_dimension_distribution(
+            dataset,
+            k_val,
+            tau_values;
+            feature_indices = feature_indices,
+            normalize_method = normalize_method,
+            tolerance = tolerance
+        )
+
+        if show_std_band
+            band!(
+                ax,
+                tau_values,
+                dist_res.mean_dimension .- dist_res.std_dimension,
+                dist_res.mean_dimension .+ dist_res.std_dimension;
+                color = (color, 0.20)
+            )
+        end
+
+        lines!(
+            ax,
+            tau_values,
+            dist_res.mean_dimension;
             color = color,
             linewidth = 2.5,
             label = L"K = %$(k_val)"
