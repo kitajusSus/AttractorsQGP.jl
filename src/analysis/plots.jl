@@ -2,6 +2,7 @@ using ColorSchemes
 using GLMakie
 import GLMakie: Axis
 using LaTeXStrings
+using Random
 # import Colors
 
 
@@ -2964,7 +2965,9 @@ function plot_colored_phase_space_slice_2d(
     y_label::LaTeXString = L"\mathcal{A}",
     attractor_curve::Union{NamedTuple, Nothing} = nothing,
     colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
-    figure_size::Tuple{Integer, Integer} = (800, 600)
+    figure_size::Tuple{Integer, Integer} = (800, 600),
+    n_plot::Integer = 5_000,
+    seed::Integer = 42
 )
     set_publication_theme()
 
@@ -2973,7 +2976,7 @@ function plot_colored_phase_space_slice_2d(
     axis = Axis(
         figure[1, 1],
         title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-        titlesize = 20,
+        titlesize = 24,
         xlabel = x_label,
         ylabel = y_label,
         xautolimitmargin = (0.04, 0.04),
@@ -2983,6 +2986,15 @@ function plot_colored_phase_space_slice_2d(
     x_values = slice_data.coordinates[:, x_col_idx]
     y_values = slice_data.coordinates[:, y_col_idx]
     dim_values = slice_data.dimensions
+
+    n_pts = length(dim_values)
+    if n_pts > n_plot
+        rng = MersenneTwister(seed)
+        p_idxs = randperm(rng, n_pts)[1:n_plot]
+        x_values = x_values[p_idxs]
+        y_values = y_values[p_idxs]
+        dim_values = dim_values[p_idxs]
+    end
 
     c1 = _get_dim_color(1.0, 2.0, colormap)
     c2 = _get_dim_color(2.0, 2.0, colormap)
@@ -3040,7 +3052,10 @@ function plot_colored_phase_space_grid_2d(
     normalize_method::Symbol = :max,
     return_normalized::Bool = false,
     colormap = :managua100,
-    figure_size::Tuple{Integer, Integer} = (1400, 1200)
+    figure_size::Tuple{Integer, Integer} = (1400, 1200),
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42
 )
     set_publication_theme()
 
@@ -3048,9 +3063,9 @@ function plot_colored_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figure = Figure(size = figure_size, figure_padding = (50, 40, 35, 35))
-    colgap!(figure.layout, 35)
-    rowgap!(figure.layout, 35)
+    figure = Figure(size = (figure_size[1] + 150, figure_size[2] + 100), figure_padding = (60, 50, 45, 45))
+    colgap!(figure.layout, 55)
+    rowgap!(figure.layout, 55)
 
     c2 = _get_dim_color(2.0, 2.0, colormap)
     c1 = _get_dim_color(1.0, 2.0, colormap)
@@ -3064,7 +3079,7 @@ function plot_colored_phase_space_grid_2d(
         axis = Axis(
             figure[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 18,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
             xticks = LinearTicks(4),
@@ -3080,12 +3095,23 @@ function plot_colored_phase_space_grid_2d(
             k_neighbor = k_neighbor,
             tolerance = tolerance,
             normalize_method = normalize_method,
-            return_normalized = return_normalized
+            return_normalized = return_normalized,
+            max_points = n_calc,
+            seed = seed + index
         )
 
         x_vals = slice_data.coordinates[:, 1]
         y_vals = slice_data.coordinates[:, 2]
         d_vals = slice_data.dimensions
+
+        n_pts = length(d_vals)
+        if n_pts > n_plot
+            rng_plot = MersenneTwister(seed + index + 10_000)
+            plot_idxs = randperm(rng_plot, n_pts)[1:n_plot]
+            x_vals = x_vals[plot_idxs]
+            y_vals = y_vals[plot_idxs]
+            d_vals = d_vals[plot_idxs]
+        end
 
         mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
         mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
@@ -3138,7 +3164,10 @@ function plot_colored_phase_space_grid_hjsw_projections(
     tolerance::Real = 0.01,
     normalize_method::Symbol = :max,
     colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
-    figure_size::Tuple{Integer, Integer} = (1200, 1050)
+    figure_size::Tuple{Integer, Integer} = (1200, 1050),
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42
 )
     set_publication_theme()
 
@@ -3174,12 +3203,23 @@ function plot_colored_phase_space_grid_hjsw_projections(
             feature_indices = [2, 3, 4],
             k_neighbor = k_neighbor,
             tolerance = tolerance,
-            normalize_method = normalize_method
+            normalize_method = normalize_method,
+            max_points = n_calc,
+            seed = seed + index
         )
 
         a_vals = slice_data.coordinates[:, 2]
         b_vals = slice_data.coordinates[:, 3]
         d_vals = slice_data.dimensions
+
+        n_pts = length(d_vals)
+        if n_pts > n_plot
+            rng_plot = MersenneTwister(seed + index + 10_000)
+            plot_idxs = randperm(rng_plot, n_pts)[1:n_plot]
+            a_vals = a_vals[plot_idxs]
+            b_vals = b_vals[plot_idxs]
+            d_vals = d_vals[plot_idxs]
+        end
 
         mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
         mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
@@ -3241,7 +3281,9 @@ function plot_colored_phase_space_slice_hjsw_3d(
     azimuth::Real = -1.2,
     elevation::Real = 0.20,
     colormap::Union{Symbol, ColorSchemes.ColorScheme, Makie.Reverse} = :managua100,
-    figure_size::Tuple{Integer, Integer} = (900, 750)
+    figure_size::Tuple{Integer, Integer} = (900, 750),
+    n_plot::Integer = 5_000,
+    seed::Integer = 42
 )
     set_publication_theme()
 
@@ -3250,7 +3292,7 @@ function plot_colored_phase_space_slice_hjsw_3d(
     axis = Axis3(
         figure[1, 1],
         title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-        titlesize = 20,
+        titlesize = 24,
         xlabel = x_label,
         ylabel = y_label,
         zlabel = z_label,
@@ -3268,6 +3310,16 @@ function plot_colored_phase_space_slice_hjsw_3d(
     a_vals = slice_data.coordinates[:, 2]
     b_vals = slice_data.coordinates[:, 3]
     d_vals = slice_data.dimensions
+
+    n_pts = length(d_vals)
+    if n_pts > n_plot
+        rng = MersenneTwister(seed)
+        p_idxs = randperm(rng, n_pts)[1:n_plot]
+        t_vals = t_vals[p_idxs]
+        a_vals = a_vals[p_idxs]
+        b_vals = b_vals[p_idxs]
+        d_vals = d_vals[p_idxs]
+    end
 
     c3 = _get_dim_color(3.0, 3.0, colormap)
     c2 = _get_dim_color(2.0, 3.0, colormap)
@@ -3336,7 +3388,10 @@ function plot_colored_phase_space_grid_3d(
     elevation::Real = 0.20,
     xreversed::Bool = true,
     markersize::Real = 5,
-    figure_size::Union{Nothing, Tuple{Integer, Integer}} = nothing
+    figure_size::Union{Nothing, Tuple{Integer, Integer}} = nothing,
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42
 )
     set_publication_theme()
 
@@ -3344,10 +3399,10 @@ function plot_colored_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figsize = isnothing(figure_size) ? (580 * column_count + 120, 500 * row_count) : figure_size
-    fig = Figure(size = figsize, figure_padding = (65, 50, 45, 45))
-    colgap!(fig.layout, 40)
-    rowgap!(fig.layout, 40)
+    figsize = isnothing(figure_size) ? (620 * column_count + 120, 540 * row_count) : figure_size
+    fig = Figure(size = figsize, figure_padding = (70, 55, 50, 50))
+    colgap!(fig.layout, 55)
+    rowgap!(fig.layout, 55)
 
     c3 = _get_dim_color(3.0, 3.0, colormap)
     c2 = _get_dim_color(2.0, 3.0, colormap)
@@ -3362,7 +3417,7 @@ function plot_colored_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
@@ -3384,13 +3439,25 @@ function plot_colored_phase_space_grid_3d(
             k_neighbor = k_neighbor,
             tolerance = tolerance,
             normalize_method = normalize_method,
-            return_normalized = return_normalized
+            return_normalized = return_normalized,
+            max_points = n_calc,
+            seed = seed + index
         )
 
         t_vals = slice_data.coordinates[:, 1]
         a_vals = slice_data.coordinates[:, 2]
         b_vals = slice_data.coordinates[:, 3]
         d_vals = slice_data.dimensions
+
+        n_pts = length(d_vals)
+        if n_pts > n_plot
+            rng_plot = MersenneTwister(seed + index + 10_000)
+            plot_idxs = randperm(rng_plot, n_pts)[1:n_plot]
+            t_vals = t_vals[plot_idxs]
+            a_vals = a_vals[plot_idxs]
+            b_vals = b_vals[plot_idxs]
+            d_vals = d_vals[plot_idxs]
+        end
 
         mask_d3 = isapprox.(d_vals, 3.0; atol = 0.1)
         mask_d2 = isapprox.(d_vals, 2.0; atol = 0.1)
@@ -4046,21 +4113,42 @@ function plot_pr_phase_space_slice_2d(
     y_label::LaTeXString = L"\mathcal{A}",
     colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+    normalize_method::Symbol = :max,
+    return_normalized::Bool = false,
     figure_size::Tuple{Integer, Integer} = (850, 600),
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42,
     kwargs...
 )
     set_publication_theme()
 
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    norm_slice = apply_normalization(raw_slice, :max)
+    n_pts = size(raw_slice, 1)
+    calc_slice = raw_slice
+    if n_pts > n_calc
+        rng_calc = MersenneTwister(seed)
+        calc_slice = raw_slice[randperm(rng_calc, n_pts)[1:n_calc], :]
+    end
+    norm_slice = apply_normalization(calc_slice, normalize_method)
     res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+    pts = return_normalized ? norm_slice : calc_slice
+    d_vals = res.d_pr
+    n_sub = size(pts, 1)
+    if n_sub > n_plot
+        rng_plot = MersenneTwister(seed + 10_000)
+        p_idxs = randperm(rng_plot, n_sub)[1:n_plot]
+        pts = pts[p_idxs, :]
+        d_vals = d_vals[p_idxs]
+    end
 
     tau_str = string(round(tau, digits = 2))
     fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
     ax = Axis(
         fig[1, 1],
         title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-        titlesize = 19,
+        titlesize = 24,
         xlabel = x_label,
         ylabel = y_label,
         xautolimitmargin = (0.04, 0.04),
@@ -4069,9 +4157,9 @@ function plot_pr_phase_space_slice_2d(
 
     sc = scatter!(
         ax,
-        raw_slice[:, 1],
-        raw_slice[:, 2];
-        color = res.d_pr,
+        pts[:, 1],
+        pts[:, 2];
+        color = d_vals,
         colormap = colormap,
         colorrange = color_limits,
         markersize = 7,
@@ -4108,20 +4196,39 @@ function plot_pr_phase_space_slice_3d(
     normalize_method::Symbol = :max,
     return_normalized::Bool = false,
     figure_size::Tuple{Integer, Integer} = (950, 750),
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42,
     kwargs...
 )
     set_publication_theme()
 
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    norm_slice = apply_normalization(raw_slice, normalize_method)
+    n_pts = size(raw_slice, 1)
+    calc_slice = raw_slice
+    if n_pts > n_calc
+        rng_calc = MersenneTwister(seed)
+        calc_slice = raw_slice[randperm(rng_calc, n_pts)[1:n_calc], :]
+    end
+    norm_slice = apply_normalization(calc_slice, normalize_method)
     res = compute_local_pr_dimension(norm_slice; kwargs...)
+
+    pts = return_normalized ? norm_slice : calc_slice
+    d_vals = res.d_pr
+    n_sub = size(pts, 1)
+    if n_sub > n_plot
+        rng_plot = MersenneTwister(seed + 10_000)
+        p_idxs = randperm(rng_plot, n_sub)[1:n_plot]
+        pts = pts[p_idxs, :]
+        d_vals = d_vals[p_idxs]
+    end
 
     tau_str = string(round(tau, digits = 2))
     fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
     ax = Axis3(
         fig[1, 1],
         title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-        titlesize = 20,
+        titlesize = 24,
         xlabel = x_label,
         ylabel = y_label,
         zlabel = z_label,
@@ -4135,13 +4242,12 @@ function plot_pr_phase_space_slice_3d(
         zticks = LinearTicks(4)
     )
 
-    pts = return_normalized ? norm_slice : raw_slice
     sc = scatter!(
         ax,
         pts[:, 1],
         pts[:, 2],
         pts[:, 3];
-        color = res.d_pr,
+        color = d_vals,
         colormap = colormap,
         colorrange = color_limits,
         markersize = 6
@@ -4304,6 +4410,9 @@ function plot_pr_phase_space_grid_2d(
     normalize_method::Symbol = :max,
     return_normalized::Bool = false,
     figure_size::Tuple{Integer, Integer} = (1450, 1200),
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42,
     kwargs...
 )
     set_publication_theme()
@@ -4312,9 +4421,9 @@ function plot_pr_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = figure_size, figure_padding = (50, 45, 35, 35))
-    colgap!(fig.layout, 35)
-    rowgap!(fig.layout, 35)
+    fig = Figure(size = (figure_size[1] + 150, figure_size[2] + 100), figure_padding = (60, 50, 45, 45))
+    colgap!(fig.layout, 55)
+    rowgap!(fig.layout, 55)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -4325,7 +4434,7 @@ function plot_pr_phase_space_grid_2d(
         ax = Axis(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 18,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
             xticks = LinearTicks(4),
@@ -4335,15 +4444,28 @@ function plot_pr_phase_space_grid_2d(
         )
 
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        norm_slice = apply_normalization(raw_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_slice; kwargs...)
+        n_total = size(raw_slice, 1)
+        rng_calc = MersenneTwister(seed + index)
+        calc_idxs = n_total > n_calc ? randperm(rng_calc, n_total)[1:n_calc] : collect(1:n_total)
+        raw_calc = raw_slice[calc_idxs, :]
 
-        pts = return_normalized ? norm_slice : raw_slice
+        norm_calc = apply_normalization(raw_calc, normalize_method)
+        res = compute_local_pr_dimension(norm_calc; kwargs...)
+
+        pts = return_normalized ? norm_calc : raw_calc
+        n_avail = size(pts, 1)
+        plot_idxs = if n_avail > n_plot
+            rng_plot = MersenneTwister(seed + index + 10_000)
+            randperm(rng_plot, n_avail)[1:n_plot]
+        else
+            collect(1:n_avail)
+        end
+
         sc = scatter!(
             ax,
-            pts[:, 1],
-            pts[:, 2];
-            color = res.d_pr,
+            pts[plot_idxs, 1],
+            pts[plot_idxs, 2];
+            color = res.d_pr[plot_idxs],
             colormap = colormap,
             colorrange = color_limits,
             markersize = 6,
@@ -4525,6 +4647,9 @@ function plot_pr_phase_space_grid_3d(
     markersize::Real = 5,
     normalize_method::Symbol = :max,
     return_normalized::Bool = false,
+    n_calc::Integer = 10_000,
+    n_plot::Integer = 5_000,
+    seed::Integer = 42,
     kwargs...
 )
     set_publication_theme()
@@ -4533,9 +4658,9 @@ function plot_pr_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = (580 * column_count + 150, 500 * row_count), figure_padding = (65, 50, 45, 45))
-    colgap!(fig.layout, 40)
-    rowgap!(fig.layout, 40)
+    fig = Figure(size = (620 * column_count + 160, 540 * row_count), figure_padding = (70, 55, 50, 50))
+    colgap!(fig.layout, 55)
+    rowgap!(fig.layout, 55)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -4546,7 +4671,7 @@ function plot_pr_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
@@ -4562,16 +4687,29 @@ function plot_pr_phase_space_grid_3d(
         )
 
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        norm_slice = apply_normalization(raw_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_slice; kwargs...)
+        n_total = size(raw_slice, 1)
+        rng_calc = MersenneTwister(seed + index)
+        calc_idxs = n_total > n_calc ? randperm(rng_calc, n_total)[1:n_calc] : collect(1:n_total)
+        raw_calc = raw_slice[calc_idxs, :]
 
-        pts = return_normalized ? norm_slice : raw_slice
+        norm_calc = apply_normalization(raw_calc, normalize_method)
+        res = compute_local_pr_dimension(norm_calc; kwargs...)
+
+        pts = return_normalized ? norm_calc : raw_calc
+        n_avail = size(pts, 1)
+        plot_idxs = if n_avail > n_plot
+            rng_plot = MersenneTwister(seed + index + 10_000)
+            randperm(rng_plot, n_avail)[1:n_plot]
+        else
+            collect(1:n_avail)
+        end
+
         sc = scatter!(
             ax,
-            pts[:, 1],
-            pts[:, 2],
-            pts[:, 3];
-            color = res.d_pr,
+            pts[plot_idxs, 1],
+            pts[plot_idxs, 2],
+            pts[plot_idxs, 3];
+            color = res.d_pr[plot_idxs],
             colormap = colormap,
             colorrange = color_limits,
             markersize = markersize

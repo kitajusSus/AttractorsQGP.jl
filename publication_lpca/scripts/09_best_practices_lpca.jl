@@ -10,9 +10,13 @@ using .PublicationLPCA
 
 function run_best_practices_lpca_experiment(;
         mis_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "mis_matched_seed5.h5"),
-        hjsw_dataset_path::AbstractString = joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
+        hjsw_dataset_path::AbstractString = isfile(joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_10000_points.h5")) ?
+            joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_10000_points.h5") :
+            joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
         output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "best_practices_lpca"),
-        results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
+        results_directory::AbstractString = joinpath(@__DIR__, "..", "results"),
+        n_calc::Integer = 10_000,
+        n_plot::Integer = 5_000
     )
     mkpath(output_directory)
     mkpath(results_directory)
@@ -20,8 +24,8 @@ function run_best_practices_lpca_experiment(;
 
     println("=== Starting 09_best_practices_lpca Experiment ===")
 
-    grid_taus = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 2.5]
-    tau_evolution_grid = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 1.5, 2.0, 2.5, 3.5, 5.0, 6.0]
+    grid_taus = Float64[0.20, 0.25, 0.35, 0.45, 0.55, 0.65, 0.80, 1.00, 2.50]
+    tau_evolution_grid = Float64[round(t, digits = 2) for t in vcat(collect(0.20:0.05:1.50), collect(1.65:0.15:5.00))]
 
     k_eval = 24
     tol_eval = 0.01
@@ -66,7 +70,9 @@ function run_best_practices_lpca_experiment(;
             tolerance = tol_eval,
             normalize_method = cfg.method,
             return_normalized = cfg.return_norm,
-            colormap = colormap_choice
+            colormap = colormap_choice,
+            n_calc = n_calc,
+            n_plot = n_plot
         )
         save(joinpath(output_directory, "grid_mis_$(cfg.name)_dims.pdf"), fig_dims)
 
@@ -81,7 +87,9 @@ function run_best_practices_lpca_experiment(;
             color_limits = (1.0, 2.0),
             normalize_method = cfg.method,
             return_normalized = cfg.return_norm,
-            k = k_eval
+            k = k_eval,
+            n_calc = n_calc,
+            n_plot = n_plot
         )
         save(joinpath(output_directory, "grid_mis_$(cfg.name)_pr.pdf"), fig_pr)
     end
@@ -96,7 +104,7 @@ function run_best_practices_lpca_experiment(;
         tau_evolution_grid;
         feature_indices = [2, 3],
         tolerance = tol_eval,
-        tau_max = 6.0
+        tau_max = 5.0
     )
     save(joinpath(output_directory, "mean_dimension_vs_tau_mis_dims.pdf"), fig_mis_ev_dims)
 
@@ -106,7 +114,7 @@ function run_best_practices_lpca_experiment(;
         k_eval,
         tau_evolution_grid;
         feature_indices = [2, 3],
-        tau_max = 6.0
+        tau_max = 5.0
     )
     save(joinpath(output_directory, "mean_dimension_vs_tau_mis_pr.pdf"), fig_mis_ev_pr)
 
@@ -136,7 +144,9 @@ function run_best_practices_lpca_experiment(;
             colormap = colormap_choice,
             azimuth = 1.2,
             elevation = 0.2,
-            xreversed = true
+            xreversed = true,
+            n_calc = n_calc,
+            n_plot = n_plot
         )
         save(joinpath(output_directory, "grid_hjsw_$(cfg.name)_dims.pdf"), fig_hjsw_dims)
 
@@ -155,7 +165,9 @@ function run_best_practices_lpca_experiment(;
             k = k_eval,
             azimuth = 1.2,
             elevation = 0.2,
-            xreversed = true
+            xreversed = true,
+            n_calc = n_calc,
+            n_plot = n_plot
         )
         save(joinpath(output_directory, "grid_hjsw_$(cfg.name)_pr.pdf"), fig_hjsw_pr)
     end
@@ -169,7 +181,7 @@ function run_best_practices_lpca_experiment(;
         tau_evolution_grid;
         feature_indices = [2, 3, 4],
         tolerance = tol_eval,
-        tau_max = 6.0
+        tau_max = 5.0
     )
     save(joinpath(output_directory, "mean_dimension_vs_tau_hjsw_dims.pdf"), fig_hjsw_ev_dims)
 
@@ -179,7 +191,7 @@ function run_best_practices_lpca_experiment(;
         k_eval,
         tau_evolution_grid;
         feature_indices = [2, 3, 4],
-        tau_max = 6.0
+        tau_max = 5.0
     )
     save(joinpath(output_directory, "mean_dimension_vs_tau_hjsw_pr.pdf"), fig_hjsw_ev_pr)
 

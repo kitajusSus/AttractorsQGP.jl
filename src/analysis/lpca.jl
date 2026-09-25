@@ -1,5 +1,6 @@
 using LinearAlgebra
 using NearestNeighbors
+using Random
 using Statistics
 
 
@@ -596,7 +597,9 @@ function sweep_k_dimensions_over_tau(
         tau_values::AbstractVector{<:Real};
         feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
         normalize_method::Symbol = :zscore,
-        tolerance::Real = 0.01
+        tolerance::Real = 0.01,
+        max_points::Union{Nothing, Integer} = 10_000,
+        seed::Integer = 42
     )
     max_k = maximum(k_range)
     D = length(feature_indices)
@@ -609,8 +612,13 @@ function sweep_k_dimensions_over_tau(
     pts_buf = zeros(Float64, max_k + 1, D)
     cov_buf = zeros(Float64, D, D)
 
-    for tau in tau_values
+    for (t_idx, tau) in enumerate(tau_values)
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+        if !isnothing(max_points) && size(raw_slice, 1) > max_points
+            rng = MersenneTwister(seed + t_idx)
+            rows = randperm(rng, size(raw_slice, 1))[1:max_points]
+            raw_slice = raw_slice[rows, :]
+        end
         normalized_slice = apply_normalization(raw_slice, normalize_method)
         N = size(normalized_slice, 1)
 
@@ -811,7 +819,9 @@ function compute_pointwise_dimensions(
         k_neighbor::Integer = 24,
         tolerance::Real = 0.01,
         normalize_method::Symbol = :max,
-        return_normalized::Bool = false
+        return_normalized::Bool = false,
+        max_points::Union{Nothing, Integer} = nothing,
+        seed::Integer = 42
     )
     tau_col = dataset[:, 1]
     rows = findall(isapprox.(tau_col, tau; atol = 1.0e-5))
@@ -819,6 +829,11 @@ function compute_pointwise_dimensions(
         nearest_idx = argmin(abs.(tau_col .- tau))
         nearest_tau = tau_col[nearest_idx]
         rows = findall(isapprox.(tau_col, nearest_tau; atol = 1.0e-5))
+    end
+
+    if !isnothing(max_points) && length(rows) > max_points
+        rng = MersenneTwister(seed)
+        rows = rows[randperm(rng, length(rows))[1:max_points]]
     end
 
     raw_features = Matrix{Float64}(dataset[rows, feature_indices])
@@ -837,7 +852,7 @@ end
 compute_pointwise_dimensions(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = compute_pointwise_dimensions(to_2d_local_lpca(dataset), args...; kwargs...)
 
 """
-    compute_pointwise_pr(dataset, tau; feature_indices, feature_names, k, normalize_method, return_normalized, use_density_weights)
+    compute_pointwise_pr(dataset, tau; feature_indices, feature_names, k, normalize_method, return_normalized, use_density_weights, max_points, seed)
 """
 function compute_pointwise_pr(
         dataset::AbstractMatrix{<:Real},
@@ -847,7 +862,9 @@ function compute_pointwise_pr(
         k::Integer = 24,
         normalize_method::Symbol = :max,
         return_normalized::Bool = false,
-        use_density_weights::Bool = true
+        use_density_weights::Bool = true,
+        max_points::Union{Nothing, Integer} = nothing,
+        seed::Integer = 42
     )
     tau_col = dataset[:, 1]
     rows = findall(isapprox.(tau_col, tau; atol = 1.0e-5))
@@ -855,6 +872,11 @@ function compute_pointwise_pr(
         nearest_idx = argmin(abs.(tau_col .- tau))
         nearest_tau = tau_col[nearest_idx]
         rows = findall(isapprox.(tau_col, nearest_tau; atol = 1.0e-5))
+    end
+
+    if !isnothing(max_points) && length(rows) > max_points
+        rng = MersenneTwister(seed)
+        rows = rows[randperm(rng, length(rows))[1:max_points]]
     end
 
     raw_features = Matrix{Float64}(dataset[rows, feature_indices])
