@@ -31,7 +31,9 @@ function run_k_sweep_curve_experiment(;
             joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_10000_points.h5") :
             joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", "hjsw_matched_seed5.h5"),
         output_directory::AbstractString = joinpath(@__DIR__, "..", "plots", "k_sweep_curves"),
-        results_directory::AbstractString = joinpath(@__DIR__, "..", "results")
+        results_directory::AbstractString = joinpath(@__DIR__, "..", "results"),
+        map_k_values::AbstractVector{<:Integer} = [10, 20, 40, 80],
+        n_map_slices::Int = 15
     )
     mkpath(output_directory)
     mkpath(results_directory)
@@ -94,9 +96,26 @@ function run_k_sweep_curve_experiment(;
         fig_pr = plot_k_sweep_curve(data; method = :pr, palette = tau_palette, y_limits = (0.8, 2.3))
         save(joinpath(output_directory, "k_sweep_mis_$(cfg.name)_pr.pdf"), fig_pr)
 
+        # Generate 2D Heatmap / Map of Local Dimension d(tau, K) using plot_map_lpca
+        println("  - Generating LPCA map for MIS [$(cfg.name)]...")
+        fig_map = plot_map_lpca(
+            ds;
+            zakres_K = map_k_values,
+            n_slices = n_map_slices,
+            feature_cols = [2, 3],
+            normalize = cfg.method,
+            title = L"\text{Conformal MIS: Map } d(\tau, K)\text{ [%$(cfg.label)]}",
+            colorrange = (1, 2),
+            ticks = [1, 2]
+        )
+        save(joinpath(output_directory, "map_lpca_mis_$(cfg.name).pdf"), fig_map)
+        save(joinpath(output_directory, "map_lpca_mis_$(cfg.name).png"), fig_map)
+
         if cfg.name == "zscore"
             save(joinpath(output_directory, "k_sweep_mis_dims.pdf"), fig_dims)
             save(joinpath(output_directory, "k_sweep_mis_pr.pdf"), fig_pr)
+            save(joinpath(output_directory, "map_lpca_mis.pdf"), fig_map)
+            save(joinpath(output_directory, "map_lpca_mis.png"), fig_map)
         end
     end
 
@@ -128,9 +147,26 @@ function run_k_sweep_curve_experiment(;
         fig_pr = plot_k_sweep_curve(data; method = :pr, palette = tau_palette, y_limits = (0.8, 3.4))
         save(joinpath(output_directory, "k_sweep_hjsw_$(cfg.name)_pr.pdf"), fig_pr)
 
+        # Generate 2D Heatmap / Map of Local Dimension d(tau, K) using plot_map_lpca
+        println("  - Generating LPCA map for HJSW [$(cfg.name)]...")
+        fig_map = plot_map_lpca(
+            ds;
+            zakres_K = map_k_values,
+            n_slices = n_map_slices,
+            feature_cols = [2, 3, 4],
+            normalize = cfg.method,
+            title = L"\text{HJSW Model: Map } d(\tau, K)\text{ [%$(cfg.label)]}",
+            colorrange = (1, 3),
+            ticks = [1, 2, 3]
+        )
+        save(joinpath(output_directory, "map_lpca_hjsw_$(cfg.name).pdf"), fig_map)
+        save(joinpath(output_directory, "map_lpca_hjsw_$(cfg.name).png"), fig_map)
+
         if cfg.name == "zscore"
             save(joinpath(output_directory, "k_sweep_hjsw_dims.pdf"), fig_dims)
             save(joinpath(output_directory, "k_sweep_hjsw_pr.pdf"), fig_pr)
+            save(joinpath(output_directory, "map_lpca_hjsw.pdf"), fig_map)
+            save(joinpath(output_directory, "map_lpca_hjsw.png"), fig_map)
         end
     end
 

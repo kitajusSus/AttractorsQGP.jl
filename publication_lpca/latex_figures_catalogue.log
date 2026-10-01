@@ -1,0 +1,3490 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.6.2)  1 OCT 2026 22:49
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**publication_lpca/latex_figures_catalogue.tex
+(./publication_lpca/latex_figures_catalogue.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
+(/usr/share/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(/usr/share/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
+)
+\c@part=\count275
+\c@section=\count276
+\c@subsection=\count277
+\c@subsubsection=\count278
+\c@paragraph=\count279
+\c@subparagraph=\count280
+\c@figure=\count281
+\c@table=\count282
+\abovecaptionskip=\skip49
+\belowcaptionskip=\skip50
+\bibindent=\dimen148
+)
+(/usr/share/texmf-dist/tex/latex/base/inputenc.sty
+Package: inputenc 2024/02/08 v1.3d Input encoding file
+\inpenc@prehook=\toks17
+\inpenc@posthook=\toks18
+)
+(/usr/share/texmf-dist/tex/latex/base/fontenc.sty
+Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
+)
+(/usr/share/texmf-dist/tex/generic/babel/babel.sty
+Package: babel 2026/02/14 v26.3 The multilingual framework for LuaLaTeX, pdfLaT
+eX and XeLaTeX
+\babel@savecnt=\count283
+LaTeX Encoding Info:    Redeclaring text command \ij (encoding OT1) on input li
+ne 2078.
+LaTeX Encoding Info:    Redeclaring text command \IJ (encoding OT1) on input li
+ne 2080.
+LaTeX Encoding Info:    Redeclaring text command \ij (encoding T1) on input lin
+e 2082.
+LaTeX Encoding Info:    Redeclaring text command \IJ (encoding T1) on input lin
+e 2083.
+LaTeX Encoding Info:    Ignoring declaration for text command \ij (encoding ?) 
+on input line 2084.
+LaTeX Encoding Info:    Ignoring declaration for text command \IJ (encoding ?) 
+on input line 2086.
+LaTeX Encoding Info:    Ignoring declaration for text command \SS (encoding ?) 
+on input line 2111.
+\U@D=\dimen149
+\l@unhyphenated=\language3
+
+(/usr/share/texmf-dist/tex/generic/babel/txtbabel.def)
+\bbl@readstream=\read2
+\bbl@dirlevel=\count284
+
+(/usr/share/texmf-dist/tex/generic/babel/locale/pl/babel-polish.tex)
+Package babel Info: Importing font and identification data for polish
+(babel)             from babel-pl.ini. Reported on input line 4330.
+
+(/usr/share/texmf-dist/tex/generic/babel/errbabel.def)
+
+! Package babel Error: Unknown option 'polish'.
+(babel)                Suggested actions:
+(babel)                * Make sure you havenâ€™t misspelled it
+(babel)                * Check in the babel manual that it's supported
+(babel)                * If supported and it's a language, you may
+(babel)                  need in some distributions a separate
+(babel)                  installation
+(babel)                * If installed, check there isnâ€™t an old
+(babel)                  version of the required files in your system
+(babel)                * If it's an unsupported language, create it with
+(babel)                \babelprovide(see the manual).
+
+See the babel package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.4330 \bbl@tempb
+                 
+Valid options are, among others: shorthands=, KeepShorthandsActive,
+activeacute, activegrave, noconfigs, safe=, main=, math=
+headfoot=, strings=, config=, hyphenmap=, or a language name.
+
+) (/usr/share/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2025/07/09 v2.17z AMS math features
+\@mathmargin=\skip51
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2024/11/17 v2.01 AMS text
+
+(/usr/share/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks19
+\ex@=\dimen150
+))
+(/usr/share/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen151
+)
+(/usr/share/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2022/04/08 v2.04 operator names
+)
+\inf@bad=\count285
+LaTeX Info: Redefining \frac on input line 233.
+\uproot@=\count286
+\leftroot@=\count287
+LaTeX Info: Redefining \overline on input line 398.
+LaTeX Info: Redefining \colon on input line 409.
+\classnum@=\count288
+\DOTSCASE@=\count289
+LaTeX Info: Redefining \ldots on input line 495.
+LaTeX Info: Redefining \dots on input line 498.
+LaTeX Info: Redefining \cdots on input line 619.
+\Mathstrutbox@=\box53
+\strutbox@=\box54
+LaTeX Info: Redefining \big on input line 721.
+LaTeX Info: Redefining \Big on input line 722.
+LaTeX Info: Redefining \bigg on input line 723.
+LaTeX Info: Redefining \Bigg on input line 724.
+\big@size=\dimen152
+LaTeX Font Info:    Redeclaring font encoding OML on input line 742.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.
+\macc@depth=\count290
+LaTeX Info: Redefining \bmod on input line 904.
+LaTeX Info: Redefining \pmod on input line 909.
+LaTeX Info: Redefining \smash on input line 939.
+LaTeX Info: Redefining \relbar on input line 969.
+LaTeX Info: Redefining \Relbar on input line 970.
+\c@MaxMatrixCols=\count291
+\dotsspace@=\muskip17
+\c@parentequation=\count292
+\dspbrk@lvl=\count293
+\tag@help=\toks20
+\row@=\count294
+\column@=\count295
+\maxfields@=\count296
+\andhelp@=\toks21
+\eqnshift@=\dimen153
+\alignsep@=\dimen154
+\tagshift@=\dimen155
+\tagwidth@=\dimen156
+\totwidth@=\dimen157
+\lineht@=\dimen158
+\@envbody=\toks22
+\multlinegap=\skip52
+\multlinetaggap=\skip53
+\mathdisplay@stack=\toks23
+LaTeX Info: Redefining \[ on input line 2950.
+LaTeX Info: Redefining \] on input line 2951.
+)
+(/usr/share/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+(/usr/share/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
+\KV@toks@=\toks24
+)
+(/usr/share/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 2023/12/02 v1.11 sin cos tan (DPC)
+)
+(/usr/share/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 106.
+
+(/usr/share/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
+))
+\Gin@req@height=\dimen159
+\Gin@req@width=\dimen160
+)
+(/usr/share/texmf-dist/tex/latex/caption/subcaption.sty
+Package: subcaption 2023/07/28 v1.6b Sub-captions (AR)
+
+(/usr/share/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2023/08/05 v3.6o Customizing captions (AR)
+
+(/usr/share/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
+\caption@tempdima=\dimen161
+\captionmargin=\dimen162
+\caption@leftmargin=\dimen163
+\caption@rightmargin=\dimen164
+\caption@width=\dimen165
+\caption@indent=\dimen166
+\caption@parindent=\dimen167
+\caption@hangindent=\dimen168
+Package caption Info: Standard document class detected.
+)
+\c@caption@flags=\count297
+\c@continuedfloat=\count298
+)
+Package caption Info: New subtype `subfigure' on input line 238.
+\c@subfigure=\count299
+Package caption Info: New subtype `subtable' on input line 238.
+\c@subtable=\count300
+)
+(/usr/share/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
+\heavyrulewidth=\dimen169
+\lightrulewidth=\dimen170
+\cmidrulewidth=\dimen171
+\belowrulesep=\dimen172
+\belowbottomsep=\dimen173
+\aboverulesep=\dimen174
+\abovetopsep=\dimen175
+\cmidrulesep=\dimen176
+\cmidrulekern=\dimen177
+\defaultaddspace=\dimen178
+\@cmidla=\count301
+\@cmidlb=\count302
+\@aboverulesep=\dimen179
+\@belowrulesep=\dimen180
+\@thisruleclass=\count303
+\@lastruleclass=\count304
+\@thisrulewidth=\dimen181
+)
+(/usr/share/texmf-dist/tex/latex/geometry/geometry.sty
+Package: geometry 2020/01/02 v5.9 Page Geometry
+
+(/usr/share/texmf-dist/tex/generic/iftex/ifvtex.sty
+Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
+
+(/usr/share/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2024/12/12 v1.0g TeX engine tests
+))
+\Gm@cnth=\count305
+\Gm@cntv=\count306
+\c@Gm@tempcnt=\count307
+\Gm@bindingoffset=\dimen182
+\Gm@wd@mp=\dimen183
+\Gm@odd@mp=\dimen184
+\Gm@even@mp=\dimen185
+\Gm@layoutwidth=\dimen186
+\Gm@layoutheight=\dimen187
+\Gm@layouthoffset=\dimen188
+\Gm@layoutvoffset=\dimen189
+\Gm@dimlist=\toks25
+)
+(/usr/share/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package: hyperref 2026-01-29 v7.01p Hypertext links for LaTeX
+
+(/usr/share/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty
+Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
+)
+(/usr/share/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(/usr/share/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+
+(/usr/share/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
+)
+(/usr/share/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(/usr/share/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+))
+(/usr/share/texmf-dist/tex/latex/hycolor/hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+)
+(/usr/share/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2026-01-29 v2.58 Cross-referencing by name of section
+
+(/usr/share/texmf-dist/tex/latex/refcount/refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+)
+(/usr/share/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+
+(/usr/share/texmf-dist/tex/latex/kvoptions/kvoptions.sty
+Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
+))
+\c@section@level=\count308
+)
+(/usr/share/texmf-dist/tex/latex/etoolbox/etoolbox.sty
+Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count309
+)
+(/usr/share/texmf-dist/tex/generic/stringenc/stringenc.sty
+Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
+)
+)
+\@linkdim=\dimen190
+\Hy@linkcounter=\count310
+\Hy@pagecounter=\count311
+
+(/usr/share/texmf-dist/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2026-01-29 v7.01p Hyperref: PDFDocEncoding definition (HO)
+Now handling font encoding PD1 ...
+... no UTF-8 mapping file for font encoding PD1
+)
+(/usr/share/texmf-dist/tex/generic/intcalc/intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+\Hy@SavedSpaceFactor=\count312
+
+(/usr/share/texmf-dist/tex/latex/hyperref/puenc.def
+File: puenc.def 2026-01-29 v7.01p Hyperref: PDF Unicode definition (HO)
+Now handling font encoding PU ...
+... no UTF-8 mapping file for font encoding PU
+)
+Package hyperref Info: Hyper figures OFF on input line 4201.
+Package hyperref Info: Link nesting OFF on input line 4206.
+Package hyperref Info: Hyper index ON on input line 4209.
+Package hyperref Info: Plain pages OFF on input line 4216.
+Package hyperref Info: Backreferencing OFF on input line 4221.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4468.
+\c@Hy@tempcnt=\count313
+
+(/usr/share/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip18
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4807.
+\XeTeXLinkMargin=\dimen191
+
+(/usr/share/texmf-dist/tex/generic/bitset/bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(/usr/share/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count314
+\Field@Width=\dimen192
+\Fld@charsize=\dimen193
+Package hyperref Info: Hyper figures OFF on input line 6084.
+Package hyperref Info: Link nesting OFF on input line 6089.
+Package hyperref Info: Hyper index ON on input line 6092.
+Package hyperref Info: backreferencing OFF on input line 6099.
+Package hyperref Info: Link coloring OFF on input line 6104.
+Package hyperref Info: Link coloring with OCG OFF on input line 6109.
+Package hyperref Info: PDF/A mode OFF on input line 6114.
+\Hy@abspage=\count315
+\c@Item=\count316
+\c@Hfootnote=\count317
+)
+Package hyperref Info: Driver (autodetected): hpdftex.
+
+(/usr/share/texmf-dist/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2026-01-29 v7.01p Hyperref driver for pdfTeX
+\Fld@listcount=\count318
+\c@bookmark@seq@number=\count319
+
+(/usr/share/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+Package: rerunfilecheck 2025-06-21 v1.11 Rerun checks for auxiliary files (HO)
+
+(/usr/share/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+84.
+)
+\Hy@SectionHShift=\skip54
+)
+(/usr/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count320
+)
+No file latex_figures_catalogue.aux.
+\openout1 = `latex_figures_catalogue.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 20.
+LaTeX Font Info:    ... okay on input line 20.
+! Undefined control sequence.
+\__hook begindocument ...fter {\bbl@main@language 
+                                                  }\ifbbl@single \renewcomma...
+l.20 \begin{document}
+                     
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+Runaway argument?
+\@m \let \normalsfcodes \frenchspacing \else \let \normalsfcodes \nonfrenchspac
+ing \ETC.
+! Paragraph ended before \bbl@tempe was complete.
+<to be read again> 
+                   \par 
+l.22 
+     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...served@d = #1\def \reserved@a {
+                                                  #2}\def \reserved@b {#3}\f...
+l.23 \tableofcontents
+                     
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Use of \bbl@select@s doesn't match its definition.
+<argument> \def \reserved@a *
+                             {\@ssect {\z@ }{-3.5ex \@plus -1ex \@minus -.2e...
+l.23 \tableofcontents
+                     
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Argument of \@ssect has an extra }.
+<inserted text> 
+                \par 
+l.23 \tableofcontents
+                     
+I've run across a `}' that doesn't seem to match anything.
+For example, `\def\a#1{...}' and `\a}' would produce
+this error. If you simply proceed now, the `\par' that
+I've just inserted will cause me to report a runaway
+argument that might be the root of the problem. But if
+your `}' was spurious, just type `2' and it will go away.
+
+Runaway argument?
+! Paragraph ended before \@ssect was complete.
+<to be read again> 
+                   \par 
+l.23 \tableofcontents
+                     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...ved@d = #1\def \reserved@a {#2}
+                                                  \def \reserved@b {#3}\futu...
+l.23 \tableofcontents
+                     
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+Runaway argument?
+{l@}\edef \bbl@tempd {\noexpand \@ifundefined {\noexpand \bbl@tempe \languagena
+me \ETC.
+! Paragraph ended before \bbl@tempe was complete.
+<to be read again> 
+                   \par 
+l.25 
+     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...served@d = #1\def \reserved@a {
+                                                  #2}\def \reserved@b {#3}\f...
+l.26 \section
+             {Wprowadzenie}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Use of \bbl@select@s doesn't match its definition.
+<argument> \def \reserved@a *
+                             {\@ssect {\z@ }{-3.5ex \@plus -1ex \@minus -.2e...
+l.26 \section
+             {Wprowadzenie}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Argument of \@ssect has an extra }.
+<inserted text> 
+                \par 
+l.26 \section
+             {Wprowadzenie}
+I've run across a `}' that doesn't seem to match anything.
+For example, `\def\a#1{...}' and `\a}' would produce
+this error. If you simply proceed now, the `\par' that
+I've just inserted will cause me to report a runaway
+argument that might be the root of the problem. But if
+your `}' was spurious, just type `2' and it will go away.
+
+Runaway argument?
+! Paragraph ended before \@ssect was complete.
+<to be read again> 
+                   \par 
+l.26 \section
+             {Wprowadzenie}
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...ved@d = #1\def \reserved@a {#2}
+                                                  \def \reserved@b {#3}\futu...
+l.26 \section
+             {Wprowadzenie}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+Runaway argument?
+ 10\,000$ punktÃ³w na plaster $\tau $ oraz prezentacji graficznej $N_\ETC.
+! Paragraph ended before \bbl@tempe was complete.
+<to be read again> 
+                   \par 
+l.28 
+     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...served@d = #1\def \reserved@a {
+                                                  #2}\def \reserved@b {#3}\f...
+l.31 \section
+             {Kategoria I: Siatki ewolucji 2D i 3D}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Use of \bbl@select@s doesn't match its definition.
+<argument> \def \reserved@a *
+                             {\@ssect {\z@ }{-3.5ex \@plus -1ex \@minus -.2e...
+l.31 \section
+             {Kategoria I: Siatki ewolucji 2D i 3D}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Argument of \@ssect has an extra }.
+<inserted text> 
+                \par 
+l.31 \section
+             {Kategoria I: Siatki ewolucji 2D i 3D}
+I've run across a `}' that doesn't seem to match anything.
+For example, `\def\a#1{...}' and `\a}' would produce
+this error. If you simply proceed now, the `\par' that
+I've just inserted will cause me to report a runaway
+argument that might be the root of the problem. But if
+your `}' was spurious, just type `2' and it will go away.
+
+Runaway argument?
+! Paragraph ended before \@ssect was complete.
+<to be read again> 
+                   \par 
+l.31 \section
+             {Kategoria I: Siatki ewolucji 2D i 3D}
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...ved@d = #1\def \reserved@a {#2}
+                                                  \def \reserved@b {#3}\futu...
+l.31 \section
+             {Kategoria I: Siatki ewolucji 2D i 3D}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+Runaway argument?
+{l@}\edef \bbl@tempd {\noexpand \@ifundefined {\noexpand \bbl@tempe \languagena
+me \ETC.
+! Paragraph ended before \bbl@tempe was complete.
+<to be read again> 
+                   \par 
+l.32 
+     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...served@d = #1\def \reserved@a {
+                                                  #2}\def \reserved@b {#3}\f...
+l.33 \subsection
+                {Model Conformal MIS (2D: $T, \mathcal{A}$)}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Use of \bbl@select@s doesn't match its definition.
+<argument> \def \reserved@a *
+                             {\@ssect {\z@ }{-3.25ex\@plus -1ex \@minus -.2e...
+l.33 \subsection
+                {Model Conformal MIS (2D: $T, \mathcal{A}$)}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Argument of \@ssect has an extra }.
+<inserted text> 
+                \par 
+l.33 \subsection
+                {Model Conformal MIS (2D: $T, \mathcal{A}$)}
+I've run across a `}' that doesn't seem to match anything.
+For example, `\def\a#1{...}' and `\a}' would produce
+this error. If you simply proceed now, the `\par' that
+I've just inserted will cause me to report a runaway
+argument that might be the root of the problem. But if
+your `}' was spurious, just type `2' and it will go away.
+
+Runaway argument?
+! Paragraph ended before \@ssect was complete.
+<to be read again> 
+                   \par 
+l.33 \subsection
+                {Model Conformal MIS (2D: $T, \mathcal{A}$)}
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Use of \bbl@select@s doesn't match its definition.
+\new@ifnextchar ...ved@d = #1\def \reserved@a {#2}
+                                                  \def \reserved@b {#3}\futu...
+l.33 \subsection
+                {Model Conformal MIS (2D: $T, \mathcal{A}$)}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+Runaway argument?
+{l@}\edef \bbl@tempd {\noexpand \@ifundefined {\noexpand \bbl@tempe \languagena
+me \ETC.
+! Paragraph ended before \bbl@tempe was complete.
+<to be read again> 
+                   \par 
+l.34 
+     
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Undefined control sequence.
+\GenericError  ...                                
+                                                    #4  \errhelp \@err@     ...
+l.41         \caption
+                     {Dimensionless (\emph{dims})}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Undefined control sequence.
+\GenericError  ...                                
+                                                  \let \@err@               ...
+l.41         \caption
+                     {Dimensionless (\emph{dims})}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Undefined control sequence.
+\GenericError  ...                                
+                                                  \@empty \def \MessageBreak...
+l.41         \caption
+                     {Dimensionless (\emph{dims})}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Undefined control sequence.
+\GenericError  ...                                
+                                                     \endgroup 
+l.41         \caption
+                     {Dimensionless (\emph{dims})}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Use of \bbl@select@s doesn't match its definition.
+\text@command #1->\edef \reserved@a {
+                                     \unexpanded {#1}}\ifx \reserved@a \@emp...
+l.41         \caption{Dimensionless (\emph{dims}
+                                                )}
+If you say, e.g., `\def\a1{...}', then you must always
+put `1' after `\a', since control sequence names are
+made up of letters only. The macro here has not been
+followed by the required stuff, so I'm ignoring it.
+
+! Undefined control sequence.
+\subcaption@endminipage ...ption@endminipage@hook 
+                                                  \endminipage 
+l.43     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Extra \endgroup.
+\color@endgroup ->\endgraf \@endpefalse \endgroup 
+                                                  
+l.43     \end{subfigure}
+                        
+Things are pretty mixed up, but I think the worst is over.
+
+! Too many }'s.
+\endminipage ...pagefalse \color@endgroup \egroup 
+                                                  \expandafter \@iiiparbox \...
+l.43     \end{subfigure}
+                        
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+! Undefined control sequence.
+\endminipage ...\expandafter \@iiiparbox \@mpargs 
+                                                  {\unvbox \@tempboxa }
+l.43     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing number, treated as zero.
+<to be read again> 
+                   \def 
+l.46         \centering
+                       
+A number should have been here; I inserted `0'.
+(If you can't figure out why I needed to see a number,
+look up `weird error' in the index to The TeXbook.)
+
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \def 
+l.46         \centering
+                       
+Dimensions can be in units of em, ex, in, pt, pc,
+cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
+I'll assume that you meant to say pt, for printer's points.
+To recover gracefully from this error, it's best to
+delete the erroneous units; e.g., type `2' to delete
+two letters. (See Chapter 27 of The TeXbook.)
+
+
+! LaTeX Error: \begin{document} ended by \end{subfigure}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.46         \centering
+                       
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+
+! Package subcaption Error: subfigure outside float.
+
+See the subcaption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.46         \centering
+                       
+If you do not understand this error, please take a closer look
+at the documentation of the `subcaption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+! Missing number, treated as zero.
+<to be read again> 
+                   \relax 
+l.46         \centering
+                       
+A number should have been here; I inserted `0'.
+(If you can't figure out why I needed to see a number,
+look up `weird error' in the index to The TeXbook.)
+
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \relax 
+l.46         \centering
+                       
+Dimensions can be in units of em, ex, in, pt, pc,
+cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
+I'll assume that you meant to say pt, for printer's points.
+To recover gracefully from this error, it's best to
+delete the erroneous units; e.g., type `2' to delete
+two letters. (See Chapter 27 of The TeXbook.)
+
+
+! Package caption Error: \setcaptionsubtype outside float.
+
+See the caption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.46         \centering
+                       
+If you do not understand this error, please take a closer look
+at the documentation of the `caption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/best_practices_lpca/grid_mis_dimensionless_pr.pdf, id=1, 1279.78125pt x 
+1053.9375pt>
+File: plots/best_practices_lpca/grid_mis_dimensionless_pr.pdf Graphic file (typ
+e pdf)
+<use plots/best_practices_lpca/grid_mis_dimensionless_pr.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_dimensionless_pr.pd
+f  used on input line 47.
+(pdftex.def)             Requested size: 455.24411pt x 374.91432pt.
+
+! LaTeX Error: \caption outside float.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.48         \caption
+                     {Dimensionless (\emph{pr})}
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \hbox (6.04839pt too wide) in paragraph at lines 46--50
+[]\T1/cmr/m/n/10.95 b[][]
+ []
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.50     \end{subfigure}
+                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Too many }'s.
+\endminipage ...pagefalse \color@endgroup \egroup 
+                                                  \expandafter \@iiiparbox \...
+l.50     \end{subfigure}
+                        
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+! Undefined control sequence.
+\endminipage ...\expandafter \@iiiparbox \@mpargs 
+                                                  {\unvbox \@tempboxa }
+l.50     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+Runaway argument?
+{\@checkend {subfigure}\endgroup \UseHook {env/subfigure/after}\if@ignore \ETC.
+! Paragraph ended before \setlength was complete.
+<to be read again> 
+                   \par 
+l.56         \centering
+                       
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+
+! Package subcaption Error: subfigure outside float.
+
+See the subcaption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.56         \centering
+                       
+If you do not understand this error, please take a closer look
+at the documentation of the `subcaption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+! Argument of \subcaption@iiminipage has an extra }.
+<inserted text> 
+                \par 
+l.56         \centering
+                       
+I've run across a `}' that doesn't seem to match anything.
+For example, `\def\a#1{...}' and `\a}' would produce
+this error. If you simply proceed now, the `\par' that
+I've just inserted will cause me to report a runaway
+argument that might be the root of the problem. But if
+your `}' was spurious, just type `2' and it will go away.
+
+Runaway argument?
+! Paragraph ended before \subcaption@iiminipage was complete.
+<to be read again> 
+                   \par 
+l.56         \centering
+                       
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+! Extra }, or forgotten \endgroup.
+<recently read> }
+                 
+l.56         \centering
+                       
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+<plots/best_practices_lpca/grid_mis_max_dims.pdf, id=2, 1242.6425pt x 1053.9375
+pt>
+File: plots/best_practices_lpca/grid_mis_max_dims.pdf Graphic file (type pdf)
+<use plots/best_practices_lpca/grid_mis_max_dims.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_max_dims.pdf  used 
+on input line 57.
+(pdftex.def)             Requested size: 455.24411pt x 386.10722pt.
+
+! LaTeX Error: \caption outside float.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.58         \caption
+                     {Abs-Max (\emph{dims})}
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+! Undefined control sequence.
+\subcaption@endminipage ...ption@endminipage@hook 
+                                                  \endminipage 
+l.60     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+
+Overfull \hbox (23.04839pt too wide) in paragraph at lines 56--60
+[]\T1/cmr/m/n/10.95 b[][]
+ []
+
+! Too many }'s.
+\endminipage ...pagefalse \color@endgroup \egroup 
+                                                  \expandafter \@iiiparbox \...
+l.60     \end{subfigure}
+                        
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+! Undefined control sequence.
+\endminipage ...\expandafter \@iiiparbox \@mpargs 
+                                                  {\unvbox \@tempboxa }
+l.60     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing number, treated as zero.
+<to be read again> 
+                   \def 
+l.63         \centering
+                       
+A number should have been here; I inserted `0'.
+(If you can't figure out why I needed to see a number,
+look up `weird error' in the index to The TeXbook.)
+
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \def 
+l.63         \centering
+                       
+Dimensions can be in units of em, ex, in, pt, pc,
+cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
+I'll assume that you meant to say pt, for printer's points.
+To recover gracefully from this error, it's best to
+delete the erroneous units; e.g., type `2' to delete
+two letters. (See Chapter 27 of The TeXbook.)
+
+
+! LaTeX Error: \begin{document} ended by \end{subfigure}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.63         \centering
+                       
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+
+! Package subcaption Error: subfigure outside float.
+
+See the subcaption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.63         \centering
+                       
+If you do not understand this error, please take a closer look
+at the documentation of the `subcaption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+! Missing number, treated as zero.
+<to be read again> 
+                   \relax 
+l.63         \centering
+                       
+A number should have been here; I inserted `0'.
+(If you can't figure out why I needed to see a number,
+look up `weird error' in the index to The TeXbook.)
+
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \relax 
+l.63         \centering
+                       
+Dimensions can be in units of em, ex, in, pt, pc,
+cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
+I'll assume that you meant to say pt, for printer's points.
+To recover gracefully from this error, it's best to
+delete the erroneous units; e.g., type `2' to delete
+two letters. (See Chapter 27 of The TeXbook.)
+
+
+! Package caption Error: \setcaptionsubtype outside float.
+
+See the caption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.63         \centering
+                       
+If you do not understand this error, please take a closer look
+at the documentation of the `caption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/best_practices_lpca/grid_mis_max_pr.pdf, id=3, 1279.78125pt x 1053.9375p
+t>
+File: plots/best_practices_lpca/grid_mis_max_pr.pdf Graphic file (type pdf)
+<use plots/best_practices_lpca/grid_mis_max_pr.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_max_pr.pdf  used on
+ input line 64.
+(pdftex.def)             Requested size: 455.24411pt x 374.91432pt.
+
+! LaTeX Error: \caption outside float.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.65         \caption
+                     {Abs-Max (\emph{pr})}
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+Overfull \hbox (6.04839pt too wide) in paragraph at lines 63--67
+[]\T1/cmr/m/n/10.95 b[][]
+ []
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.67     \end{subfigure}
+                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Too many }'s.
+\endminipage ...pagefalse \color@endgroup \egroup 
+                                                  \expandafter \@iiiparbox \...
+l.67     \end{subfigure}
+                        
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+! Undefined control sequence.
+\endminipage ...\expandafter \@iiiparbox \@mpargs 
+                                                  {\unvbox \@tempboxa }
+l.67     \end{subfigure}
+                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing number, treated as zero.
+<to be read again> 
+                   \let 
+l.74     \centering
+                   
+A number should have been here; I inserted `0'.
+(If you can't figure out why I needed to see a number,
+look up `weird error' in the index to The TeXbook.)
+
+! Illegal unit of measure (pt inserted).
+<to be read again> 
+                   \let 
+l.74     \centering
+                   
+Dimensions can be in units of em, ex, in, pt, pc,
+cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
+I'll assume that you meant to say pt, for printer's points.
+To recover gracefully from this error, it's best to
+delete the erroneous units; e.g., type `2' to delete
+two letters. (See Chapter 27 of The TeXbook.)
+
+
+! Package caption Error: \continuedfloat outside float.
+
+See the caption package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.74     \centering
+                   
+If you do not understand this error, please take a closer look
+at the documentation of the `caption' package, especially the
+section about errors.
+Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+Runaway argument?
+{\@checkend {subfigure}\endgroup \UseHook {env/subfigure/after}\if@ignore \ETC.
+! Paragraph ended before \setlength was complete.
+<to be read again> 
+                   \par 
+l.74     \centering
+                   
+I suspect you've forgotten a `}', causing me to apply this
+control sequence to too much text. How can we recover?
+My plan is to forget the whole thing and hope for the best.
+
+
+! LaTeX Error: \caption outside float.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.74     \centering
+                   
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+LaTeX Font Info:    Trying to load font information for U+msa on input line 74.
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 74.
+
+
+(/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+! Extra }, or forgotten \endgroup.
+\@endfloatbox ...pagefalse \outer@nobreak \egroup 
+                                                  \color@endbox 
+l.74     \centering
+                   
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Too many }'s.
+\color@endbox ->\color@endgroup \egroup 
+                                        
+l.74     \centering
+                   
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+
+! LaTeX Error: \begin{document} ended by \end{figure}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.74     \centering
+                   
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+! Extra \endgroup.
+\end  ...end#1\endcsname \@checkend {#1}\endgroup 
+                                                  \UseHook {env/#1/after}\if...
+l.74     \centering
+                   
+Things are pretty mixed up, but I think the worst is over.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.74     \centering
+                   
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+
+LaTeX Warning: Unexpected alignment htbp on input line 74.
+
+<plots/best_practices_lpca/grid_mis_minmax_dims.pdf, id=4, 1242.6425pt x 1053.9
+375pt>
+File: plots/best_practices_lpca/grid_mis_minmax_dims.pdf Graphic file (type pdf
+)
+<use plots/best_practices_lpca/grid_mis_minmax_dims.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_minmax_dims.pdf  us
+ed on input line 78.
+(pdftex.def)             Requested size: 218.51521pt x 185.32632pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.80         \label{fig:mis_minmax_dims}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.80         \label{fig:mis_minmax_dims}
+                                        
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.80         \label{fig:mis_minmax_dims}
+                                        
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.80         \label{fig:mis_minmax_dims}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.80         \label{fig:mis_minmax_dims}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.80         \label{fig:mis_minmax_dims}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.80         \label{fig:mis_minmax_dims}
+                                        
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (7.42303pt too wide) in paragraph at lines 80--81
+ []\T1/cmr/m/n/10.95 fig:mis$[]\OML/cmm/m/it/10.95 inmax[]ims[]$ 
+ []
+
+<plots/best_practices_lpca/grid_mis_minmax_pr.pdf, id=5, 1279.78125pt x 1053.93
+75pt>
+File: plots/best_practices_lpca/grid_mis_minmax_pr.pdf Graphic file (type pdf)
+<use plots/best_practices_lpca/grid_mis_minmax_pr.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_minmax_pr.pdf  used
+ on input line 85.
+(pdftex.def)             Requested size: 218.51521pt x 179.955pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.87         \label{fig:mis_minmax_pr}
+                                      
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.87         \label{fig:mis_minmax_pr}
+                                      
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.87         \label{fig:mis_minmax_pr}
+                                      
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.87         \label{fig:mis_minmax_pr}
+                                      
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.87         \label{fig:mis_minmax_pr}
+                                      
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.87         \label{fig:mis_minmax_pr}
+                                      
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.87         \label{fig:mis_minmax_pr}
+                                      
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (7.25632pt too wide) in paragraph at lines 74--89
+[]\T1/cmr/m/n/10.95 b[][]  [] 
+ []
+
+<plots/best_practices_lpca/grid_mis_zscore_dims.pdf, id=6, 1242.6425pt x 1053.9
+375pt>
+File: plots/best_practices_lpca/grid_mis_zscore_dims.pdf Graphic file (type pdf
+)
+<use plots/best_practices_lpca/grid_mis_zscore_dims.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_zscore_dims.pdf  us
+ed on input line 95.
+(pdftex.def)             Requested size: 218.51521pt x 185.32632pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.97         \label{fig:mis_zscore_dims}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.97         \label{fig:mis_zscore_dims}
+                                        
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.97         \label{fig:mis_zscore_dims}
+                                        
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.97         \label{fig:mis_zscore_dims}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.97         \label{fig:mis_zscore_dims}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.97         \label{fig:mis_zscore_dims}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.97         \label{fig:mis_zscore_dims}
+                                        
+I allow only values in the range 1..32767 here.
+
+<plots/best_practices_lpca/grid_mis_zscore_pr.pdf, id=7, 1279.78125pt x 1053.93
+75pt>
+File: plots/best_practices_lpca/grid_mis_zscore_pr.pdf Graphic file (type pdf)
+<use plots/best_practices_lpca/grid_mis_zscore_pr.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_mis_zscore_pr.pdf  used
+ on input line 102.
+(pdftex.def)             Requested size: 218.51521pt x 179.955pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.104         \label{fig:mis_zscore_pr}
+                                       
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.104         \label{fig:mis_zscore_pr}
+                                       
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.104         \label{fig:mis_zscore_pr}
+                                       
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.104         \label{fig:mis_zscore_pr}
+                                       
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.104         \label{fig:mis_zscore_pr}
+                                       
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.104         \label{fig:mis_zscore_pr}
+                                       
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.104         \label{fig:mis_zscore_pr}
+                                       
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (1.20793pt too wide) in paragraph at lines 93--106
+[][]  [] 
+ []
+
+! Too many }'s.
+\color@endbox ->\color@endgroup \egroup 
+                                        
+l.109 \end{figure}
+                  
+You've closed more groups than you opened.
+Such booboos are generally harmless, so keep going.
+
+
+! LaTeX Error: \begin{document} ended by \end{figure}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.109 \end{figure}
+                  
+Your command was ignored.
+Type  I <command> <return>  to replace it with another command,
+or  <return>  to continue without it.
+
+! Extra \endgroup.
+\end  ...end#1\endcsname \@checkend {#1}\endgroup 
+                                                  \UseHook {env/#1/after}\if...
+l.109 \end{figure}
+                  
+Things are pretty mixed up, but I think the worst is over.
+
+[1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <publication_lpca/plots/bes
+t_practices_lpca/grid_mis_max_dims.pdf>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 112.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 112.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.114 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/best_practices_lpca/grid_hjsw_zscore_dims.pdf, id=46, 1776.6375pt x 1400
+.23125pt>
+File: plots/best_practices_lpca/grid_hjsw_zscore_dims.pdf Graphic file (type pd
+f)
+<use plots/best_practices_lpca/grid_hjsw_zscore_dims.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_hjsw_zscore_dims.pdf  u
+sed on input line 118.
+(pdftex.def)             Requested size: 218.51521pt x 172.20819pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.120         \label{fig:hjsw_zscore_dims}
+                                          
+I allow only values in the range 1..32767 here.
+
+<plots/best_practices_lpca/grid_hjsw_zscore_pr.pdf, id=47, 1776.6375pt x 1400.2
+3125pt>
+File: plots/best_practices_lpca/grid_hjsw_zscore_pr.pdf Graphic file (type pdf)
+
+<use plots/best_practices_lpca/grid_hjsw_zscore_pr.pdf>
+Package pdftex.def Info: plots/best_practices_lpca/grid_hjsw_zscore_pr.pdf  use
+d on input line 125.
+(pdftex.def)             Requested size: 218.51521pt x 172.20819pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.127         \label{fig:hjsw_zscore_pr}
+                                        
+I allow only values in the range 1..32767 here.
+
+! Undefined control sequence.
+l.131     \label
+                {fig:hjsw_phase_space_zscore}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.131     \label{fig:hjsw_
+                          phase_space_zscore}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.131     \label{fig:hjsw_phase_space_zscore}
+                                             
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.132 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.132 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[2
+
+ <publication_lpca/plots/best_practices_lpca/grid_hjsw_zscore_dims.pdf> <public
+ation_lpca/plots/best_practices_lpca/grid_hjsw_zscore_pr.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/best_practices_lpca/grid_
+hjsw_zscore_pr.pdf): PDF inclusion: multiple pdfs with page group included in a
+ single page
+>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 135.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\tau' on input line 135.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 135.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 135.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\in' on input line 135.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 135.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.139 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_dims.pdf, id=129, 692.5
+875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_dims.pdf Graphic f
+ile (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines
+_dims.pdf  used on input line 143.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.145         \label{fig:d_tau_mis_lines_dims}
+                                              
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (16.72702pt too wide) in paragraph at lines 145--146
+ []\T1/cmr/m/n/10.95 fig:d$[]\OML/cmm/m/it/10.95 au[]is[]ines[]ims[]$ 
+ []
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_pr.pdf, id=130, 692.587
+5pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_pr.pdf Graphic fil
+e (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_pr.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines
+_pr.pdf  used on input line 150.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.152         \label{fig:d_tau_mis_lines_pr}
+                                            
+I allow only values in the range 1..32767 here.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_dims.pdf, id=131, 692.
+5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_dims.pdf Graphic 
+file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_line
+s_dims.pdf  used on input line 159.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.161         \label{fig:d_tau_hjsw_lines_dims}
+                                               
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (29.89212pt too wide) in paragraph at lines 161--162
+ []\T1/cmr/m/n/10.95 fig:d$[]\OML/cmm/m/it/10.95 au[]jsw[]ines[]ims[]$ 
+ []
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_pr.pdf, id=132, 692.58
+75pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_pr.pdf Graphic fi
+le (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_pr.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_line
+s_pr.pdf  used on input line 166.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.168         \label{fig:d_tau_hjsw_lines_pr}
+                                             
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (3.15213pt too wide) in paragraph at lines 168--169
+ []\T1/cmr/m/n/10.95 fig:d$[]\OML/cmm/m/it/10.95 au[]jsw[]ines[]r[]$ 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 171--171
+[]\T1/cmr/m/n/10.95 Figure 4: |[]Trajektorie ewolucji wymi-aru $\OML/cmm/m/it/1
+0.95 d\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^\\OT1/cmr/m/n/10.95 )$ \T1/cmr/
+m/n/10.95 dla wybranych warto±ci $\OML/cmm/m/it/10.95 K \OMS/cmsy/m/n/10.95 2
+ []
+
+
+Underfull \hbox (badness 1173) in paragraph at lines 171--171
+\OMS/cmsy/m/n/10.95 f\OT1/cmr/m/n/10.95 3\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.
+95 5\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 8\OML/cmm/m/it/10.95 ; \OT1/cmr/m/
+n/10.95 12\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 16\OML/cmm/m/it/10.95 ; \OT1
+/cmr/m/n/10.95 24\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 35\OML/cmm/m/it/10.95
+ ; \OT1/cmr/m/n/10.95 50\OMS/cmsy/m/n/10.95 g$ \T1/cmr/m/n/10.95 (standaryza-cj
+a Z-Score). Wari-ant \T1/cmr/m/it/10.95 Lines Only \T1/cmr/m/n/10.95 bez pasm b
+ª¦du
+ []
+
+! Undefined control sequence.
+l.172     \label
+                {fig:d_vs_tau_multi_k_lines}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.172     \label{fig:d_
+                       vs_tau_multi_k_lines}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Double subscript.
+l.172     \label{fig:d_vs_tau_multi_k_
+                                      lines}
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+! Extra }, or forgotten $.
+l.172     \label{fig:d_vs_tau_multi_k_lines}
+                                            
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.173 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.173 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\in' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\pm' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\sigma' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 175.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 175.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.177 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_dims.pdf, id=133, 692.5875
+pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_dims.pdf Graphic file
+ (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_di
+ms.pdf  used on input line 181.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.183         \label{fig:d_tau_mis_avg_dims}
+                                            
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (1.18686pt too wide) in paragraph at lines 183--184
+ []\T1/cmr/m/n/10.95 fig:d$[]\OML/cmm/m/it/10.95 au[]is[]vg[]ims[]$ 
+ []
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_pr.pdf, id=134, 692.5875pt
+ x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_pr.pdf Graphic file (
+type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_pr.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_pr
+.pdf  used on input line 188.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.190         \label{fig:d_tau_mis_avg_pr}
+                                          
+I allow only values in the range 1..32767 here.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_dims.pdf, id=135, 692.587
+5pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_dims.pdf Graphic fil
+e (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_d
+ims.pdf  used on input line 197.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.199         \label{fig:d_tau_hjsw_avg_dims}
+                                             
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (14.35196pt too wide) in paragraph at lines 199--200
+ []\T1/cmr/m/n/10.95 fig:d$[]\OML/cmm/m/it/10.95 au[]jsw[]vg[]ims[]$ 
+ []
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_pr.pdf, id=136, 692.5875p
+t x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_pr.pdf Graphic file 
+(type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_pr.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_p
+r.pdf  used on input line 204.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.206         \label{fig:d_tau_hjsw_avg_pr}
+                                           
+I allow only values in the range 1..32767 here.
+
+! Undefined control sequence.
+l.210     \label
+                {fig:d_vs_tau_k_averaged}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.210     \label{fig:d_
+                       vs_tau_k_averaged}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Double subscript.
+l.210     \label{fig:d_vs_tau_k_
+                                averaged}
+I treat `x_1_2' essentially like `x_1{}_2'.
+
+! Extra }, or forgotten $.
+l.210     \label{fig:d_vs_tau_k_averaged}
+                                         
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.211 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.211 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 213.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\langle' on input line 213.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\rangle' on input line 213.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 213.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\tau' on input line 213.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 213.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.215 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_zscore_k_averaged_dims.pdf, id=137, 6
+92.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_zscore_k_averaged_dims.pdf Graph
+ic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_zscore_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_zscore_k_aver
+aged_dims.pdf  used on input line 219.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_minmax_k_averaged_dims.pdf, id=138, 6
+92.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_minmax_k_averaged_dims.pdf Graph
+ic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_minmax_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_minmax_k_aver
+aged_dims.pdf  used on input line 225.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_max_k_averaged_dims.pdf, id=139, 692.
+5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_max_k_averaged_dims.pdf Graphic 
+file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_max_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_max_k_average
+d_dims.pdf  used on input line 231.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_physical_k_averaged_dims.pdf, id=140,
+ 692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_physical_k_averaged_dims.pdf Gra
+phic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_physical_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_physical_k_av
+eraged_dims.pdf  used on input line 239.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_mis_dimensionless_k_averaged_dims.pdf, id
+=141, 692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_mis_dimensionless_k_averaged_dims.pd
+f Graphic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_mis_dimensionless_k_averaged_dims.pdf
+>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_mis_dimensionless
+_k_averaged_dims.pdf  used on input line 245.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+! Undefined control sequence.
+l.250     \label
+                {fig:d_tau_mis_all_standardizations}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.250     \label{fig:d_
+                       tau_mis_all_standardizations}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.250 ...label{fig:d_tau_mis_all_standardizations}
+                                                  
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.251 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.251 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.253 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_zscore_k_averaged_dims.pdf, id=142, 
+692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_zscore_k_averaged_dims.pdf Grap
+hic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_zscore_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_zscore_k_ave
+raged_dims.pdf  used on input line 257.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_minmax_k_averaged_dims.pdf, id=143, 
+692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_minmax_k_averaged_dims.pdf Grap
+hic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_minmax_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_minmax_k_ave
+raged_dims.pdf  used on input line 263.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_max_k_averaged_dims.pdf, id=144, 692
+.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_max_k_averaged_dims.pdf Graphic
+ file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_max_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_max_k_averag
+ed_dims.pdf  used on input line 269.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_physical_k_averaged_dims.pdf, id=145
+, 692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_physical_k_averaged_dims.pdf Gr
+aphic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_physical_k_averaged_dims.pdf>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_physical_k_a
+veraged_dims.pdf  used on input line 277.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+<plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_dimensionless_k_averaged_dims.pdf, i
+d=146, 692.5875pt x 436.63126pt>
+File: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_dimensionless_k_averaged_dims.p
+df Graphic file (type pdf)
+<use plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_dimensionless_k_averaged_dims.pd
+f>
+Package pdftex.def Info: plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_dimensionles
+s_k_averaged_dims.pdf  used on input line 283.
+(pdftex.def)             Requested size: 145.68144pt x 91.84184pt.
+! Undefined control sequence.
+l.288     \label
+                {fig:d_tau_hjsw_all_standardizations}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.288     \label{fig:d_
+                       tau_hjsw_all_standardizations}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.288 ...abel{fig:d_tau_hjsw_all_standardizations}
+                                                  
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.289 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.289 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[3
+
+ <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_dims.
+pdf> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_multi_k_lines_p
+r.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_multi_k_lines_pr.pdf): PDF inclusion: multiple pdfs with page group i
+ncluded in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_dim
+s.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_multi_k_lines_dims.pdf): PDF inclusion: multiple pdfs with page grou
+p included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_multi_k_lines_pr.
+pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_multi_k_lines_pr.pdf): PDF inclusion: multiple pdfs with page group 
+included in a single page
+>] [4 <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_dim
+s.pdf> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_k_averaged_pr
+.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_k_averaged_pr.pdf): PDF inclusion: multiple pdfs with page group incl
+uded in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_dims.p
+df
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page group i
+ncluded in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_k_averaged_pr.pdf
+
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_k_averaged_pr.pdf): PDF inclusion: multiple pdfs with page group inc
+luded in a single page
+>] [5 <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_zscore_k_avera
+ged_dims.pdf> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_minmax
+_k_averaged_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_minmax_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page g
+roup included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_max_k_averaged_dim
+s.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_max_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page grou
+p included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_physical_k_average
+d_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_physical_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page
+ group included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_mis_dimensionless_k_av
+eraged_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_mis_dimensionless_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with
+ page group included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_zscore_k_averaged
+_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_zscore_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page 
+group included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_minmax_k_averaged
+_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_minmax_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page 
+group included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_max_k_averaged_di
+ms.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_max_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with page gro
+up included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_physical_k_averag
+ed_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_physical_k_averaged_dims.pdf): PDF inclusion: multiple pdfs with pag
+e group included in a single page
+> <publication_lpca/plots/d_vs_tau_k_dependency/d_vs_tau_hjsw_dimensionless_k_a
+veraged_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/d_vs_tau_k_dependency/d_v
+s_tau_hjsw_dimensionless_k_averaged_dims.pdf): PDF inclusion: multiple pdfs wit
+h page group included in a single page
+>]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 292.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 292.
+
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.294 \begin{figure}[htbp]
+                          
+You're in trouble here.  Try typing  <return>  to proceed.
+If that doesn't work, type  X <return>  to quit.
+
+<plots/k_sweep_curves/k_sweep_mis_zscore_dims.pdf, id=664, 692.5875pt x 436.631
+26pt>
+File: plots/k_sweep_curves/k_sweep_mis_zscore_dims.pdf Graphic file (type pdf)
+<use plots/k_sweep_curves/k_sweep_mis_zscore_dims.pdf>
+Package pdftex.def Info: plots/k_sweep_curves/k_sweep_mis_zscore_dims.pdf  used
+ on input line 298.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.300         \label{fig:k_sweep_mis_dims}
+                                          
+I allow only values in the range 1..32767 here.
+
+<plots/k_sweep_curves/k_sweep_mis_zscore_pr.pdf, id=665, 692.5875pt x 436.63126
+pt>
+File: plots/k_sweep_curves/k_sweep_mis_zscore_pr.pdf Graphic file (type pdf)
+<use plots/k_sweep_curves/k_sweep_mis_zscore_pr.pdf>
+Package pdftex.def Info: plots/k_sweep_curves/k_sweep_mis_zscore_pr.pdf  used o
+n input line 305.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.307         \label{fig:k_sweep_mis_pr}
+                                        
+I allow only values in the range 1..32767 here.
+
+<plots/k_sweep_curves/k_sweep_hjsw_zscore_dims.pdf, id=666, 692.5875pt x 436.63
+126pt>
+File: plots/k_sweep_curves/k_sweep_hjsw_zscore_dims.pdf Graphic file (type pdf)
+
+<use plots/k_sweep_curves/k_sweep_hjsw_zscore_dims.pdf>
+Package pdftex.def Info: plots/k_sweep_curves/k_sweep_hjsw_zscore_dims.pdf  use
+d on input line 314.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.316         \label{fig:k_sweep_hjsw_dims}
+                                           
+I allow only values in the range 1..32767 here.
+
+
+Overfull \hbox (7.46452pt too wide) in paragraph at lines 316--317
+ []\T1/cmr/m/n/10.95 fig:k$[]\OML/cmm/m/it/10.95 weep[]jsw[]ims[]$ 
+ []
+
+<plots/k_sweep_curves/k_sweep_hjsw_zscore_pr.pdf, id=667, 692.5875pt x 436.6312
+6pt>
+File: plots/k_sweep_curves/k_sweep_hjsw_zscore_pr.pdf Graphic file (type pdf)
+<use plots/k_sweep_curves/k_sweep_hjsw_zscore_pr.pdf>
+Package pdftex.def Info: plots/k_sweep_curves/k_sweep_hjsw_zscore_pr.pdf  used 
+on input line 321.
+(pdftex.def)             Requested size: 218.51521pt x 137.75943pt.
+! Undefined control sequence.
+\subcaption@@label ...relax \subcaption@ORI@label 
+                                                  #1{#2}\subcaption@prepare@...
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+\subcaption@@label ...\subcaption@ORI@label #1{#2}
+                                                  \subcaption@prepare@label ...
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Undefined control sequence.
+\subcaption@@label ...name }\subcaption@ORI@label 
+                                                  {sub@#2}\endgroup \@esphack 
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+! Bad space factor (0).
+<recently read> \@savsf 
+                        
+l.323         \label{fig:k_sweep_hjsw_pr}
+                                         
+I allow only values in the range 1..32767 here.
+
+! Undefined control sequence.
+l.327     \label
+                {fig:k_sweep_curves_main}
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.327     \label{fig:k_
+                       sweep_curves_main}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Extra }, or forgotten $.
+l.327     \label{fig:k_sweep_curves_main}
+                                         
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+! Missing $ inserted.
+<inserted text> 
+                $
+l.328 \end{figure}
+                  
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+! Missing } inserted.
+<inserted text> 
+                }
+l.328 \end{figure}
+                  
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[6
+
+ <publication_lpca/plots/k_sweep_curves/k_sweep_mis_zscore_dims.pdf> <publicati
+on_lpca/plots/k_sweep_curves/k_sweep_mis_zscore_pr.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/k_sweep_curves/k_sweep_mi
+s_zscore_pr.pdf): PDF inclusion: multiple pdfs with page group included in a si
+ngle page
+> <publication_lpca/plots/k_sweep_curves/k_sweep_hjsw_zscore_dims.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/k_sweep_curves/k_sweep_hj
+sw_zscore_dims.pdf): PDF inclusion: multiple pdfs with page group included in a
+ single page
+> <publication_lpca/plots/k_sweep_curves/k_sweep_hjsw_zscore_pr.pdf
+
+pdfTeX warning: pdflatex (file publication_lpca/plots/k_sweep_curves/k_sweep_hj
+sw_zscore_pr.pdf): PDF inclusion: multiple pdfs with page group included in a s
+ingle page
+>] (publication_lpca/latex_figures_catalogue.aux)
+ ***********
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
+ ***********
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+(\end occurred when \ifx on line 41 was incomplete)
+(\end occurred when \ifmmode on line 41 was incomplete)
+(\end occurred when \iftrue on line 33 was incomplete)
+(\end occurred when \iftrue on line 33 was incomplete)
+(\end occurred when \iftrue on line 31 was incomplete)
+(\end occurred when \iftrue on line 31 was incomplete)
+(\end occurred when \iftrue on line 26 was incomplete)
+(\end occurred when \iftrue on line 26 was incomplete)
+(\end occurred when \iftrue on line 23 was incomplete)
+(\end occurred when \iftrue on line 23 was incomplete) 
+Here is how much of TeX's memory you used:
+ 12778 strings out of 469515
+ 214188 string characters out of 5470808
+ 651129 words of memory out of 5000000
+ 41265 multiletter control sequences out of 15000+600000
+ 644678 words of font info for 88 fonts, out of 8000000 for 9000
+ 14 hyphenation exceptions out of 8191
+ 75i,9n,79p,607b,591s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ </home/kitajusus/.texliv
+e/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/kitajusus/.texli
+ve/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1000.600pk> </home/kitajusus/.texl
+ive/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1000.600pk> </home/kitajusus/.tex
+live/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/kitajusus/.te
+xlive/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti1095.600pk> </home/kitajusus/.t
+exlive/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1095.600pk></usr/share/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/type
+1/public/amsfonts/cm/cmmi12.pfb></usr/share/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmmi7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pf
+b></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmr8.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10
+.pfb>
+Output written on publication_lpca/latex_figures_catalogue.pdf (6 pages, 431329
+7 bytes).
+PDF statistics:
+ 1042 PDF objects out of 1200 (max. 8388607)
+ 584 compressed objects within 6 object streams
+ 42 named destinations out of 1000 (max. 500000)
+ 156 words of extra memory for PDF output out of 10000 (max. 10000000)
+

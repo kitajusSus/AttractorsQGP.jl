@@ -57,6 +57,8 @@ for sym in [
         :plot_pr_phase_space_grid_2d,
         :plot_pr_phase_space_slice_3d,
         :plot_pr_phase_space_grid_3d,
+        :compute_lpca,
+        :plot_map_lpca,
     ]
     @eval export $sym
     @eval const $sym = AttractorsQGP.$sym

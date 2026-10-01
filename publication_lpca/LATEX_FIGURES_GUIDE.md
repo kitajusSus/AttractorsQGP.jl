@@ -6,6 +6,7 @@
 ---
 
 ## Spis Treści
+0. [Zorganizowana Struktura Folderów (Nowy Układ)](#0-zorganizowana-struktura-folderów-nowy-układ)
 1. [Wprowadzenie i Standardy Publikacyjne](#1-wprowadzenie-i-standardy-publikacyjne)
 2. [Kategoria I: Siatki ewolucji przestrzeni fazowej 2D i 3D (`best_practices_lpca/`)](#2-kategoria-i-siatki-ewolucji-przestrzeni-fazowej-2d-i-3d)
    - [Model Conformal MIS (2D)](#a-model-conformal-mis-2d)
@@ -17,6 +18,24 @@
 4. [Kategoria III: Zależność wymiaru od wielkości otoczenia $d(K)$ dla przekrojów czasowych (`k_sweep_curves/`)](#4-kategoria-iii-zależność-wymiaru-od-wielkości-otoczenia-dk)
 5. [Kategoria IV: Badanie czułości skali $k$-NN w parach podwajania (`k_dependency/`)](#5-kategoria-iv-badanie-czułości-skali-k-nn-w-parach-podwajania)
 6. [Ściąga z Makr i Szerokości w LaTeX](#6-ściąga-z-makr-i-szerokości-w-latex)
+
+---
+
+## 0. Zorganizowana Struktura Folderów (Nowy Układ)
+
+Wszystkie rysunki zostały posegregowane według:
+1. **Modelu fizycznego:** `mis/` oraz `hjsw/` (oraz `comparisons_mis_vs_hjsw/`)
+2. **Układu współrzędnych / standaryzacji:** `dimensionless/`, `physical/`, `max/`, `minmax/`, `zscore/` (oraz skróty bezpośrednie w `plots/`)
+3. **Miary wymiaru:** `dims/` (dyskretny) oraz `pr/` (ciągły Participation Ratio)
+
+W każdym folderze (np. `mis/dimensionless/dims/` lub `hjsw/zscore/pr/`) znajdują się:
+- Siatka zbiorcza 3x3: `grid_*.pdf`
+- Pojedyncze przekroje czasowe: `*_slice_tau_*.pdf`
+- Ewolucje czasowe $d(\tau)$: `d_vs_tau_*_multi_k_*.pdf` oraz `d_vs_tau_*_k_averaged_*.pdf`
+- Zależność od otoczenia $d(K)$: `k_sweep_*.pdf`
+- Mapy cieplne $d(\tau, K)$: `map_lpca_*.pdf`
+
+Wszystkie dotychczasowe ścieżki (np. `best_practices_lpca/`, `d_vs_tau_k_dependency/`) są w pełni zachowane dzięki relatywnym dowiązaniom symbolicznym, co gwarantuje pełną zgodność wsteczną kodów LaTeX.
 
 ---
 

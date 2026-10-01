@@ -282,7 +282,9 @@ function plot_phase_space_grid(
     n = length(times)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
-    fig = Figure(size = (400 * ncols, 350 * nrows))
+    fig = Figure(size = (480 * ncols + 60, 420 * nrows + 40), figure_padding = (60, 50, 40, 40))
+    colgap!(fig.layout, 55)
+    rowgap!(fig.layout, 60)
 
     lims = get_limits(dataset, xdef, ydef; times = times)
 
@@ -298,6 +300,10 @@ function plot_phase_space_grid(
                 title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
                 xlabel = d.xlabel,
                 ylabel = d.ylabel,
+                xlabelsize = 22,
+                ylabelsize = 22,
+                xticklabelsize = 16,
+                yticklabelsize = 16,
                 limits = lims
             )
             ylims!(ax, 0, 4)
@@ -307,6 +313,10 @@ function plot_phase_space_grid(
                 title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
                 xlabel = d.xlabel,
                 ylabel = d.ylabel,
+                xlabelsize = 22,
+                ylabelsize = 22,
+                xticklabelsize = 16,
+                yticklabelsize = 16,
                 limits = lims
             )
         end
@@ -344,7 +354,7 @@ function plot_phase_space_grid_3d(
         attractor = nothing,
         attractor_points::Int = 150,
         azimuth::Real = -1.2,
-        elevation::Real = 0.20,
+        elevation::Real = 0.25,
         n_points_scatter::Int = 5000
     )
     set_publication_theme()
@@ -357,7 +367,9 @@ function plot_phase_space_grid_3d(
     n = length(times)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
-    fig = Figure(size = (480 * ncols, 420 * nrows), figure_padding = (60, 40, 50, 40))
+    fig = Figure(size = (680 * ncols + 150, 580 * nrows), figure_padding = (80, 70, 60, 60))
+    colgap!(fig.layout, 75)
+    rowgap!(fig.layout, 85)
 
     for (i, t) in enumerate(times)
         row = (i - 1) ÷ ncols + 1
@@ -377,15 +389,21 @@ function plot_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
-            titlesize = 16,
+            titlesize = 22,
             xlabel = xlbl,
             ylabel = ylbl,
             zlabel = zlbl,
+            xlabelsize = 20,
+            ylabelsize = 20,
+            zlabelsize = 20,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            zticklabelsize = 16,
             azimuth = azimuth,
             elevation = elevation,
-            xlabeloffset = 40,
-            ylabeloffset = 40,
-            zlabeloffset = 50,
+            xlabeloffset = 55,
+            ylabeloffset = 55,
+            zlabeloffset = 70,
             xticks = LinearTicks(4),
             yticks = LinearTicks(4),
             zticks = LinearTicks(4)
@@ -1669,17 +1687,24 @@ function plot_map_lpca(
         zakres_K::AbstractVector{<:Integer} = [10, 20, 40, 80],
         n_slices::Int = 15,
         feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
+        normalize::Union{Symbol, Function} = :standard,
+        title::Union{String, LaTeXString} = "",
+        colormap = nothing,
+        colorrange = (1, 3),
+        ticks = [1, 2, 3],
+        figure_size::Tuple{Integer, Integer} = (1200, 600)
     )
     set_publication_theme()
-    palette = Makie.theme(:Palette).color[]
+    palette = isnothing(colormap) ? Makie.theme(:Palette).color[] : colormap
 
-    results = [compute_lpca(dataset, k, n_slices; feature_cols = feature_cols) for k in zakres_K]
+    results = [compute_lpca(dataset, k, n_slices; feature_cols = feature_cols, normalize = normalize) for k in zakres_K]
     tau_vals = results[1][1]
     dim_matrix = reduce(hcat, [r[2] for r in results])
 
-    fig = Figure(size = (1200, 600))
+    fig = Figure(size = figure_size)
     ax = Axis(
         fig[1, 1],
+        title = title,
         xlabel = L"\tau\,[\mathrm{fm}/c]",
         ylabel = L"K",
     )
@@ -1687,13 +1712,13 @@ function plot_map_lpca(
     hm = heatmap!(
         ax, tau_vals, zakres_K, dim_matrix;
         colormap = palette,
-        colorrange = (1, 3)
+        colorrange = colorrange
     )
 
     Colorbar(
         fig[1, 2], hm;
         label = L"\text{Local Dimension} d",
-        ticks = [1, 2, 3]
+        ticks = ticks
     )
 
     return fig
@@ -3055,7 +3080,8 @@ function plot_colored_phase_space_grid_2d(
     figure_size::Tuple{Integer, Integer} = (1400, 1200),
     n_calc::Integer = 10_000,
     n_plot::Integer = 5_000,
-    seed::Integer = 42
+    seed::Integer = 42,
+    show_legend::Bool = false
 )
     set_publication_theme()
 
@@ -3063,9 +3089,9 @@ function plot_colored_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figure = Figure(size = (figure_size[1] + 150, figure_size[2] + 100), figure_padding = (60, 50, 45, 45))
-    colgap!(figure.layout, 55)
-    rowgap!(figure.layout, 55)
+    figure = Figure(size = (figure_size[1] + 250, figure_size[2] + 200), figure_padding = (70, 60, 50, 50))
+    colgap!(figure.layout, 70)
+    rowgap!(figure.layout, 75)
 
     c2 = _get_dim_color(2.0, 2.0, colormap)
     c1 = _get_dim_color(1.0, 2.0, colormap)
@@ -3082,6 +3108,10 @@ function plot_colored_phase_space_grid_2d(
             titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
             xticks = LinearTicks(4),
             yticks = LinearTicks(4),
             xautolimitmargin = (0.05, 0.05),
@@ -3125,7 +3155,7 @@ function plot_colored_phase_space_grid_2d(
                 markersize = 6,
                 strokewidth = 0.2,
                 strokecolor = (:black, 0.2),
-                label = L"d = 2"
+                label = show_legend ? L"d = 2" : nothing
             )
         end
 
@@ -3138,16 +3168,18 @@ function plot_colored_phase_space_grid_2d(
                 markersize = 6,
                 strokewidth = 0.2,
                 strokecolor = (:black, 0.2),
-                label = L"d = 1"
+                label = show_legend ? L"d = 1" : nothing
             )
         end
 
-        if !legend_placed && any(mask_d1) && any(mask_d2)
-            axislegend(axis, position = :rt)
-            legend_placed = true
-        elseif !legend_placed && index == slice_count
-            axislegend(axis, position = :rt)
-            legend_placed = true
+        if show_legend
+            if !legend_placed && any(mask_d1) && any(mask_d2)
+                axislegend(axis, position = :rt)
+                legend_placed = true
+            elseif !legend_placed && index == slice_count
+                axislegend(axis, position = :rt)
+                legend_placed = true
+            end
         end
     end
 
@@ -3167,7 +3199,8 @@ function plot_colored_phase_space_grid_hjsw_projections(
     figure_size::Tuple{Integer, Integer} = (1200, 1050),
     n_calc::Integer = 10_000,
     n_plot::Integer = 5_000,
-    seed::Integer = 42
+    seed::Integer = 42,
+    show_legend::Bool = false
 )
     set_publication_theme()
 
@@ -3175,7 +3208,9 @@ function plot_colored_phase_space_grid_hjsw_projections(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figure = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    figure = Figure(size = (figure_size[1] + 250, figure_size[2] + 200), figure_padding = (65, 55, 50, 50))
+    colgap!(figure.layout, 65)
+    rowgap!(figure.layout, 70)
 
     c3 = _get_dim_color(3.0, 3.0, colormap)
     c2 = _get_dim_color(2.0, 3.0, colormap)
@@ -3190,9 +3225,15 @@ function plot_colored_phase_space_grid_hjsw_projections(
         axis = Axis(
             figure[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 24,
             xlabel = L"\mathcal{A}",
             ylabel = L"\mathcal{B}",
+            xlabelsize = 22,
+            ylabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
             xautolimitmargin = (0.04, 0.04),
             yautolimitmargin = (0.05, 0.05)
         )
@@ -3232,7 +3273,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 b_vals[mask_d3];
                 color = (c3, 0.60),
                 markersize = 5,
-                label = L"d = 3"
+                label = show_legend ? L"d = 3" : nothing
             )
         end
 
@@ -3243,7 +3284,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 b_vals[mask_d2];
                 color = (c2, 0.80),
                 markersize = 5,
-                label = L"d = 2"
+                label = show_legend ? L"d = 2" : nothing
             )
         end
 
@@ -3254,16 +3295,18 @@ function plot_colored_phase_space_grid_hjsw_projections(
                 b_vals[mask_d1];
                 color = (c1, 0.90),
                 markersize = 6,
-                label = L"d = 1"
+                label = show_legend ? L"d = 1" : nothing
             )
         end
 
-        if !legend_placed && any(mask_d3) && any(mask_d2)
-            axislegend(axis, position = :rt)
-            legend_placed = true
-        elseif !legend_placed && index == slice_count
-            axislegend(axis, position = :rt)
-            legend_placed = true
+        if show_legend
+            if !legend_placed && any(mask_d3) && any(mask_d2)
+                axislegend(axis, position = :rt)
+                legend_placed = true
+            elseif !legend_placed && index == slice_count
+                axislegend(axis, position = :rt)
+                legend_placed = true
+            end
         end
     end
 
@@ -3385,13 +3428,14 @@ function plot_colored_phase_space_grid_3d(
     return_normalized::Bool = false,
     colormap = :managua100,
     azimuth::Real = 1.2,
-    elevation::Real = 0.20,
+    elevation::Real = 0.25,
     xreversed::Bool = true,
     markersize::Real = 5,
     figure_size::Union{Nothing, Tuple{Integer, Integer}} = nothing,
     n_calc::Integer = 10_000,
     n_plot::Integer = 5_000,
-    seed::Integer = 42
+    seed::Integer = 42,
+    show_legend::Bool = false
 )
     set_publication_theme()
 
@@ -3399,10 +3443,10 @@ function plot_colored_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    figsize = isnothing(figure_size) ? (620 * column_count + 120, 540 * row_count) : figure_size
-    fig = Figure(size = figsize, figure_padding = (70, 55, 50, 50))
-    colgap!(fig.layout, 55)
-    rowgap!(fig.layout, 55)
+    figsize = isnothing(figure_size) ? (720 * column_count + 200, 620 * row_count) : figure_size
+    fig = Figure(size = figsize, figure_padding = (80, 70, 60, 60))
+    colgap!(fig.layout, 80)
+    rowgap!(fig.layout, 90)
 
     c3 = _get_dim_color(3.0, 3.0, colormap)
     c2 = _get_dim_color(2.0, 3.0, colormap)
@@ -3421,12 +3465,18 @@ function plot_colored_phase_space_grid_3d(
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            zlabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            zticklabelsize = 16,
             azimuth = azimuth,
             elevation = elevation,
             xreversed = xreversed,
-            xlabeloffset = 35,
-            ylabeloffset = 35,
-            zlabeloffset = 45,
+            xlabeloffset = 55,
+            ylabeloffset = 55,
+            zlabeloffset = 70,
             xticks = LinearTicks(4),
             yticks = LinearTicks(4),
             zticks = LinearTicks(4)
@@ -3464,21 +3514,23 @@ function plot_colored_phase_space_grid_3d(
         mask_d1 = isapprox.(d_vals, 1.0; atol = 0.1)
 
         if any(mask_d3)
-            scatter!(ax, t_vals[mask_d3], a_vals[mask_d3], b_vals[mask_d3]; color = (c3, 0.50), markersize = markersize, label = L"d = 3")
+            scatter!(ax, t_vals[mask_d3], a_vals[mask_d3], b_vals[mask_d3]; color = (c3, 0.50), markersize = markersize, label = show_legend ? L"d = 3" : nothing)
         end
         if any(mask_d2)
-            scatter!(ax, t_vals[mask_d2], a_vals[mask_d2], b_vals[mask_d2]; color = (c2, 0.75), markersize = markersize, label = L"d = 2")
+            scatter!(ax, t_vals[mask_d2], a_vals[mask_d2], b_vals[mask_d2]; color = (c2, 0.75), markersize = markersize, label = show_legend ? L"d = 2" : nothing)
         end
         if any(mask_d1)
-            scatter!(ax, t_vals[mask_d1], a_vals[mask_d1], b_vals[mask_d1]; color = (c1, 0.90), markersize = markersize + 1, label = L"d = 1")
+            scatter!(ax, t_vals[mask_d1], a_vals[mask_d1], b_vals[mask_d1]; color = (c1, 0.90), markersize = markersize + 1, label = show_legend ? L"d = 1" : nothing)
         end
 
-        if !legend_placed && any(mask_d3) && any(mask_d2)
-            axislegend(ax, position = :rt)
-            legend_placed = true
-        elseif !legend_placed && index == slice_count
-            axislegend(ax, position = :rt)
-            legend_placed = true
+        if show_legend
+            if !legend_placed && any(mask_d3) && any(mask_d2)
+                axislegend(ax, position = :rt)
+                legend_placed = true
+            elseif !legend_placed && index == slice_count
+                axislegend(ax, position = :rt)
+                legend_placed = true
+            end
         end
     end
 
@@ -3924,7 +3976,9 @@ function plot_soft_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
+    fig = Figure(size = (figure_size[1] + 250, figure_size[2] + 200), figure_padding = (70, 60, 50, 50))
+    colgap!(fig.layout, 70)
+    rowgap!(fig.layout, 75)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -3935,9 +3989,15 @@ function plot_soft_phase_space_grid_2d(
         ax = Axis(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 17,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
             xautolimitmargin = (0.04, 0.04),
             yautolimitmargin = (0.05, 0.05)
         )
@@ -3966,9 +4026,9 @@ function plot_soft_phase_space_grid_2d(
         fig[1:row_count, column_count + 1],
         sc_handle,
         label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
-        width = 18,
-        ticklabelsize = 14,
-        labelsize = 16
+        width = 22,
+        ticklabelsize = 16,
+        labelsize = 20
     )
 
     return fig
@@ -4421,9 +4481,9 @@ function plot_pr_phase_space_grid_2d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = (figure_size[1] + 150, figure_size[2] + 100), figure_padding = (60, 50, 45, 45))
-    colgap!(fig.layout, 55)
-    rowgap!(fig.layout, 55)
+    fig = Figure(size = (figure_size[1] + 250, figure_size[2] + 200), figure_padding = (70, 60, 50, 50))
+    colgap!(fig.layout, 70)
+    rowgap!(fig.layout, 75)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -4437,6 +4497,10 @@ function plot_pr_phase_space_grid_2d(
             titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
             xticks = LinearTicks(4),
             yticks = LinearTicks(4),
             xautolimitmargin = (0.05, 0.05),
@@ -4481,9 +4545,9 @@ function plot_pr_phase_space_grid_2d(
         fig[1:row_count, column_count + 1],
         sc_handle,
         label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
-        width = 18,
-        ticklabelsize = 14,
-        labelsize = 16
+        width = 22,
+        ticklabelsize = 16,
+        labelsize = 20
     )
 
     return fig
@@ -4566,7 +4630,7 @@ function plot_soft_phase_space_grid_3d(
     colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
     azimuth::Real = 1.3,
-    elevation::Real = 0.15,
+    elevation::Real = 0.25,
     markersize::Real = 5,
     kwargs...
 )
@@ -4576,7 +4640,9 @@ function plot_soft_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = (500 * column_count + 100, 440 * row_count), figure_padding = (60, 40, 50, 40))
+    fig = Figure(size = (720 * column_count + 200, 620 * row_count), figure_padding = (80, 70, 60, 60))
+    colgap!(fig.layout, 80)
+    rowgap!(fig.layout, 90)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -4587,15 +4653,24 @@ function plot_soft_phase_space_grid_3d(
         ax = Axis3(
             fig[row, col],
             title = L"\tau = %$(tau_str)\,\mathrm{fm}/c",
-            titlesize = 18,
+            titlesize = 24,
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            zlabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            zticklabelsize = 16,
             azimuth = azimuth,
             elevation = elevation,
-            xlabeloffset = 35,
-            ylabeloffset = 35,
-            zlabeloffset = 45
+            xlabeloffset = 55,
+            ylabeloffset = 55,
+            zlabeloffset = 70,
+            xticks = LinearTicks(4),
+            yticks = LinearTicks(4),
+            zticks = LinearTicks(4)
         )
 
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
@@ -4621,9 +4696,9 @@ function plot_soft_phase_space_grid_3d(
         fig[1:row_count, column_count + 1],
         sc_handle,
         label = L"\text{Soft Dimension } d_i^{\mathrm{soft}}",
-        width = 18,
-        ticklabelsize = 14,
-        labelsize = 16
+        width = 22,
+        ticklabelsize = 16,
+        labelsize = 20
     )
 
     return fig
@@ -4642,7 +4717,7 @@ function plot_pr_phase_space_grid_3d(
     colormap = :managua100,
     color_limits::Tuple{<:Real, <:Real} = (1.0, 3.0),
     azimuth::Real = 1.2,
-    elevation::Real = 0.20,
+    elevation::Real = 0.25,
     xreversed::Bool = true,
     markersize::Real = 5,
     normalize_method::Symbol = :max,
@@ -4658,9 +4733,9 @@ function plot_pr_phase_space_grid_3d(
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
 
-    fig = Figure(size = (620 * column_count + 160, 540 * row_count), figure_padding = (70, 55, 50, 50))
-    colgap!(fig.layout, 55)
-    rowgap!(fig.layout, 55)
+    fig = Figure(size = (720 * column_count + 200, 620 * row_count), figure_padding = (80, 70, 60, 60))
+    colgap!(fig.layout, 80)
+    rowgap!(fig.layout, 90)
 
     sc_handle = nothing
     for (index, tau) in enumerate(tau_grid)
@@ -4675,12 +4750,18 @@ function plot_pr_phase_space_grid_3d(
             xlabel = x_label,
             ylabel = y_label,
             zlabel = z_label,
+            xlabelsize = 22,
+            ylabelsize = 22,
+            zlabelsize = 22,
+            xticklabelsize = 16,
+            yticklabelsize = 16,
+            zticklabelsize = 16,
             azimuth = azimuth,
             elevation = elevation,
             xreversed = xreversed,
-            xlabeloffset = 35,
-            ylabeloffset = 35,
-            zlabeloffset = 45,
+            xlabeloffset = 55,
+            ylabeloffset = 55,
+            zlabeloffset = 70,
             xticks = LinearTicks(4),
             yticks = LinearTicks(4),
             zticks = LinearTicks(4)
@@ -4723,9 +4804,9 @@ function plot_pr_phase_space_grid_3d(
         fig[1:row_count, column_count + 1],
         sc_handle,
         label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)",
-        width = 18,
-        ticklabelsize = 14,
-        labelsize = 16
+        width = 22,
+        ticklabelsize = 16,
+        labelsize = 20
     )
 
     return fig

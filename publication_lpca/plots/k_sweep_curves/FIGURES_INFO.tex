@@ -35,3 +35,24 @@
     \caption{Zależność wyznaczonego wymiaru lokalnego od skali sąsiedztwa $K \in [3, 50]$ w standaryzacji Z-Score dla 8 wybranych przekrojów $\tau \in [0.20, 2.50]\,\mathrm{fm}/c$. Szeroki płaskowyż stabilności w przedziale $K \in [10, 40]$ potwierdza niezależność wyników od arbitralnego wyboru skali $k$-NN.}
     \label{fig:k_sweep_plateau}
 \end{figure}
+
+% Szablon dla dwuwymiarowych map LPCA d(tau, K)
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{k_sweep_curves/map_lpca_mis_zscore.pdf}
+        \caption{MIS: Mapa $d(\tau, K)$}
+        \label{fig:map_lpca_mis}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{k_sweep_curves/map_lpca_hjsw_zscore.pdf}
+        \caption{HJSW: Mapa $d(\tau, K)$}
+        \label{fig:map_lpca_hjsw}
+    \end{subfigure}
+    \caption{Dwuwymiarowe mapy wymiaru lokalnego $d(\tau, K)$ wyznaczone metodą LPCA (\texttt{plot\_map\_lpca}) na płaszczyźnie czas własny $\tau$ vs liczba sąsiadów $K \in [10, 80]$ dla modeli MIS i HJSW w standaryzacji Z-Score. Wyraźnie widoczny kolaps wymiaru przestrzeni fazowej w miarę relaksacji układu w kierunku atraktora hydrodynamicznego.}
+    \label{fig:map_lpca_2d}
+\end{figure}
+

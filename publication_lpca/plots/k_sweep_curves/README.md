@@ -16,5 +16,11 @@ Katalog zawiera wykresy wektorowe PDF przedstawiające zależność wymiaru loka
   - `dims` – Dyskretny wymiar lokalny
   - `pr` – Ciągły wymiar Participation Ratio
 
-Każdy wykres zawiera barwne krzywe dla poszczególnych chwil $\tau$ wraz z cieniowanym pasmem $\pm 1\sigma$ dyspersji zespołu.
+## Mapy dwuwymiarowe LPCA (Heatmap)
+`map_lpca_{model}_{standaryzacja}.pdf` oraz `map_lpca_{model}_{standaryzacja}.png`
+- Generowane z użyciem funkcji `plot_map_lpca`
+- Przedstawiają mapę wymiaru lokalnego $d(\tau, K)$ na płaszczyźnie czas własny $\tau$ vs liczba sąsiadów $K \in [10, 80]$
+- Pokazują jednoczesną stabilność wymiaru względem skali $K$ oraz jego redukcję w czasie (kolaps atraktorowy $2\mathrm{D}\to 1\mathrm{D}$ dla MIS oraz $3\mathrm{D}\to 2\mathrm{D}\to 1\mathrm{D}$ dla HJSW)
+
+Każdy wykres krzywych zawiera barwne krzywe dla poszczególnych chwil $\tau$ wraz z cieniowanym pasmem $\pm 1\sigma$ dyspersji zespołu.
 Płaskowyż widoczny w zakresie $K \in [10, 40]$ dowodzi niezmienniczości wyznaczanego wymiaru i stabilności metody LPCA.
