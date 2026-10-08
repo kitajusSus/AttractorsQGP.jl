@@ -7,6 +7,7 @@ authors = ["Krzysztof Bezubik <116976902+kitajusSus@users.noreply.github.com>", 
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
@@ -23,6 +24,7 @@ LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 MultivariateStats = "6f286f6a-111f-5878-ab1e-185364afe411"
 NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
+OhMyREPL = "5fb14364-9ced-5910-84b2-373655c76a03"
 Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
 OrdinaryDiffEqRosenbrock = "43230ef6-c299-4910-a778-202eb28ce4ce"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
@@ -34,12 +36,16 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+jEMach = "67289db4-f2a6-40b9-80a9-9c8949710e38"
 
+[sources]
+jEMach = {rev = "master", url = "https://github.com/kitajusSus/jEMach"}
 
 [compat]
 CSV = "0.10"
 CairoMakie = "0.15"
 ColorSchemes = "3"
+Colors = "0.13.2"
 ComponentArrays = "0.15"
 DataFrames = "1"
 DifferentialEquations = "8"
@@ -56,6 +62,7 @@ LinearMaps = "3.11"
 Lux = "1"
 MultivariateStats = "0.10"
 NearestNeighbors = "0.4"
+OhMyREPL = "0.6.0"
 Optimisers = "0.3, 0.4"
 OrdinaryDiffEqRosenbrock = "2.1"
 Polynomials = "4"
@@ -63,11 +70,12 @@ ProgressMeter = "1"
 StaticArrays = "1"
 Symbolics = "7"
 Zygote = "0.7"
+jEMach = "0.1.2"
 julia = "1.10"
-
 
 [extras]
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]

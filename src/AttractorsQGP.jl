@@ -74,13 +74,12 @@ include("io/citation.jl")
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel, HJSWModel, HJSWwModel
 export HBARC_MEV_FM, MEV_PER_FM, FM_PER_MEV, to_temperature_unit, temperature_to_fm
 export solve_hydro, generate_initial_conditions, generate_trajectories, build_dataset, run_main
-
+export lpca_style
 export explained_variance_ratio_from_svd, normalize_minmax, run_pca, run_pca_kernel, get_tau_slice, run_pca_for_tau, run_pca_per_time, run_evolution_pca_workflow
 export estimate_effective_dimension, estimate_dimension, scan_dimension_from_data
 export estimate_lid, estimate_twonn, scan_intrinsic_dimensions, spectral_dimension, estimate_pinn_dimension
 export estimate_scale_dimension, run_LLE
 export compute_polynomial_lle
-
 export lle, run_lle_per_time, run_lle_for_selected_taus, lle_spectrum, lle_spectrum_over_k, spectrum_statistics, scan_lle_spectrum
 export dims, normalize_max, apply_normalization, swiss_roll, compute_lpca, dynamic_lpca_analysis, compute_lpca_entropy, compute_stable_lpca_collapse, compute_lpca_principal_angles
 export transform_to_dimensionless, rescale_temperature, create_mixed_scaled, prepare_dataset_variants, load_hydro_dataset
@@ -89,7 +88,7 @@ export analyze_dimension_distribution, analyze_tolerance_sensitivity, compute_pa
 export PointwiseDimensionSlice, compute_pointwise_dimensions, compute_pointwise_pr
 export compute_soft_weighted_dimension, scan_soft_weighted_dimension
 export compute_local_pr_dimension, scan_local_pr_dimension
-
+export plot_pr_dimension_histogram, plot_pr_dimension_histogram_grid
 export PINNConfig, build_pinn_network, normalize_pinn_input, denormalize_pinn_output, pinn_predict
 export train_pinn, PINNResult
 export predict_trajectories_pinn, build_pinn_dataset, compare_pinn_ode, pinn_attractor_analysis
@@ -200,5 +199,3 @@ function run_main(
 end
 
 end
-
-
