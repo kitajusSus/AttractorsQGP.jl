@@ -45,15 +45,15 @@ function run_phase_space_generator(;
     tol_eval = 0.01
     set_publication_theme()
 
-    colormap_choice = lpca_style
+    colormap_choice = japidi_stype
 
     mis_configs = [
-        (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", dataset_type = :physical),
+        # (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", dataset_type = :physical),
         (name = "physical", method = :none, return_norm = false, xlabel = L"T\,[\mathrm{fm}^{-1}]", ylabel = L"\mathcal{A}", dataset_type = :physical),
     ]
 
     hjsw_configs = [
-        (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", zlabel = L"\mathcal{B}_z", dataset_type = :physical),
+        # (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", zlabel = L"\mathcal{B}_z", dataset_type = :physical),
         (name = "physical", method = :none, return_norm = false, xlabel = L"T\,[\mathrm{MeV}]", ylabel = L"\mathcal{A}", zlabel = L"\mathcal{B}", dataset_type = :physical),
     ]
 

@@ -1,12 +1,3 @@
-"""
-    Master Driver Script: Run all LPCA publication experiments
-    Executes:
-    1. 01_k_dependency.jl
-    2. 02_normalization_tests.jl
-    3. 03_coordinate_invariance.jl
-    4. 04_dimension_statistics.jl
-"""
-
 if !isdefined(Main, :PublicationLPCA)
     include(joinpath(@__DIR__, "..", "src", "PublicationLPCA.jl"))
 end
@@ -18,7 +9,7 @@ include("03_coordinate_invariance.jl")
 include("04_dimension_statistics.jl")
 include("05_phase_space_grids.jl")
 include("06_parameterization_focus_analysis.jl")
-include("07_soft_weighted_lpca.jl")
+# include("07_soft_weighted_lpca.jl")
 include("08_participation_ratio_analysis.jl")
 
 function run_all_lpca_publication_experiments()
@@ -57,7 +48,7 @@ function run_all_lpca_publication_experiments()
     @printf("  ALL EXPERIMENTS COMPLETED SUCCESSFULLY IN %.2f SECONDS!\n", elapsed)
     println("  Figures saved to: publication_lpca/plots/")
     println("  Data tables saved to: publication_lpca/results/")
-    println("=================================================================")
+    return println("=================================================================")
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

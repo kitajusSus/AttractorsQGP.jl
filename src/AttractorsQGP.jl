@@ -74,7 +74,7 @@ include("io/citation.jl")
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel, HJSWModel, HJSWwModel
 export HBARC_MEV_FM, MEV_PER_FM, FM_PER_MEV, to_temperature_unit, temperature_to_fm
 export solve_hydro, generate_initial_conditions, generate_trajectories, build_dataset, run_main
-export lpca_style
+export lpca_style, japidi_stype
 export explained_variance_ratio_from_svd, normalize_minmax, run_pca, run_pca_kernel, get_tau_slice, run_pca_for_tau, run_pca_per_time, run_evolution_pca_workflow
 export estimate_effective_dimension, estimate_dimension, scan_dimension_from_data
 export estimate_lid, estimate_twonn, scan_intrinsic_dimensions, spectral_dimension, estimate_pinn_dimension
@@ -137,10 +137,10 @@ end
 function run_main(
         model::HJSWModel;
         n_points::Integer = 5000,
-        tspan::Tuple{<:Real, <:Real} = (0.2, 1.2),
-        T_range::Tuple{<:Real, <:Real} = (200.0, 1400.0),
-        A_range::Tuple{<:Real, <:Real} = (-1.0, 10.0),
-        B_range::Tuple{<:Real, <:Real} = (-2.0, 2.0),
+        tspan::Tuple{<:Real, <:Real} = (0.2, 3),
+        T_range::Tuple{<:Real, <:Real} = (200.0, 1200),
+        A_range::Tuple{<:Real, <:Real} = (-1, 8),
+        B_range::Tuple{<:Real, <:Real} = (-1, 1),
         temperature_unit::Symbol = :MeV,
         include_w::Bool = false,
         saveat::Union{Real, AbstractVector{<:Real}, Nothing} = 0.01,
