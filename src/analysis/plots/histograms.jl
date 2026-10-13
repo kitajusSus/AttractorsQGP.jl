@@ -171,7 +171,7 @@ fig_classic = plot_pr_dimension_histogram(dataset, 0.45; color_by = nothing)
 function plot_pr_dimension_histogram(
         dataset::AbstractMatrix{<:Real},
         tau::Real;
-        feature_indices::AbstractVector{<:Integer} = [2, 3],
+        feature_indices::Union{AbstractVector{<:Integer}, Nothing} = nothing,
         k_neighbor::Union{Integer, Symbol} = :auto,
         normalize_method::Symbol = :zscore,
         use_density_weights::Bool = false,
@@ -181,13 +181,16 @@ function plot_pr_dimension_histogram(
         color_val_limits::Union{Tuple{<:Real, <:Real}, Nothing} = nothing,
         color_label::Union{LaTeXString, String, Nothing} = nothing,
         colormap = lpca_style,
-        color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+        color_limits::Union{Tuple{<:Real, <:Real}, Nothing} = nothing,
         figure_size::Tuple{Integer, Integer} = (850, 550),
         show_mean::Bool = false,
         n_calc::Integer = 10_000,
         seed::Integer = 5
     )
     set_publication_theme()
+
+    actual_features = isnothing(feature_indices) ? collect(2:size(dataset, 2)) : feature_indices
+    actual_color_limits = isnothing(color_limits) ? (1.0, Float64(length(actual_features))) : color_limits
 
     _, full_slice = get_tau_slice(dataset, tau; feature_cols = 1:size(dataset, 2))
     tau0 = minimum(dataset[:, 1])
@@ -204,7 +207,7 @@ function plot_pr_dimension_histogram(
         (full_slice, s0)
     end
 
-    feature_slice = calc_slice[:, feature_indices]
+    feature_slice = calc_slice[:, actual_features]
     norm_slice = apply_normalization(feature_slice, normalize_method)
     eff_k = if k_neighbor === :auto
         suggest_optimal_k(size(norm_slice, 1), size(norm_slice, 2))
@@ -329,7 +332,7 @@ fig_classic = plot_pr_dimension_histogram_grid(dataset, grid_times; color_by = n
 function plot_pr_dimension_histogram_grid(
         dataset::AbstractMatrix{<:Real},
         tau_grid::AbstractVector{<:Real};
-        feature_indices::AbstractVector{<:Integer} = [2, 3],
+        feature_indices::Union{AbstractVector{<:Integer}, Nothing} = nothing,
         k_neighbor::Union{Integer, Symbol} = :auto,
         normalize_method::Symbol = :zscore,
         use_density_weights::Bool = false,
@@ -339,13 +342,16 @@ function plot_pr_dimension_histogram_grid(
         color_val_limits::Union{Tuple{<:Real, <:Real}, Nothing} = nothing,
         color_label::Union{LaTeXString, String, Nothing} = nothing,
         colormap = lpca_style,
-        color_limits::Tuple{<:Real, <:Real} = (1.0, 2.0),
+        color_limits::Union{Tuple{<:Real, <:Real}, Nothing} = nothing,
         figure_size::Tuple{Integer, Integer} = (1450, 1150),
         show_mean::Bool = true,
         n_calc::Integer = 10_000,
         seed::Integer = 5
     )
     set_publication_theme()
+    actual_features = isnothing(feature_indices) ? collect(2:size(dataset, 2)) : feature_indices
+    actual_color_limits = isnothing(color_limits) ? (1.0, Float64(length(actual_features))) : color_limits
+
     slice_count = length(tau_grid)
     ncols = min(3, slice_count)
     nrows = ceil(Int, slice_count / ncols)
@@ -380,7 +386,7 @@ function plot_pr_dimension_histogram_grid(
         end
         (c_range, default_lbl)
     else
-        (color_limits, L"d_{\mathrm{PR}}")
+        (actual_color_limits, L"d_{\mathrm{PR}}")
     end
 
     for (idx, tau) in enumerate(tau_grid)
@@ -399,7 +405,7 @@ function plot_pr_dimension_histogram_grid(
             (full_slice, s0)
         end
 
-        feature_slice = calc_slice[:, feature_indices]
+        feature_slice = calc_slice[:, actual_features]
         norm_slice = apply_normalization(feature_slice, normalize_method)
         eff_k = if k_neighbor === :auto
             suggest_optimal_k(size(norm_slice, 1), size(norm_slice, 2))
@@ -419,7 +425,7 @@ function plot_pr_dimension_histogram_grid(
             ylabelsize = 20,
             xticklabelsize = 16,
             yticklabelsize = 16,
-            limits = (color_limits[1] - 0.04, color_limits[2] + 0.04, 0.0, 1.05)
+            limits = (actual_color_limits[1] - 0.04, actual_color_limits[2] + 0.04, 0.0, 1.05)
         )
 
         if is_stacked
@@ -428,7 +434,7 @@ function plot_pr_dimension_histogram_grid(
                 res.d_pr,
                 color_vals;
                 n_bins = n_bins,
-                range_limits = color_limits,
+                range_limits = actual_color_limits,
                 n_color_bins = n_color_bins,
                 color_range = effective_color_range
             )
@@ -448,7 +454,7 @@ function plot_pr_dimension_histogram_grid(
                 bottom .+= H_norm[:, j]
             end
         else
-            centers, scaled, bin_width = _bin_pr_dimensions(res.d_pr; n_bins = n_bins, range_limits = color_limits)
+            centers, scaled, bin_width = _bin_pr_dimensions(res.d_pr; n_bins = n_bins, range_limits = actual_color_limits)
             barplot!(
                 ax,
                 centers,
@@ -456,7 +462,7 @@ function plot_pr_dimension_histogram_grid(
                 width = bin_width * 0.95,
                 color = centers,
                 colormap = colormap,
-                colorrange = color_limits,
+                colorrange = actual_color_limits,
                 strokewidth = 0.4,
                 strokecolor = (:black, 0.3)
             )

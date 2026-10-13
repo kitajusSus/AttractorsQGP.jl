@@ -392,12 +392,45 @@ function plot_soft_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid:
     return fig
 end
 
-function plot_pr_phase_space_slice_2d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :zscore, return_normalized = false, figure_size = (850, 600), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+"""
+    plot_pr_phase_space_slice_2d(dataset, tau; kwargs...) -> Figure
+
+Rysuje pojedynczy przekrój czasowy przestrzeni fazowej 2D (T, A) z punktami pokolorowanymi
+wartościami lokalnego wymiaru participation ratio d_PR(x_i).
+
+# Argumenty:
+- `dataset`: Dane symulacji (macierz 2D lub tablica 3D [trajektorie, kroki, zmienne]).
+- `tau`: Chwila czasu tau w fm/c.
+
+# Wybrane opcje:
+- `k::Union{Symbol, Integer} = :auto`: Liczba sąsiadów (domyślnie :auto wyznacza suggest_optimal_k).
+- `k_neighbor`: Alias dla parametru `k`.
+- `normalize_method::Symbol = :zscore`: Metoda normalizacji współrzędnych (:zscore, :max, :none).
+"""
+function plot_pr_phase_space_slice_2d(
+        dataset::AbstractArray{<:Real},
+        tau::Real;
+        feature_indices = [2, 3],
+        x_label = L"T\,[\mathrm{fm}^{-1}]",
+        y_label = L"\mathcal{A}",
+        colormap = lpca_style,
+        color_limits = (1.0, 2.0),
+        normalize_method = :zscore,
+        return_normalized = false,
+        figure_size = (850, 600),
+        n_calc = 10_000,
+        n_plot = 5_000,
+        seed = 42,
+        k::Union{Symbol, Integer} = :auto,
+        k_neighbor::Union{Nothing, Symbol, Integer} = nothing,
+        kwargs...
+    )
     set_publication_theme()
+    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
     calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
     norm_slice = apply_normalization(calc_slice, normalize_method)
-    res = compute_local_pr_dimension(norm_slice; kwargs...)
+    res = compute_local_pr_dimension(norm_slice; k = eff_k, kwargs...)
 
     pts = return_normalized ? norm_slice : calc_slice
     d_vals = res.d_pr
@@ -413,12 +446,39 @@ function plot_pr_phase_space_slice_2d(dataset::AbstractArray{<:Real}, tau::Real;
     return fig
 end
 
-function plot_pr_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = -1.2, elevation = 0.2, normalize_method = :zscore, return_normalized = false, figure_size = (950, 750), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+"""
+    plot_pr_phase_space_slice_3d(dataset, tau; kwargs...) -> Figure
+
+Rysuje pojedynczy trójwymiarowy przekrój czasowy przestrzeni fazowej 3D (T, A, B)
+z punktami pokolorowanymi lokalnym wymiarem participation ratio d_PR.
+"""
+function plot_pr_phase_space_slice_3d(
+        dataset::AbstractArray{<:Real},
+        tau::Real;
+        feature_indices = [2, 3, 4],
+        x_label = L"T\,[\mathrm{MeV}]",
+        y_label = L"\mathcal{A}",
+        z_label = L"\mathcal{B}",
+        colormap = lpca_style,
+        color_limits = (1.0, 3.0),
+        azimuth = -1.2,
+        elevation = 0.2,
+        normalize_method = :zscore,
+        return_normalized = false,
+        figure_size = (950, 750),
+        n_calc = 10_000,
+        n_plot = 5_000,
+        seed = 42,
+        k::Union{Symbol, Integer} = :auto,
+        k_neighbor::Union{Nothing, Symbol, Integer} = nothing,
+        kwargs...
+    )
     set_publication_theme()
+    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
     calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
     norm_slice = apply_normalization(calc_slice, normalize_method)
-    res = compute_local_pr_dimension(norm_slice; kwargs...)
+    res = compute_local_pr_dimension(norm_slice; k = eff_k, kwargs...)
 
     pts = return_normalized ? norm_slice : calc_slice
     d_vals = res.d_pr
@@ -434,8 +494,57 @@ function plot_pr_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real;
     return fig
 end
 
-function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :zscore, return_normalized = false, figure_size = (1450, 1200), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+raw"""
+    plot_pr_phase_space_grid_2d(dataset, tau_grid; kwargs...) -> Figure
+
+Tworzy siatkę przekrojów czasowych przestrzeni fazowej 2D (np. T vs A dla MIS),
+gdzie każdy punkt jest pokolorowany lokalnym wymiarem partycypacji d_PR(x_i).
+
+# Argumenty pozycyjne:
+- `dataset`: Macierz 2D lub tablica 3D [trajektorie, kroki czasowe, zmienne].
+- `tau_grid`: Wektor chwil czasowych tau (np. `[0.2, 0.25, 0.3, 0.4, 0.5, 0.7, 1.0]`).
+
+# Główne argumenty nazwane (`kwargs`):
+- `k::Union{Symbol, Integer} = :auto`: Liczba sąsiadów dla lokalnego PCA.
+  Domyślnie `:auto` stosuje optymalną regułę K_opt = clamp(round(N^0.45 * sqrt(D)), 12D, N/10).
+- `k_neighbor`: Alias dla parametru `k`.
+- `feature_indices = [2, 3]`: Indeksy kolumn cech (domyślnie [T, A]).
+- `x_label = L"T\,[\mathrm{fm}^{-1}]"`: Etykieta osi X.
+- `y_label = L"\mathcal{A}"`: Etykieta osi Y.
+- `colormap = lpca_style`: Paleta barwna dla wymiarów.
+- `color_limits = (1.0, 2.0)`: Zakres skali paska barw (Colorbar).
+- `normalize_method = :zscore`: Metoda normalizacji sąsiedztwa (:zscore, :max, :none).
+- `figure_size = (1450, 1200)`: Rozmiar generowanej figury.
+- `n_calc = 10_000`: Liczba punktów brana do wyliczenia kowariancji i wymiaru d_PR.
+- `n_plot = 5_000`: Liczba punktów nanoszona na pojedynczy panel wykresu.
+
+# Przykład:
+```julia
+grid_times = [0.2, 0.25, 0.3, 0.4, 0.5, 0.7, 1.0]
+fig = plot_pr_phase_space_grid_2d(mis, grid_times; k = 100)
+save("mis_pr_grid.pdf", fig)
+```
+"""
+function plot_pr_phase_space_grid_2d(
+        dataset::AbstractArray{<:Real},
+        tau_grid::AbstractVector{<:Real};
+        feature_indices = [2, 3],
+        x_label = L"T\,[\mathrm{fm}^{-1}]",
+        y_label = L"\mathcal{A}",
+        colormap = lpca_style,
+        color_limits = (1.0, 2.0),
+        normalize_method = :zscore,
+        return_normalized = false,
+        figure_size = (1450, 1200),
+        n_calc = 10_000,
+        n_plot = 5_000,
+        seed = 42,
+        k::Union{Symbol, Integer} = :auto,
+        k_neighbor::Union{Nothing, Symbol, Integer} = nothing,
+        kwargs...
+    )
     set_publication_theme()
+    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
@@ -451,7 +560,7 @@ function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::A
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
         calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed + index), size(raw_slice, 1))[1:n_calc], :] : raw_slice
         norm_calc = apply_normalization(calc_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_calc; kwargs...)
+        res = compute_local_pr_dimension(norm_calc; k = eff_k, kwargs...)
 
         pts = return_normalized ? norm_calc : calc_slice
         plot_idxs = size(pts, 1) > n_plot ? randperm(MersenneTwister(seed + index + 10_000), size(pts, 1))[1:n_plot] : collect(1:size(pts, 1))
@@ -462,8 +571,36 @@ function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::A
     return fig
 end
 
-function plot_pr_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.2, elevation = 0.25, xreversed = true, markersize = 5, normalize_method = :zscore, return_normalized = false, n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+"""
+    plot_pr_phase_space_grid_3d(dataset, tau_grid; kwargs...) -> Figure
+
+Tworzy siatkę trójwymiarowych przekrojów czasowych przestrzeni fazowej 3D (T, A, B dla HJSW),
+gdzie punkty są pokolorowane lokalnym wymiarem partycypacji d_PR(x_i).
+"""
+function plot_pr_phase_space_grid_3d(
+        dataset::AbstractArray{<:Real},
+        tau_grid::AbstractVector{<:Real};
+        feature_indices = [2, 3, 4],
+        x_label = L"T\,[\mathrm{MeV}]",
+        y_label = L"\mathcal{A}",
+        z_label = L"\mathcal{B}",
+        colormap = lpca_style,
+        color_limits = (1.0, 3.0),
+        azimuth = 1.2,
+        elevation = 0.25,
+        xreversed = true,
+        markersize = 5,
+        normalize_method = :zscore,
+        return_normalized = false,
+        n_calc = 10_000,
+        n_plot = 5_000,
+        seed = 42,
+        k::Union{Symbol, Integer} = :auto,
+        k_neighbor::Union{Nothing, Symbol, Integer} = nothing,
+        kwargs...
+    )
     set_publication_theme()
+    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
@@ -479,7 +616,7 @@ function plot_pr_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::A
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
         calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed + index), size(raw_slice, 1))[1:n_calc], :] : raw_slice
         norm_calc = apply_normalization(calc_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_calc; kwargs...)
+        res = compute_local_pr_dimension(norm_calc; k = eff_k, kwargs...)
 
         pts = return_normalized ? norm_calc : calc_slice
         plot_idxs = size(pts, 1) > n_plot ? randperm(MersenneTwister(seed + index + 10_000), size(pts, 1))[1:n_plot] : collect(1:size(pts, 1))

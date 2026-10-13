@@ -1085,11 +1085,17 @@ Does not require any spectral cutoff threshold (tol) or sigmoid parameter (delta
 """
 function compute_local_pr_dimension(
         points::AbstractMatrix{<:Real};
-        k::Integer = 16,
+        k::Union{Symbol, Integer} = :auto,
+        k_neighbor::Union{Nothing, Symbol, Integer} = nothing,
         use_density_weights::Bool = true
     )
     N, D = size(points)
-    eff_k = min(k, N - 1)
+    raw_k = !isnothing(k_neighbor) ? k_neighbor : k
+    eff_k = if raw_k === :auto
+        suggest_optimal_k(N, D)
+    else
+        clamp(Int(raw_k), 2, max(2, N - 1))
+    end
     @assert eff_k >= 2 "At least 3 points are needed to compute local PR dimension."
 
     kdtree = KDTree(points')
