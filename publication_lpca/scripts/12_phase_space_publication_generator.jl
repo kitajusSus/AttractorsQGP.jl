@@ -20,7 +20,7 @@ using CairoMakie
 using LaTeXStrings
 using Printf
 using Statistics
-includet("write_functions_12.jl")
+include(joinpath(@__DIR__, "write_functions_12.jl"))
 if !isdefined(Main, :PublicationLPCA)
     include(joinpath(@__DIR__, "..", "src", "PublicationLPCA.jl"))
 end
@@ -41,20 +41,18 @@ function run_phase_space_generator(;
     println("=== Starting 12_phase_space_publication_generator ===")
 
     grid_taus = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 2.5]
-    k_eval = 8
+    k_eval = 100
     tol_eval = 0.01
     set_publication_theme()
 
-    colormap_choice = japidi_stype
+    colormap_choice = lpca_style
 
     mis_configs = [
-        # (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", dataset_type = :physical),
-        (name = "physical", method = :none, return_norm = false, xlabel = L"T\,[\mathrm{fm}^{-1}]", ylabel = L"\mathcal{A}", dataset_type = :physical),
+        (name = "physical", method = :zscore, return_norm = false, xlabel = L"T\,[\mathrm{fm}^{-1}]", ylabel = L"\mathcal{A}", dataset_type = :physical),
     ]
 
     hjsw_configs = [
-        # (name = "zscore", method = :zscore, return_norm = true, xlabel = L"T_z", ylabel = L"\mathcal{A}_z", zlabel = L"\mathcal{B}_z", dataset_type = :physical),
-        (name = "physical", method = :none, return_norm = false, xlabel = L"T\,[\mathrm{MeV}]", ylabel = L"\mathcal{A}", zlabel = L"\mathcal{B}", dataset_type = :physical),
+        (name = "physical", method = :zscore, return_norm = false, xlabel = L"T\,[\mathrm{MeV}]", ylabel = L"\mathcal{A}", zlabel = L"\mathcal{B}", dataset_type = :physical),
     ]
 
     println("\n[1/2] Processing Conformal MIS Phase Space (plots/phase_space/mis/)...")
@@ -69,7 +67,7 @@ function run_phase_space_generator(;
             feature_indices = [2, 3], x_label = cfg.xlabel, y_label = cfg.ylabel,
             k_neighbor = k_eval, tolerance = tol_eval, normalize_method = cfg.method,
             return_normalized = cfg.return_norm, colormap = colormap_choice,
-            n_calc = 10_000, n_plot = 5_000
+            n_calc = 2_000, n_plot = 5_000
         )
         save(joinpath(mis_dir, "grid_mis_$(cfg.name)_dims.pdf"), fig_grid_dims)
 
@@ -78,7 +76,7 @@ function run_phase_space_generator(;
             feature_indices = [2, 3], x_label = cfg.xlabel, y_label = cfg.ylabel,
             colormap = colormap_choice, color_limits = (1.0, 2.0),
             normalize_method = cfg.method, return_normalized = cfg.return_norm,
-            k = k_eval, n_calc = 10_000, n_plot = 5_000
+            k = k_eval, n_calc = 2_000, n_plot = 5_000
         )
         save(joinpath(mis_dir, "grid_mis_$(cfg.name)_pr.pdf"), fig_grid_pr)
 
@@ -86,7 +84,7 @@ function run_phase_space_generator(;
             ds, grid_taus;
             feature_indices = [2, 3], k_neighbor = k_eval,
             normalize_method = cfg.method, colormap = colormap_choice,
-            color_limits = (1.0, 2.0), n_calc = 10_000
+            color_limits = (1.0, 2.0), n_calc = 2_000
         )
         save(joinpath(mis_dir, "grid_mis_$(cfg.name)_pr_hist.pdf"), fig_grid_hist)
 
@@ -96,7 +94,7 @@ function run_phase_space_generator(;
                 ds, tau;
                 feature_indices = [2, 3], k_neighbor = k_eval, tolerance = tol_eval,
                 normalize_method = cfg.method, return_normalized = cfg.return_norm,
-                max_points = 10_000
+                max_points = 2_000
             )
 
             fig_slice_dims = plot_colored_phase_space_slice_2d(
@@ -112,7 +110,7 @@ function run_phase_space_generator(;
                 feature_indices = [2, 3], x_label = cfg.xlabel, y_label = cfg.ylabel,
                 colormap = colormap_choice, color_limits = (1.0, 2.0),
                 normalize_method = cfg.method, return_normalized = cfg.return_norm,
-                k = k_eval, n_calc = 10_000, n_plot = 5_000
+                k = k_eval, n_calc = 2_000, n_plot = 5_000
             )
             save(joinpath(mis_dir, "mis_$(cfg.name)_slice_tau_$(tau_str)_pr.pdf"), fig_slice_pr)
 
@@ -120,7 +118,7 @@ function run_phase_space_generator(;
                 ds, tau;
                 feature_indices = [2, 3], k_neighbor = k_eval,
                 normalize_method = cfg.method, colormap = colormap_choice,
-                color_limits = (1.0, 2.0), n_calc = 10_000
+                color_limits = (1.0, 2.0), n_calc = 2_000
             )
             save(joinpath(mis_dir, "mis_$(cfg.name)_slice_tau_$(tau_str)_pr_hist.pdf"), fig_slice_hist)
         end
@@ -159,7 +157,7 @@ function run_phase_space_generator(;
             ds, grid_taus;
             feature_indices = [2, 3, 4], k_neighbor = k_eval,
             normalize_method = cfg.method, colormap = colormap_choice,
-            color_limits = (1.0, 3.0), n_calc = 10_000
+            color_limits = (1.0, 3.0), n_calc = 5_000
         )
         save(joinpath(hjsw_dir, "grid_hjsw_$(cfg.name)_pr_hist.pdf"), fig_grid_hist)
 
@@ -169,7 +167,7 @@ function run_phase_space_generator(;
                 ds, tau;
                 feature_indices = [2, 3, 4], k_neighbor = k_eval, tolerance = tol_eval,
                 normalize_method = cfg.method, return_normalized = cfg.return_norm,
-                max_points = 10_000
+                max_points = 5_000
             )
 
             fig_slice_dims = plot_colored_phase_space_slice_hjsw_3d(
@@ -192,7 +190,7 @@ function run_phase_space_generator(;
                 ds, tau;
                 feature_indices = [2, 3, 4], k_neighbor = k_eval,
                 normalize_method = cfg.method, colormap = colormap_choice,
-                color_limits = (1.0, 3.0), n_calc = 10_000
+                color_limits = (1.0, 3.0), n_calc = 2_000
             )
             save(joinpath(hjsw_dir, "hjsw_$(cfg.name)_slice_tau_$(tau_str)_pr_hist.pdf"), fig_slice_hist)
         end

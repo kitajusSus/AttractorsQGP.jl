@@ -1,0 +1,125 @@
+% ==============================================================================
+% Publication LPCA Methodology: Adaptive Neighborhood Selection & Normalization
+% ==============================================================================
+
+\section{Local Dimension Estimation: Neighborhood Size Selection and Metric Invariance}
+\label{sec:k_selection_methodology}
+
+The determination of the local intrinsic dimension of expanding quark-gluon plasma (QGP) manifolds using the Local Participation Ratio (PR) dimension,
+\begin{equation}
+    d_{\mathrm{PR}}(\mathbf{x}_i) = \frac{\left(\mathrm{Tr}\,\mathbf{C}_i\right)^2}{\mathrm{Tr}\left(\mathbf{C}_i^2\right)} = \frac{\left(\sum_{j=1}^D \lambda_j^{(i)}\right)^2}{\sum_{j=1}^D \left(\lambda_j^{(i)}\right)^2},
+    \label{eq:d_pr_definition}
+\end{equation}
+hinges on the construction of the local covariance tensor $\mathbf{C}_i \in \mathbb{R}^{D \times D}$ computed over the $K$ nearest neighbors $\mathcal{N}_K(\mathbf{x}_i)$. 
+Selecting the neighborhood parameter $K$ and defining the phase-space metric are intimately coupled to the domain aspect ratio and the physical relaxation timescales of the system.
+
+% ------------------------------------------------------------------------------
+\subsection{The Multi-Scale Geometric Dilemma in Attractor Collapse}
+\label{subsec:multiscale_dilemma}
+% ------------------------------------------------------------------------------
+In the context of relativistic hydrodynamic attractors, the ensemble of solutions undergoes a transition across three distinct physical regimes:
+\begin{enumerate}
+    \item \textbf{Early-time expansion ($\tau \lesssim 0.35\,\mathrm{fm}/c$):} Strong memory of initial conditions; trajectories populate a full $D$-dimensional phase-space volume ($D=2$ for conformal MIS, $D=3$ for HJSW).
+    \item \textbf{Non-hydrodynamic mode decay ($\tau \approx 0.40$--$0.70\,\mathrm{fm}/c$):} Transients decay exponentially, $\delta\mathcal{A}(\tau) \propto \exp\left(-\int \frac{d\tau}{\tau_\pi}\right)$. The ensemble collapses toward the universal attractor, forming a dense core surrounded by relaxing wings.
+    \item \textbf{Asymptotic attractor evolution ($\tau \gtrsim 0.80\,\mathrm{fm}/c$):} The bundle collapses into a universal one-dimensional curve ($d \approx 1.0$), with all initial-state memory erased.
+\end{enumerate}
+
+Estimating the local dimension during the transient collapse faces a fundamental scale conflict:
+\begin{itemize}
+    \item \textbf{Lower Spectral Bound (Random Matrix Theory):} If $K \sim D$, finite-sample fluctuations in $\mathbf{C}_i$ suffer from Marchenko--Pastur \emph{eigenvalue repulsion}, where spurious sampling noise inflates small eigenvalues ($\lambda_D \gg 0$). Because $d_{\mathrm{PR}}$ is continuous and non-thresholded, spectral noise biases $d_{\mathrm{PR}} \to D$. Asymptotic spectral stability requires $K \ge 12 D$.
+    \item \textbf{Geometric Bound (Transverse Thickness vs. Curvature):} The converging trajectory bundle possesses an intrinsic transverse thickness $\delta_\perp(\tau)$. For the local PCA to detect the collapse into a 1D attractor, the local ball radius $R_K$ must encompass the transverse width, $R_K > \delta_\perp(\tau)$. If $K$ is excessively small ($R_K \ll \delta_\perp$), the local neighborhood samples an isotropic 2D slice within the finite thickness of the bundle, incorrectly yielding $d_{\mathrm{PR}} \approx 2$. Conversely, if $K$ is overly large ($R_K \sim R_{\mathrm{curv}}$), the extrinsic curvature of the attractor bends the neighborhood, spuriously injecting extra dimensions.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\subsection{Phase-Space Aspect Ratio and Metric Invariance via Standardization}
+\label{subsec:data_range_standardization}
+% ------------------------------------------------------------------------------
+A major practical challenge in phase-space manifold learning is the disparity in feature ranges and physical units. For instance, in conformal MIS, the coordinate box spans $\Delta \mathcal{A} \sim 4$ in dimensionless anisotropy, whereas temperature spans $\Delta T \sim 5\,\mathrm{fm}^{-1}$ (or $\Delta T \sim 300\,\mathrm{MeV}$ when expressed in energy units). 
+
+In raw physical coordinates, the standard Euclidean distance,
+\begin{equation}
+    d_{\mathrm{raw}}^2(\mathbf{x}_i, \mathbf{x}_j) = (T_i - T_j)^2 + (\mathcal{A}_i - \mathcal{A}_j)^2,
+\end{equation}
+is non-isotropic. If $\Delta T \gg \Delta \mathcal{A}$, distances along the $T$-axis artificially dominate the $K$-NN search: the neighborhood $\mathcal{N}_K(\mathbf{x}_i)$ collapses into a thin pancake at nearly constant $T$, severely distorting the local covariance eigenvalues.
+
+To restore metric invariance across disparate feature ranges, we apply $Z$-score standardization (${\mu=0, \sigma=1}$):
+\begin{equation}
+    \tilde{x}_{k} = \frac{x_k - \mu_k}{\sigma_k}, \quad k \in \{1, \dots, D\},
+\end{equation}
+where $\mu_k$ and $\sigma_k$ denote the empirical mean and standard deviation of feature $k$ across the slice. The standardized Euclidean distance corresponds precisely to a diagonal Mahalanobis distance in physical space:
+\begin{equation}
+    d_{\mathrm{std}}^2(\mathbf{x}_i, \mathbf{x}_j) = \sum_{k=1}^D \frac{(x_{i,k} - x_{j,k})^2}{\sigma_k^2} = (\mathbf{x}_i - \mathbf{x}_j)^T \mathbf{\Sigma}_{\mathrm{diag}}^{-1} (\mathbf{x}_i - \mathbf{x}_j).
+\end{equation}
+Standardization rescales the effective phase-space volume to $V_{\mathrm{eff}} \sim \mathcal{O}(1)^D$, rendering the local density $\rho_{\mathrm{std}} \sim N$ homogeneous across dimensions. Crucially, this decouples the neighbor search from arbitrary unit choices (e.g., $\mathrm{MeV}$ vs. $\mathrm{fm}^{-1}$) and compensates for rectangular domain bounds (e.g., $4\Delta\mathcal{A} \times 5\Delta T$).
+
+% ------------------------------------------------------------------------------
+\subsection{Analytical Heuristic for Optimal Neighborhood Size $K_{\mathrm{opt}}$}
+\label{subsec:analytical_heuristic}
+% ------------------------------------------------------------------------------
+On a Riemannian manifold of intrinsic dimension $d$ embedded in $\mathbb{R}^D$, balancing the squared approximation bias $\mathcal{O}(R_K^4) \sim (K/N)^{4/d}$ against the sampling variance $\mathcal{O}(K^{-1})$ yields the optimal asymptotic scaling:
+\begin{equation}
+    K \propto N^{\frac{4}{d+4}}.
+\end{equation}
+For hydrodynamic attractor manifolds transitioning from $d=2$ to $d=1$ within an ambient space $D$, the scaling exponent lies in $\alpha \in [0.67, 0.80]$. Accounting for the ambient dimension $D$ and finite sample density, we formulate the closed-form heuristic rule:
+\begin{equation}
+    K_{\mathrm{opt}}(N, D) = \mathrm{clamp}\left( \mathrm{round}\left( N^{0.45} \sqrt{D} \right), \; 12 D, \; \left\lfloor \frac{N}{10} \right\rfloor \right).
+    \label{eq:k_opt_heuristic}
+\end{equation}
+For our benchmark ensemble ($N = 20\,000$ trajectories, $D=2$ for MIS and $D=3$ for HJSW), Eq.~(\ref{eq:k_opt_heuristic}) prescribes $K_{\mathrm{opt}} \approx 100$--$120$. For sub-sampled publication plots ($N = 2\,000$), it yields $K_{\mathrm{opt}} \approx 45$--$55$.
+
+% ------------------------------------------------------------------------------
+\subsection{Algorithmic Formulation}
+\label{subsec:algorithmic_formulation}
+% ------------------------------------------------------------------------------
+
+\begin{algorithm}[htbp]
+\caption{Adaptive Neighborhood Selection for Local Dimension Estimation}
+\label{alg:adaptive_k_selection}
+\begin{algorithmic}[1]
+\Require Hydrodynamic dataset $\mathbf{X} \in \mathbb{R}^{N \times (D+1)}$ at proper time $\tau$, feature columns $\mathcal{I}_D$, sample size $N$.
+\Ensure Calibrated neighborhood parameter $K_{\mathrm{opt}}$ and pointwise participation ratio dimensions $\mathbf{d}_{\mathrm{PR}} \in \mathbb{R}^N$.
+
+\State \textbf{Step 1: Metric Invariance via Standardization}
+\State Extract slice $\mathbf{X}_\tau \gets \mathbf{X}[\tau_i = \tau, \; \mathcal{I}_D] \in \mathbb{R}^{N \times D}$
+\For{each coordinate $k \in \{1, \dots, D\}$}
+    \State $\mu_k \gets \frac{1}{N}\sum_{i=1}^N X_{\tau, i, k}, \quad \sigma_k \gets \sqrt{\frac{1}{N-1}\sum_{i=1}^N (X_{\tau, i, k} - \mu_k)^2}$
+    \State $\tilde{X}_{\tau, i, k} \gets (X_{\tau, i, k} - \mu_k) / \sigma_k$ \Comment{Equalizes domain aspect ratio $\Delta x_k$}
+\EndFor
+
+\State \textbf{Step 2: Theoretical Analytical Bound}
+\State $K_{\min} \gets \min\left(12 \cdot D, \; \max\left(2, \lfloor N/2 \rfloor\right)\right)$
+\State $K_{\mathrm{scale}} \gets \mathrm{round}\left(N^{0.45} \cdot \sqrt{D}\right)$
+\State $K_{\max} \gets \max\left(K_{\min}, \; \min\left(\lfloor N/10 \rfloor, \; N - 1\right)\right)$
+\State $K_{\mathrm{rule}} \gets \mathrm{clamp}\left(K_{\mathrm{scale}}, \; K_{\min}, \; K_{\max}\right)$
+
+\State \textbf{Step 3: Multiscale Data-Driven Verification}
+\State Construct candidate grid $\mathcal{K} = \{K_1, \dots, K_M\}$ around $K_{\mathrm{rule}}$ (e.g., $K \in [16, 160]$)
+\For{each $K \in \mathcal{K}$}
+    \State Build KD-tree on $\tilde{\mathbf{X}}_\tau$ and retrieve $K$-nearest neighbors $\mathcal{N}_K(\tilde{\mathbf{x}}_i)$
+    \State Construct local centered covariance: $\mathbf{C}_i(K) = \frac{1}{K-1} \sum_{j \in \mathcal{N}_K} (\tilde{\mathbf{x}}_j - \bar{\mathbf{x}}_i)(\tilde{\mathbf{x}}_j - \bar{\mathbf{x}}_i)^T$
+    \State Evaluate $d_{\mathrm{PR}}(\tilde{\mathbf{x}}_i; K) = (\mathrm{Tr}\,\mathbf{C}_i)^2 / \mathrm{Tr}(\mathbf{C}_i^2)$
+    \State Evaluate scale-sensitivity gradient: $S(K) = \left| \frac{\partial \langle d_{\mathrm{PR}} \rangle}{\partial \log K} \right|$
+    \State Evaluate Sarle's bimodality coefficient: $b(K) = \frac{\gamma^2 + 1}{\kappa}$, where $\gamma = \mathrm{skew}(\mathbf{d}_{\mathrm{PR}})$, $\kappa = \mathrm{kurt}(\mathbf{d}_{\mathrm{PR}})$
+\EndFor
+
+\State \textbf{Step 4: Regime Selection}
+\If{$\max_{K \in \mathcal{K}} b(K) > 0.60$ \Comment{Transient relaxation regime with dual populations}}
+    \State $K_{\mathrm{opt}} \gets \arg\max_{K \in \mathcal{K}} b(K)$
+\Else \Comment{Uniform expansion or asymptotic attractor regime}
+    \State $K_{\mathrm{opt}} \gets \arg\min_{K \in \mathcal{K}} S(K)$ \Comment{Scale-invariance plateau}
+\EndIf
+\State \Return $K_{\mathrm{opt}}$ and evaluated dimensions $\mathbf{d}_{\mathrm{PR}}(K_{\mathrm{opt}})$.
+\end{algorithmic}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Data-Driven Validation: Bimodality and Scale Invariance}
+\label{subsec:bimodality_validation}
+% ------------------------------------------------------------------------------
+We validate the proposed heuristic by monitoring the evolution of $d_{\mathrm{PR}}$ across proper time $\tau$ under $K_{\mathrm{opt}} = 100$:
+\begin{itemize}
+    \item \textbf{Stage 1 ($\tau \le 0.35\,\mathrm{fm}/c$):} The distribution is strictly unimodal at $\langle d_{\mathrm{PR}} \rangle = 1.94 \pm 0.10$, with $95.1\%$ of points residing in $d_{\mathrm{PR}} > 1.7$.
+    \item \textbf{Stage 2 ($\tau \in [0.45, 0.65]\,\mathrm{fm}/c$):} The distribution splits into a clean \emph{bimodal distribution}. At $\tau = 0.55\,\mathrm{fm}/c$, Sarle's bimodality coefficient reaches $b \approx 0.75 \gg 5/9$, cleanly demarcating trajectories collapsed onto the attractor ($41.9\%$ in $d_{\mathrm{PR}} < 1.3$) from those still relaxing in the non-hydrodynamic wings ($37.3\%$ in $d_{\mathrm{PR}} > 1.7$).
+    \item \textbf{Stage 3 ($\tau \ge 0.80\,\mathrm{fm}/c$):} The 2D peak extinguishes ($<1\%$), while the attractor peak concentrates $90.3\%$ of the ensemble at $\langle d_{\mathrm{PR}} \rangle = 1.07 \pm 0.16$.
+\end{itemize}
+This demonstrates that $K_{\mathrm{opt}}$ successfully captures the multi-stage hydrodynamic transition without introducing artificial scale artifacts.

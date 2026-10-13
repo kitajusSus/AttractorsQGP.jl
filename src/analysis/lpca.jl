@@ -818,7 +818,7 @@ function compute_pointwise_dimensions(
         feature_names::AbstractVector{Symbol} = Symbol[],
         k_neighbor::Integer = 24,
         tolerance::Real = 0.01,
-        normalize_method::Symbol = :max,
+        normalize_method::Symbol = :zscore,
         return_normalized::Bool = false,
         max_points::Union{Nothing, Integer} = nothing,
         seed::Integer = 42
@@ -860,7 +860,7 @@ function compute_pointwise_pr(
         feature_indices::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
         feature_names::AbstractVector{Symbol} = Symbol[],
         k::Integer = 24,
-        normalize_method::Symbol = :max,
+        normalize_method::Symbol = :zscore,
         return_normalized::Bool = false,
         use_density_weights::Bool = true,
         max_points::Union{Nothing, Integer} = nothing,
@@ -1206,3 +1206,131 @@ function scan_local_pr_dimension(
 end
 scan_local_pr_dimension(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
     scan_local_pr_dimension(to_2d_local_lpca(dataset), args...; kwargs...)
+
+# ==============================================================================
+# Optimal Neighborhood Size Heuristics (K Selection for Local PCA & PR Dimension)
+# ==============================================================================
+
+"""
+    suggest_optimal_k(N::Integer, D::Integer; scaling_factor::Real = 1.0) -> Int
+    suggest_optimal_k(points::AbstractMatrix{<:Real}; scaling_factor::Real = 1.0) -> Int
+
+Heurystyka doboru optymalnej liczby najbliższych sąsiadów \$k\$ dla lokalnego PCA / wymiaru partycypacji \$d_{\\mathrm{PR}}\$.
+
+### Uzasadnienie teoretyczne i geometryczne:
+1. **Dolne ograniczenie (Random Matrix Theory / Marchenko-Pastur):**
+   Aby fluktuacje próbkowania macierzy kowariancji nie powodowały pozornego zawyżenia małych wartości własnych
+   (tzw. eigenvalue repulsion, która sztucznie zawyża \$d_{\\mathrm{PR}}\$ w stronę wymiaru tła \$D\$),
+   liczba sąsiadów musi spełniać \$k \\ge 12 \\cdot D\$.
+2. **Skalowanie z liczbą punktów (Manifold Density Scaling):**
+   W estymacji geometrii rozmaitości o wymiarze wewnętrznym \$d\$ zanurzonej w \$D\$ wymiarach,
+   optymalny kompromis MSE między obciążeniem krzywizną (\$\\mathrm{bias} \\propto R^2\$) a wariancją
+   szumu próbkowania (\$\\mathrm{var} \\propto 1/k\$) prowadzi do relacji \$k \\propto N^{4/(d+4)}\$.
+   Dla \$d \\in [1, 2]\$ daje to skalowanie \$k \\approx N^{0.45} \\cdot \\sqrt{D}\$.
+3. **Górne ograniczenie (Curvature & Localization):**
+   Dla dużych zbiorów \$k\$ jest ograniczane, aby promień kuli sąsiedztwa nie obejmował globalnych
+   zagięć ani odgałęzień rozmaitości.
+
+### Przykłady:
+- \$N = 2\\,000, D = 2 \\implies k \\approx 43\$
+- \$N = 2\\,000, D = 3 \\implies k \\approx 53\$
+- \$N = 10\\,000, D = 2 \\implies k \\approx 89\$
+- \$N = 10\\,000, D = 3 \\implies k \\approx 109\$
+- \$N = 20\\,000, D = 2 \\implies k \\approx 122\$
+"""
+function suggest_optimal_k(N::Integer, D::Integer; scaling_factor::Real = 1.0)
+    @assert N >= 3 "Co najmniej 3 punkty są wymagane do estymacji sąsiedztwa (podano N=$N)."
+    min_k = min(12 * D, max(2, div(N, 2)))
+    scaled_k = round(Int, scaling_factor * (Float64(N)^0.45) * sqrt(Float64(D)))
+    max_k = max(min_k, min(div(N, 10), N - 1))
+    return clamp(scaled_k, min_k, max(min_k, max_k))
+end
+
+suggest_optimal_k(points::AbstractMatrix{<:Real}; scaling_factor::Real = 1.0) =
+    suggest_optimal_k(size(points, 1), size(points, 2); scaling_factor = scaling_factor)
+
+"""
+    find_optimal_k(
+        points::AbstractMatrix{<:Real};
+        k_candidates::AbstractVector{<:Integer} = [16, 24, 32, 48, 64, 80, 100, 128, 160],
+        criterion::Symbol = :bimodality_or_stability
+    ) -> NamedTuple
+
+Adaptacyjne (data-driven) wyznaczanie optymalnego \$k^*\$ na podstawie spektrum i rozkładu \$d_{\\mathrm{PR}}\$.
+Obsługiwane kryteria:
+- `:bimodality`: maksymalizacja wskaźnika bimodalności Sarle'a (dla stadiów przejściowych relaksacji).
+- `:variance`: maksymalizacja wariancji lokalnego wymiaru \$\\mathrm{Var}(d_{\\mathrm{PR}})\$.
+- `:stability`: minimalizacja wrażliwości na skalę \$|\\Delta d_{\\mathrm{PR}} / \\Delta \\log k|\$ (plato skali).
+- `:bimodality_or_stability` (domyślne): jeśli występuje silna dwumodalność (\$b > 0.6\$), wybiera maksimum
+  bimodalności; w przeciwnym razie wybiera punkt największej stabilności spektralnej.
+"""
+function find_optimal_k(
+        points::AbstractMatrix{<:Real};
+        k_candidates::AbstractVector{<:Integer} = [16, 24, 32, 48, 64, 80, 100, 128, 160],
+        criterion::Symbol = :bimodality_or_stability
+    )
+    N, D = size(points)
+    eff_candidates = filter(k -> 2 <= k < N, k_candidates)
+    if isempty(eff_candidates)
+        return (optimal_k = suggest_optimal_k(N, D), candidates = Int[], bimodality_scores = Float64[], variances = Float64[], means = Float64[])
+    end
+
+    b_scores = Float64[]
+    vars = Float64[]
+    means = Float64[]
+
+    for k in eff_candidates
+        res = compute_local_pr_dimension(points; k = k, use_density_weights = false)
+        d = res.d_pr
+        m = mean(d)
+        s = std(d)
+        v = s^2
+        push!(means, m)
+        push!(vars, v)
+        if s > 1.0e-6
+            m3 = mean((d .- m) .^ 3)
+            m4 = mean((d .- m) .^ 4)
+            skew = m3 / (s^3)
+            kurt = m4 / (s^4)
+            b = kurt > 1.0e-6 ? (skew^2 + 1.0) / kurt : 0.0
+            push!(b_scores, b)
+        else
+            push!(b_scores, 0.0)
+        end
+    end
+
+    best_idx = if criterion === :bimodality
+        argmax(b_scores)
+    elseif criterion === :variance
+        argmax(vars)
+    elseif criterion === :stability
+        if length(eff_candidates) > 1
+            stabs = [abs(means[i + 1] - means[i]) / (log(eff_candidates[i + 1]) - log(eff_candidates[i])) for i in 1:(length(eff_candidates) - 1)]
+            push!(stabs, stabs[end])
+            argmin(stabs)
+        else
+            1
+        end
+    else # :bimodality_or_stability
+        max_b = isempty(b_scores) ? 0.0 : maximum(b_scores)
+        if max_b > 0.6
+            argmax(b_scores)
+        elseif length(eff_candidates) > 1
+            stabs = [abs(means[i + 1] - means[i]) / (log(eff_candidates[i + 1]) - log(eff_candidates[i])) for i in 1:(length(eff_candidates) - 1)]
+            push!(stabs, stabs[end])
+            argmin(stabs)
+        else
+            1
+        end
+    end
+
+    optimal_k = eff_candidates[best_idx]
+    return (
+        optimal_k = optimal_k,
+        candidates = eff_candidates,
+        bimodality_scores = b_scores,
+        variances = vars,
+        means = means
+    )
+end
+

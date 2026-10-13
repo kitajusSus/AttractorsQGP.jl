@@ -1,10 +1,48 @@
+"""
+    plot_phase_space_grid(dataset, times, xdef, ydef; attractor=nothing, attractor_points=500, show_legend=false, kwargs...) -> Figure
+
+Rysuje siatkę przekrojów czasowych przestrzeni fazowej dla wybranych chwil `times`.
+Obsługuje zarówno macierze 2D (`AbstractMatrix`), jak i tablice 3D symulacji (`AbstractArray{<:Real, 3}`).
+
+# Argumenty pozycyjne:
+- `dataset`: Zbiór danych (tablica 3D `[trajektorie, kroki czasowe, zmienne]` lub macierz 2D `[punkty, kolumny]`).
+- `times`: Wektor chwil czasowych \$\\tau\$ dla poszczególnych paneli siatki (np. `[0.2, 0.4, 0.6, 1.0]`).
+- `xdef`: Zmienna na osi X (np. `:T`, `:tauT`, `:w`, `:T_norm`).
+- `ydef`: Zmienna na osi Y (np. `:A`, `:B`, `:A_norm`, `:Tdot`).
+
+# Dostępne definicje osi (`xdef`, `ydef`):
+- `:T`: Temperatura \$T\\,[\\mathrm{fm}^{-1}]\$
+- `:A`: Anizotropia ciśnień \$\\mathcal{A}\$
+- `:B`: Mod niehydrodynamiczny \$\\mathcal{B}\$ (dla modeli takich jak HJSW)
+- `:tauT` / `:w`: Skalowana zmienna atraktora \$w = \\tau T\$
+- `:Tdot`: Pochodna temperatury \$\\dot{T}\\,[\\mathrm{fm}^{-2}]\$
+- `:T_norm`, `:A_norm`, `:B_norm`: Zmienne znormalizowane do wartości maksymalnych
+
+# Argumenty nazwane (`kwargs`):
+- `attractor = nothing`: Rysuje teoretyczną krzywą atraktora (`true`, obiekt `Attractor` lub ścieżka).
+- `attractor_points::Int = 500`: Liczba punktów na krzywej atraktora.
+- `show_legend::Bool = false`: Czy wyświetlić legendę na wykresie.
+
+# Przykład:
+```julia
+times = [0.2, 0.4, 0.6, 1.0]
+# Wykres (T, A):
+fig = plot_phase_space_grid(mis, times, :T, :A; attractor = true)
+
+# Wykres w zmiennych atraktora (tau*T, A):
+fig = plot_phase_space_grid(mis, times, :tauT, :A; attractor = true)
+```
+"""
 function plot_phase_space_grid(
         dataset::AbstractMatrix{<:Real},
         times,
         xdef,
         ydef;
         attractor = nothing,
-        attractor_points::Int = 150
+        Attractor = nothing,
+        attractor_points::Int = 500,
+        show_legend::Bool = false,
+        kwargs...
     )
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
@@ -18,6 +56,9 @@ function plot_phase_space_grid(
 
     lims = get_limits(dataset, xdef, ydef; times = times)
 
+    raw_attr = isnothing(Attractor) ? attractor : Attractor
+    attr_data = _resolve_attractor_data(raw_attr, dataset)
+
     for (i, t) in enumerate(times)
         row = (i - 1) ÷ ncols + 1
         col = (i - 1) % ncols + 1
@@ -28,20 +69,20 @@ function plot_phase_space_grid(
             title = L"\tau = %$(round(t, digits=2))\,\mathrm{fm}/c",
             xlabel = d.xlabel,
             ylabel = d.ylabel,
-            xlabelsize = 22,
-            ylabelsize = 22,
-            xticklabelsize = 16,
-            yticklabelsize = 16,
+            xlabelsize = 30,
+            ylabelsize = 30,
+            xticklabelsize = 20,
+            yticklabelsize = 20,
             limits = lims
         )
-        if i > 3
+        if i > 3 && ydef === :A
             ylims!(ax, 0, 4)
         end
 
-        if !isnothing(attractor)
+        if !isnothing(attr_data)
             attr_line = get_attractor_line_for_frame(
                 dataset,
-                attractor,
+                attr_data,
                 t,
                 xdef,
                 ydef;
@@ -50,11 +91,15 @@ function plot_phase_space_grid(
             )
             xlims!(ax, 0, lims[2])
             lines!(ax, attr_line.x, attr_line.y; color = (RGBAf(176 / 255, 0, 0, 1.0), 0.86), linewidth = 5, label = "Atraktor")
+            if show_legend
+                axislegend(ax, position = :rt)
+            end
         end
         scatter!(
-            ax, d.x[1:min(1000, length(d.x))], d.y[1:min(1000, length(d.y))];
-            markersize = 3.5, color = (palette[2], 0.9),
-            strokecolor = (palette[6], 0.01), strokewidth = 0.1
+            ax, d.x[1:min(10000, length(d.x))], d.y[1:min(10000, length(d.y))];
+            # ax, d.x, d.y;
+            markersize = 3.5, color = (palette[10], 0.9),
+            strokecolor = (palette[9], 0.01), strokewidth = 0.2
         )
     end
     return fig
@@ -68,10 +113,13 @@ function plot_phase_space_grid_3d(
         zdef;
         limits = nothing,
         attractor = nothing,
+        Attractor = nothing,
         attractor_points::Int = 150,
         azimuth::Real = -1.2,
         elevation::Real = 0.25,
-        n_points_scatter::Int = 5000
+        n_points_scatter::Int = 5000,
+        show_legend::Bool = false,
+        kwargs...
     )
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
@@ -79,6 +127,9 @@ function plot_phase_space_grid_3d(
     xlbl, xfn = resolve_def(xdef)
     ylbl, yfn = resolve_def(ydef)
     zlbl, zfn = resolve_def(zdef)
+
+    raw_attr = isnothing(Attractor) ? attractor : Attractor
+    attr_data = _resolve_attractor_data(raw_attr, dataset)
 
     n = length(times)
     ncols = min(3, n)
@@ -115,11 +166,11 @@ function plot_phase_space_grid_3d(
         )
         !isnothing(limits) && limits!(ax, limits...)
 
-        if !isnothing(attractor)
+        if !isnothing(attr_data)
             tau_val = selected[1, 1]
             Tmin, Tmax = minimum(dataset[:, 2]) * 0.95, maximum(dataset[:, 2]) * 1.05
             T_grid = temperature_grid(Tmin, Tmax, attractor_points)
-            A_attr = build_attractor_interpolant(attractor)
+            A_attr = build_attractor_interpolant(attr_data)
             attr_x = Vector{Float64}(undef, attractor_points)
             attr_y = Vector{Float64}(undef, attractor_points)
             attr_z = Vector{Float64}(undef, attractor_points)
@@ -133,6 +184,9 @@ function plot_phase_space_grid_3d(
                 attr_z[k] = zfn(state, selected)
             end
             lines!(ax, attr_x, attr_y, attr_z; color = (RGBAf(176 / 255, 0, 0, 1.0), 0.9), linewidth = 4, label = "Atraktor")
+            if show_legend
+                axislegend(ax, position = :rt)
+            end
         end
 
         n_pts = min(length(dx), n_points_scatter)
@@ -148,10 +202,12 @@ end
 function plot_attractor(
         dataset::AbstractMatrix{<:Real},
         T0_target::Union{Real, AbstractVector{<:Real}, Nothing} = nothing;
-        attractor::Union{Nothing, AbstractMatrix{<:Real}} = nothing,
+        attractor = nothing,
+        Attractor = nothing,
         tol::Real = 0.05,
         n_trajectories::Int = 50,
-        group_tol::Real = 0.01
+        group_tol::Real = 0.01,
+        kwargs...
     )
     set_publication_theme()
     fig = Figure(size = (950, 600))
@@ -167,9 +223,12 @@ function plot_attractor(
     end
     sort!(wybrane_trajs, by = tr -> dataset[tr[1], 2])
 
-    if !isnothing(attractor)
-        omega_attr = attractor[:, 1] .* attractor[:, 2]
-        A_attr = attractor[:, 3]
+    raw_attr = isnothing(Attractor) ? attractor : Attractor
+    attr_data = _resolve_attractor_data(raw_attr, dataset)
+
+    if !isnothing(attr_data)
+        omega_attr = attr_data[:, 1] .* attr_data[:, 2]
+        A_attr = attr_data[:, 3]
         lines!(ax, omega_attr, A_attr, color = (:red, 1), linewidth = 7.0, label = L"\text{Teoretyczny atraktor}")
         axislegend(ax, position = :rt)
     end
@@ -236,8 +295,10 @@ end
 function plot_attractor_Aw_T(
         dataset::AbstractMatrix{<:Real},
         T_zadana::Real;
-        attractor::Union{Nothing, AbstractMatrix{<:Real}} = nothing,
-        T_tol::Real = 1.0e-3
+        attractor = nothing,
+        Attractor = nothing,
+        T_tol::Real = 1.0e-3,
+        kwargs...
     )
     set_publication_theme()
     T_col = dataset[:, 2]
@@ -258,9 +319,13 @@ function plot_attractor_Aw_T(
         xlabel = L"\text{Czas uniwersalny } \omega = \tau T",
         ylabel = L"\text{Anizotropia } \mathcal{A} (w)"
     )
-    if !isnothing(attractor)
-        omega_attr = attractor[:, 1] .* attractor[:, 2]
-        lines!(ax, omega_attr, attractor[:, 3], color = :red, linewidth = 3.0, label = L"\text{Teoretyczny atraktor}")
+
+    raw_attr = isnothing(Attractor) ? attractor : Attractor
+    attr_data = _resolve_attractor_data(raw_attr, dataset)
+
+    if !isnothing(attr_data)
+        omega_attr = attr_data[:, 1] .* attr_data[:, 2]
+        lines!(ax, omega_attr, attr_data[:, 3], color = :red, linewidth = 3.0, label = L"\text{Teoretyczny atraktor}")
     end
     palette = Makie.theme(:Palette).color[]
     scatter!(ax, omega_slice, A_slice, markersize = 8, color = (palette[1], 0.6), strokecolor = :white, strokewidth = 0.5, label = L"\text{Dane symulacji}")
@@ -268,7 +333,10 @@ function plot_attractor_Aw_T(
     return fig
 end
 
+plot_phase_space_grid(dataset::AbstractArray{<:Real, 3}, times, xdef, ydef; kwargs...) = plot_phase_space_grid(to_2d_local_plots(dataset), times, xdef, ydef; kwargs...)
 plot_phase_space_grid(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_phase_space_grid(to_2d_local_plots(dataset), args...; kwargs...)
+
+plot_phase_space_grid_3d(dataset::AbstractArray{<:Real, 3}, times, xdef, ydef, zdef; kwargs...) = plot_phase_space_grid_3d(to_2d_local_plots(dataset), times, xdef, ydef, zdef; kwargs...)
 plot_phase_space_grid_3d(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_phase_space_grid_3d(to_2d_local_plots(dataset), args...; kwargs...)
 plot_attractor(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_attractor(to_2d_local_plots(dataset), args...; kwargs...)
 plot_thermodynamics_evolution(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_thermodynamics_evolution(to_2d_local_plots(dataset), args...; kwargs...)

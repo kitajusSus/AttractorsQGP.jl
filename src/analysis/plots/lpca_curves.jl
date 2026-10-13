@@ -63,25 +63,63 @@ end
 
 function plot_map_lpca(
         dataset::AbstractMatrix{<:Real};
-        zakres_K::AbstractVector{<:Integer} = [10, 20, 40, 80],
+        zakres_K::AbstractVector{<:Integer} = [10, 20, 40, 80, 160],
         n_slices::Int = 15,
         feature_cols::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
         normalize::Union{Symbol, Function} = :standard,
+        method::Symbol = :dims,
         title::Union{String, LaTeXString} = "",
         colormap = nothing,
-        colorrange = (1, 3),
-        ticks = [1, 2, 3],
+        colorrange = nothing,
+        ticks = nothing,
+        show_optimal_k::Bool = false,
         figure_size::Tuple{Integer, Integer} = (1200, 600)
     )
     set_publication_theme()
-    palette = isnothing(colormap) ? Makie.theme(:Palette).color[] : colormap
-    results = [compute_lpca(dataset, k, n_slices; feature_cols = feature_cols, normalize = normalize) for k in zakres_K]
-    tau_vals = results[1][1]
-    dim_matrix = reduce(hcat, [r[2] for r in results])
+    palette = isnothing(colormap) ? resolve_palette(lpca_style) : resolve_palette(colormap)
+
+    taus = sort(unique(dataset[:, 1]))
+    idxs = round.(Int, range(1, length(taus), length = n_slices))
+    tau_vals = taus[idxs]
+
+    D = length(feature_cols)
+    _, first_slice = get_tau_slice(dataset, tau_vals[1]; feature_cols = feature_cols)
+    N_sample = size(first_slice, 1)
+
+    dim_matrix = zeros(Float64, n_slices, length(zakres_K))
+
+    if method === :pr
+        for (k_idx, k) in enumerate(zakres_K)
+            for (t_idx, tau) in enumerate(tau_vals)
+                _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_cols)
+                norm_slice = apply_normalization(raw_slice, normalize isa Symbol ? normalize : :standard)
+                res = compute_local_pr_dimension(norm_slice; k = k, use_density_weights = false)
+                dim_matrix[t_idx, k_idx] = res.mean
+            end
+        end
+        c_range = isnothing(colorrange) ? (1.0, Float64(D)) : colorrange
+        c_label = L"\text{Participation Ratio } \langle d_{\mathrm{PR}} \rangle"
+        c_ticks = isnothing(ticks) ? range(c_range[1], c_range[2], length = 3) : ticks
+    else
+        results = [compute_lpca(dataset, k, n_slices; feature_cols = feature_cols, normalize = normalize) for k in zakres_K]
+        tau_vals = results[1][1]
+        dim_matrix = reduce(hcat, [r[2] for r in results])
+        c_range = isnothing(colorrange) ? (1, D) : colorrange
+        c_label = L"\text{Local Dimension } \langle d \rangle"
+        c_ticks = isnothing(ticks) ? collect(round(Int, c_range[1]):round(Int, c_range[2])) : ticks
+    end
+
     fig = Figure(size = figure_size)
     ax = Axis(fig[1, 1], title = title, xlabel = L"\tau\,[\mathrm{fm}/c]", ylabel = L"K")
-    hm = heatmap!(ax, tau_vals, zakres_K, dim_matrix; colormap = palette, colorrange = colorrange)
-    Colorbar(fig[1, 2], hm; label = L"\text{Local Dimension} d", ticks = ticks)
+    hm = heatmap!(ax, tau_vals, zakres_K, dim_matrix; colormap = palette, colorrange = c_range)
+
+    if show_optimal_k
+        k_opt = suggest_optimal_k(N_sample, D)
+        hlines!(ax, [k_opt], color = :white, linestyle = :dash, linewidth = 2.5, label = L"K_{\mathrm{opt}} = %$(k_opt)")
+        axislegend(ax, position = :rt)
+    end
+
+    Colorbar(fig[1, 2], hm; label = c_label, ticks = c_ticks)
     return fig
 end
 
@@ -105,8 +143,19 @@ function plot_k_dependency_bands(
     return figure
 end
 
-function plot_k_dependency_bands(dataset::AbstractArray{<:Real}; k_pairs = [(5, 10), (10, 20), (20, 40), (40, 80)], tau_values = range(0.2, 5.0, length = 15), kwargs...)
-    return plot_k_dependency_bands(evaluate_k_dependency(dataset, k_pairs, tau_values); kwargs...)
+function plot_k_dependency_bands(
+        dataset::AbstractArray{<:Real};
+        k_pairs = [(5, 10), (10, 20), (20, 40), (40, 80)],
+        tau_values = range(0.2, 5.0, length = 15),
+        method::Symbol = :dims,
+        kwargs...
+    )
+    if method === :pr
+        k_res = evaluate_k_dependency_pr(dataset, k_pairs, tau_values; use_density_weights = false)
+        return plot_k_dependency_bands(k_res; ylabel = L"\text{Participation Ratio } \langle d_{\mathrm{PR}} \rangle", kwargs...)
+    else
+        return plot_k_dependency_bands(evaluate_k_dependency(dataset, k_pairs, tau_values); kwargs...)
+    end
 end
 
 function plot_k_sweep_curve(

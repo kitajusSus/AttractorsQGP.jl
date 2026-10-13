@@ -56,6 +56,36 @@ function attractor_data(
 end
 
 """
+    attractor_data(; kwargs...)
+
+Returns the theoretical universal attractor data (by default for MISModel).
+"""
+attractor_data(; kwargs...) = attractor_data(MISModel(); kwargs...)
+
+"""
+    _resolve_attractor_data(attr_input, dataset=nothing)
+
+Resolves attractor data from the provided `attractor` or `Attractor` parameter:
+- `false` / `nothing`: returns `nothing` (no attractor line)
+- `true`: returns default theoretical attractor (`attractor_data(MISModel())`)
+- `model::AbstractHydroModel`: computes attractor for given model
+- `matrix::AbstractMatrix`: returns the matrix as-is
+"""
+function _resolve_attractor_data(attr_input, dataset = nothing)
+    if isnothing(attr_input) || attr_input === false
+        return nothing
+    elseif attr_input === true
+        return attractor_data(MISModel())
+    elseif attr_input isa AbstractHydroModel
+        return attractor_data(attr_input)
+    elseif attr_input isa AbstractMatrix{<:Real}
+        return attr_input
+    else
+        throw(ArgumentError("Nieobsługiwany typ parametru attractor: $(typeof(attr_input)). Oczekiwano Bool (true/false), AbstractMatrix lub AbstractHydroModel."))
+    end
+end
+
+"""
     build_attractor_interpolant(attractor)
 
 Constructs a robust, non-extrapolating (Flat) interpolation A(ω) from attractor data.
@@ -81,7 +111,6 @@ function build_attractor_interpolant(attractor::AbstractMatrix{<:Real})
         extrapolation_bc = Flat()
     )
 end
-
 """
     temperature_grid(Tmin, Tmax, n)
 

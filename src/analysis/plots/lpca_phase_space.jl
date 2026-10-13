@@ -4,7 +4,7 @@
         wybrane_czasy::Union{Nothing, Real, AbstractVector{<:Real}} = nothing,
         tolerancja_czasowa::Real = 1.0e-3,
         tolerancja_wartości_własnych::Real = 0.01,
-        metoda_regularyzacji::Union{Symbol, Function} = :max,
+        metoda_regularyzacji::Union{Symbol, Function} = :zscore,
         wymiary_cech::AbstractVector{<:Integer} = collect(2:size(dataset, 2)),
         zmienna_x::Union{Symbol, Integer, Tuple} = :T,
         zmienna_y::Union{Symbol, Integer, Tuple} = :A,
@@ -121,7 +121,7 @@ function plot_colored_phase_space_grid_2d(
         y_label::LaTeXString = L"\mathcal{A}",
         k_neighbor::Integer = 24,
         tolerance::Real = 0.01,
-        normalize_method::Symbol = :max,
+        normalize_method::Symbol = :zscore,
         return_normalized::Bool = false,
         colormap = lpca_style,
         figure_size::Tuple{Integer, Integer} = (1400, 1200),
@@ -176,7 +176,8 @@ function plot_colored_phase_space_grid_hjsw_projections(
         tau_grid::AbstractVector{<:Real};
         k_neighbor::Integer = 24,
         tolerance::Real = 0.01,
-        normalize_method::Symbol = :max,
+        normalize_method::Symbol = :zscore,
+        return_normalized::Bool = false,
         colormap = lpca_style,
         figure_size::Tuple{Integer, Integer} = (1200, 1050),
         n_calc::Integer = 10_000,
@@ -203,7 +204,7 @@ function plot_colored_phase_space_grid_hjsw_projections(
         tau_str = string(round(tau, digits = 2))
         axis = Axis(figure[row, col], title = L"\tau = %$(tau_str)\,\mathrm{fm}/c", titlesize = 24, xlabel = L"\mathcal{A}", ylabel = L"\mathcal{B}", xlabelsize = 22, ylabelsize = 22, xticklabelsize = 16, yticklabelsize = 16, xticks = LinearTicks(4), yticks = LinearTicks(4), xautolimitmargin = (0.04, 0.04), yautolimitmargin = (0.05, 0.05))
 
-        slice_data = compute_pointwise_dimensions(dataset, tau; feature_indices = [2, 3, 4], k_neighbor = k_neighbor, tolerance = tolerance, normalize_method = normalize_method, max_points = n_calc, seed = seed + index)
+        slice_data = compute_pointwise_dimensions(dataset, tau; feature_indices = [2, 3, 4], k_neighbor = k_neighbor, tolerance = tolerance, normalize_method = normalize_method, return_normalized = return_normalized, max_points = n_calc, seed = seed + index)
         a_vals, b_vals, d_vals = slice_data.coordinates[:, 2], slice_data.coordinates[:, 3], slice_data.dimensions
         if length(d_vals) > n_plot
             rng_plot = MersenneTwister(seed + index + 10_000)
@@ -269,7 +270,7 @@ function plot_colored_phase_space_grid_3d(
         z_label::LaTeXString = L"\mathcal{B}",
         k_neighbor::Integer = 24,
         tolerance::Real = 0.01,
-        normalize_method::Symbol = :max,
+        normalize_method::Symbol = :zscore,
         return_normalized::Bool = false,
         colormap = lpca_style,
         azimuth::Real = 1.2,
@@ -279,7 +280,7 @@ function plot_colored_phase_space_grid_3d(
         figure_size::Union{Nothing, Tuple{Integer, Integer}} = nothing,
         n_calc::Integer = 10_000,
         n_plot::Integer = 5_000,
-        seed::Integer = 42,
+        seed::Integer = 5,
         show_legend::Bool = false
     )
     set_publication_theme()
@@ -356,10 +357,10 @@ function plot_soft_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid:
     return fig
 end
 
-function plot_soft_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.3, elevation = 0.15, figure_size = (950, 750), kwargs...)
+function plot_soft_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.3, elevation = 0.15, normalize_method = :zscore, figure_size = (950, 750), kwargs...)
     set_publication_theme()
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    norm_slice = apply_normalization(raw_slice, :max)
+    norm_slice = apply_normalization(raw_slice, normalize_method)
     res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
     fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
     ax = Axis3(fig[1, 1], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 20, xlabel = x_label, ylabel = y_label, zlabel = z_label, azimuth = azimuth, elevation = elevation, xlabeloffset = 45, ylabeloffset = 45, zlabeloffset = 60)
@@ -368,7 +369,7 @@ function plot_soft_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Rea
     return fig
 end
 
-function plot_soft_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.3, elevation = 0.25, markersize = 5, kwargs...)
+function plot_soft_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.3, elevation = 0.25, markersize = 5, normalize_method = :zscore, kwargs...)
     set_publication_theme()
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
@@ -382,7 +383,7 @@ function plot_soft_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid:
         col = mod1(index, column_count)
         ax = Axis3(fig[row, col], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label, xlabelsize = 22, ylabelsize = 22, zlabelsize = 22, xticklabelsize = 16, yticklabelsize = 16, zticklabelsize = 16, azimuth = azimuth, elevation = elevation, xlabeloffset = 55, ylabeloffset = 55, zlabeloffset = 70, xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4))
         _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        norm_slice = apply_normalization(raw_slice, :max)
+        norm_slice = apply_normalization(raw_slice, normalize_method)
         res = compute_soft_weighted_dimension(norm_slice; tau_val = tau, kwargs...)
         sc = scatter!(ax, raw_slice[:, 1], raw_slice[:, 2], raw_slice[:, 3]; color = res.d_soft, colormap = colormap, colorrange = color_limits, markersize = markersize)
         isnothing(sc_handle) && (sc_handle = sc)
@@ -391,7 +392,7 @@ function plot_soft_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid:
     return fig
 end
 
-function plot_pr_phase_space_slice_2d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :max, return_normalized = false, figure_size = (850, 600), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+function plot_pr_phase_space_slice_2d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :zscore, return_normalized = false, figure_size = (850, 600), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
     set_publication_theme()
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
     calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
@@ -412,7 +413,7 @@ function plot_pr_phase_space_slice_2d(dataset::AbstractArray{<:Real}, tau::Real;
     return fig
 end
 
-function plot_pr_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = -1.2, elevation = 0.2, normalize_method = :max, return_normalized = false, figure_size = (950, 750), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+function plot_pr_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = -1.2, elevation = 0.2, normalize_method = :zscore, return_normalized = false, figure_size = (950, 750), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
     set_publication_theme()
     _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
     calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
@@ -433,7 +434,7 @@ function plot_pr_phase_space_slice_3d(dataset::AbstractArray{<:Real}, tau::Real;
     return fig
 end
 
-function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :max, return_normalized = false, figure_size = (1450, 1200), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3], x_label = L"T\,[\mathrm{fm}^{-1}]", y_label = L"\mathcal{A}", colormap = lpca_style, color_limits = (1.0, 2.0), normalize_method = :zscore, return_normalized = false, figure_size = (1450, 1200), n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
     set_publication_theme()
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
@@ -461,7 +462,7 @@ function plot_pr_phase_space_grid_2d(dataset::AbstractArray{<:Real}, tau_grid::A
     return fig
 end
 
-function plot_pr_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.2, elevation = 0.25, xreversed = true, markersize = 5, normalize_method = :max, return_normalized = false, n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
+function plot_pr_phase_space_grid_3d(dataset::AbstractArray{<:Real}, tau_grid::AbstractVector{<:Real}; feature_indices = [2, 3, 4], x_label = L"T\,[\mathrm{MeV}]", y_label = L"\mathcal{A}", z_label = L"\mathcal{B}", colormap = lpca_style, color_limits = (1.0, 3.0), azimuth = 1.2, elevation = 0.25, xreversed = true, markersize = 5, normalize_method = :zscore, return_normalized = false, n_calc = 10_000, n_plot = 5_000, seed = 42, kwargs...)
     set_publication_theme()
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)

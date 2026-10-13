@@ -1,49 +1,72 @@
-const japidi_grid = cgrad(
-    [
-        "#9C1313", # czerwony
-        "#C949B1",  #rowozyw
+using Makie
+using ColorSchemes
+using Colors
+using LaTeXStrings
 
-        "#2ec4b6",
-        "#0096c7",
-        "#0C0C5C", #NIEBIESKI
+const JAPIDI_COLORS = [
+    "#9C1313",
+    "#C40A41",
+    "#911465",
+    "#6A0DAD",
+    "#4361EE",
+    "#0096C7",  # Błękit
+    "#0000FF",  # Klasyczny niebieski (koniec)
+]
 
-        "#0000FF",
-    ]
+const LPCA_COLORS = [
+    "#b00020",
+    "#fb8500",
+    "#2ec4b6",
+    "#0096c7",
+    "#0000FF",
+]
 
+japidi_grid = cgrad(JAPIDI_COLORS)
+japidi_stype = ColorScheme(Makie.resample_cmap(japidi_grid, 256))
+
+lpca_style_grad = cgrad(LPCA_COLORS)
+lpca_style = ColorScheme(Makie.resample_cmap(lpca_style_grad, 256))
+
+const THEMES_DICT = Dict{Symbol, ColorScheme}(
+    :japidi => japidi_stype,
+    :lpca => lpca_style,
 )
-const japidi_stype = ColorScheme(Makie.resample_cmap(japidi_grid, 256))
 
-const lpca_style_grad = cgrad(
-    [
-        "#b00020",
-        "#fb8500",
-        "#ffb703",
-        "#2ec4b6",
-        "#0096c7",
-        "#0000FF",
-    ]
-)
-const lpca_style = ColorScheme(Makie.resample_cmap(lpca_style_grad, 256))
+function resolve_palette(p::Symbol)
+    if haskey(THEMES_DICT, p)
+        return THEMES_DICT[p]
+    elseif haskey(ColorSchemes.colorschemes, p)
+        return ColorSchemes.colorschemes[p]
+    else
+        error("Unknown palette: :$p")
+    end
+end
+resolve_palette(cs::ColorScheme) = cs
+resolve_palette(cg::Makie.PlotUtils.ColorGradient) = ColorScheme(cg)
+resolve_palette(colors::AbstractVector) = ColorScheme(colors)
 
 function set_publication_theme(;
-        cmap = japidi_stype,
-        n_colors = 25,
-        bg_color = RGBf(0.98, 0.98, 0.98)
+        cmap = lpca_style,
+        n_colors::Int = 10,
+        bg_color = RGBf(0.98, 0.98, 0.98),
+        font = "Libertinus Serif",
+        fontsize::Int = 24
     )
-    scientific_palette = Makie.resample_cmap(cmap, n_colors)
+    cs = resolve_palette(cmap)
+    scientific_palette = Makie.resample_cmap(cs, n_colors)
 
     return set_theme!(
         Theme(
-            font = "Libertinus Serif",
-            fontsize = 24,
+            font = font,
+            fontsize = fontsize,
             figure_padding = 20,
             Axis = (
                 backgroundcolor = bg_color,
-                titlesize = 28,
-                xlabelsize = 26,
-                ylabelsize = 26,
-                xticklabelsize = 20,
-                yticklabelsize = 20,
+                titlesize = fontsize + 4,
+                xlabelsize = fontsize + 2,
+                ylabelsize = fontsize + 2,
+                xticklabelsize = fontsize - 4,
+                yticklabelsize = fontsize - 4,
                 xgridstyle = :dash,
                 ygridstyle = :dash,
                 xgridcolor = RGBAf(0.8, 0.8, 0.8, 0.7),
@@ -77,8 +100,8 @@ function set_publication_theme(;
                 framecolor = :black,
                 backgroundcolor = RGBAf(1.0, 1.0, 1.0, 0.9),
                 position = :rt,
-                titlesize = 22,
-                labelsize = 20,
+                titlesize = fontsize - 2,
+                labelsize = fontsize - 4,
                 padding = (10.0, 10.0, 10.0, 10.0),
             ),
             Lines = (linewidth = 2.5,),
@@ -244,25 +267,7 @@ function _extract_column_or_key(data_slice::AbstractMatrix{<:Real}, def::Union{S
 end
 
 function _get_dim_color(d::Real, d_max::Real, colormap = lpca_style)
-    if colormap isa Makie.PlotUtils.CategoricalColorGradient || colormap isa Makie.PlotUtils.ColorGradient
-        n = length(colormap)
-        d_max <= 1.0 && return colormap[1]
-        idx = clamp(round(Int, 1 + (Float64(d) - 1.0) / (Float64(d_max) - 1.0) * (n - 1)), 1, n)
-        return colormap[idx]
-    end
-    cs = if colormap isa Symbol
-        haskey(ColorSchemes.colorschemes, colormap) ? ColorSchemes.colorschemes[colormap] : ColorSchemes.colorschemes[:managua100]
-    elseif colormap isa ColorSchemes.ColorScheme
-        colormap
-    elseif colormap isa AbstractVector
-        ColorSchemes.ColorScheme(colormap)
-    elseif colormap isa Makie.Reverse
-        inner = colormap.data
-        inner_cs = inner isa Symbol ? (haskey(ColorSchemes.colorschemes, inner) ? ColorSchemes.colorschemes[inner] : ColorSchemes.colorschemes[:managua100]) : inner
-        reverse(inner_cs)
-    else
-        ColorSchemes.colorschemes[:managua100]
-    end
+    cs = resolve_palette(colormap)
     t = d_max > 1.0 ? clamp((Float64(d) - 1.0) / (Float64(d_max) - 1.0), 0.0, 1.0) : 0.0
     return ColorSchemes.get(cs, t)
 end

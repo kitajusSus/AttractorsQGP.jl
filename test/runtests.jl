@@ -239,6 +239,19 @@ using GLMakie
         @test attr_04.x[1] ≈ 0.4
         @test attr_02.y[1] ≈ 2.0
         @test attr_04.y[1] ≈ 4.0
+
+        # Test plot_phase_space_grid with attractor / Attractor Bool flags
+        fig_attr_true = plot_phase_space_grid(same_temperature_data, [0.2, 0.4], :tauT, :A; attractor = true)
+        @test any(p -> p isa GLMakie.Lines, fig_attr_true.content[1].scene.plots)
+
+        fig_attr_false = plot_phase_space_grid(same_temperature_data, [0.2, 0.4], :tauT, :A; attractor = false)
+        @test !any(p -> p isa GLMakie.Lines, fig_attr_false.content[1].scene.plots)
+
+        fig_attr_cap_true = plot_phase_space_grid(same_temperature_data, [0.2, 0.4], :tauT, :A; Attractor = true)
+        @test any(p -> p isa GLMakie.Lines, fig_attr_cap_true.content[1].scene.plots)
+
+        fig_attr_cap_false = plot_phase_space_grid(same_temperature_data, [0.2, 0.4], :tauT, :A; Attractor = false)
+        @test !any(p -> p isa GLMakie.Lines, fig_attr_cap_false.content[1].scene.plots)
     end
 
     @testset "scan_dimension_from_data" begin
@@ -390,7 +403,7 @@ using GLMakie
 
 
 
-    @testset "Stable LPCA and Principal Angles" begin
+    @testset "LPCA high-dimensional and normalization" begin
         # Test normalize_max function
         X_test = [1.0 -4.0 0.5; 2.0 2.0 1.0; -0.5 0.0 0.0]
         X_norm_test = normalize_max(X_test)
@@ -398,38 +411,6 @@ using GLMakie
         @test X_norm_test[:, 1] ≈ [0.5, 1.0, -0.25]
         @test X_norm_test[:, 2] ≈ [-1.0, 0.5, 0.0]
         @test X_norm_test[:, 3] ≈ [0.5, 1.0, 0.0]
-
-        mock_data = zeros(5, 2, 3)
-        mock_data[:, 1, 1] .= 0.2
-        mock_data[:, 2, 1] .= 0.3
-        
-        mock_data[:, 1, 2:3] .= [1.0 1.0; 1.1 1.05; 0.9 0.95; 1.0 0.98; 1.02 1.02]
-        mock_data[:, 2, 2:3] .= [1.0 1.0; 1.01 1.005; 0.99 0.995; 1.002 0.998; 1.003 1.002]
-
-        res = compute_stable_lpca_collapse(
-            mock_data;
-            zakres_K = [2, 3],
-            Scrit = 0.5,
-            delta_k = 0.1,
-            feature_cols = [2, 3]
-        )
-        @test length(res.taus) == 2
-        @test size(res.S_PCA_matrix) == (2, 2)
-        @test length(res.S_PCA_mean) == 2
-        @test length(res.S_PCA_std) == 2
-        @test length(res.tau_LPCA_k) == 2
-
-        res_angles = compute_lpca_principal_angles(
-            mock_data;
-            k = 3,
-            subspace_dim = 1,
-            feature_cols = [2, 3]
-        )
-        @test length(res_angles.taus) == 2
-        @test length(res_angles.mean_angles) == 2
-        @test length(res_angles.std_angles) == 2
-        @test length(res_angles.all_angles_per_tau) == 2
-        @test all(0.0 .<= res_angles.mean_angles .<= 90.0)
 
         # High-dimensional (>2D feature space) test for LPCA
         # 1 time column + 4 feature columns (d=4)
@@ -440,14 +421,97 @@ using GLMakie
         tau_lpca_4d, mean_d_4d, std_d_4d = compute_lpca(mock_data_4d, 5, 2)
         @test length(tau_lpca_4d) == 2
         @test length(mean_d_4d) == 2
+    end
 
-        dyn_lpca_4d = dynamic_lpca_analysis(mock_data_4d; K = 5)
-        @test length(dyn_lpca_4d.taus) == 2
-        @test length(dyn_lpca_4d.d_bar) == 2
+    @testset "stacked PR dimension histograms" begin
+        # Generate small mock dataset: tau, T, A
+        mock_data = zeros(40, 3)
+        mock_data[1:20, 1] .= 0.25
+        mock_data[21:40, 1] .= 0.50
+        mock_data[:, 2] .= range(1.0, 3.0, length = 40)
+        mock_data[:, 3] .= range(-0.5, 2.0, length = 40)
 
-        tau_ent_4d, mean_ent_4d, std_ent_4d = compute_lpca_entropy(mock_data_4d, 5)
-        @test length(tau_ent_4d) == 2
-        @test length(mean_ent_4d) == 2
+        # Default stacked histogram colored by initial anisotropy A0
+        fig_default = plot_pr_dimension_histogram(mock_data, 0.25; k_neighbor = 5, n_bins = 15, n_color_bins = 6, colormap = lpca_style)
+        @test fig_default isa GLMakie.Figure
+
+        # Explicit color_by = :initial_A and :A0
+        fig_a0 = plot_pr_dimension_histogram(mock_data, 0.50; color_by = :A0, k_neighbor = 5, n_bins = 15, n_color_bins = 6, colormap = lpca_style)
+        @test fig_a0 isa GLMakie.Figure
+
+        # Instantaneous anisotropy
+        fig_curr = plot_pr_dimension_histogram(mock_data, 0.50; color_by = :current_A, k_neighbor = 5, n_bins = 15, n_color_bins = 6, colormap = lpca_style)
+        @test fig_curr isa GLMakie.Figure
+
+        # Single unstacked histogram (color_by = nothing)
+        fig_unstacked = plot_pr_dimension_histogram(mock_data, 0.25; k_neighbor = 5, n_bins = 15, color_by = nothing)
+        @test fig_unstacked isa GLMakie.Figure
+
+        # Grid stacked histogram colored by initial anisotropy
+        fig_grid = plot_pr_dimension_histogram_grid(mock_data, [0.25, 0.50]; k_neighbor = 5, n_bins = 15, n_color_bins = 6, colormap = lpca_style)
+        @test fig_grid isa GLMakie.Figure
+
+        # Test automatic k_neighbor heuristic (:auto)
+        fig_auto = plot_pr_dimension_histogram(mock_data, 0.25; k_neighbor = :auto, n_bins = 15)
+        @test fig_auto isa GLMakie.Figure
+
+        # 3D array input (e.g. simulation dataset [trajectories, timesteps, features])
+        mock_3d_arr = zeros(20, 2, 3)
+        mock_3d_arr[:, 1, 1] .= 0.25
+        mock_3d_arr[:, 2, 1] .= 0.50
+        mock_3d_arr[:, :, 2] .= rand(20, 2)
+        mock_3d_arr[:, :, 3] .= rand(20, 2)
+        fig_3d_single = plot_pr_dimension_histogram(mock_3d_arr, 0.25; k_neighbor = 5, n_bins = 15, color_by = :A)
+        @test fig_3d_single isa GLMakie.Figure
+        fig_3d_grid = plot_pr_dimension_histogram_grid(mock_3d_arr, [0.25, 0.50]; k_neighbor = 5, n_bins = 15, color_by = :A, n_color_bins = 8)
+        @test fig_3d_grid isa GLMakie.Figure
+    end
+
+    @testset "phase space plots with zscore normalization and physical units" begin
+        mock_3d = zeros(40, 4)
+        mock_3d[1:20, 1] .= 0.25
+        mock_3d[21:40, 1] .= 0.50
+        mock_3d[:, 2] .= range(100.0, 500.0, length = 40) # T in MeV
+        mock_3d[:, 3] .= range(-0.5, 2.0, length = 40)    # A
+        mock_3d[:, 4] .= range(-0.8, 0.8, length = 40)    # B
+
+        fig_2d = plot_colored_phase_space_grid_2d(mock_3d, [0.25, 0.50]; k_neighbor = 5, n_calc = 20, n_plot = 20)
+        @test fig_2d isa GLMakie.Figure
+
+        fig_3d = plot_colored_phase_space_grid_3d(mock_3d, [0.25, 0.50]; k_neighbor = 5, n_calc = 20, n_plot = 20)
+        @test fig_3d isa GLMakie.Figure
+
+        fig_pr_2d = plot_pr_phase_space_grid_2d(mock_3d, [0.25, 0.50]; k = 5, n_calc = 20, n_plot = 20)
+        @test fig_pr_2d isa GLMakie.Figure
+
+        fig_pr_3d = plot_pr_phase_space_grid_3d(mock_3d, [0.25, 0.50]; k = 5, n_calc = 20, n_plot = 20)
+        @test fig_pr_3d isa GLMakie.Figure
+    end
+
+    @testset "optimal neighborhood size heuristics" begin
+        # Test suggest_optimal_k for various sample sizes and ambient dimensions
+        k_2k_d2 = suggest_optimal_k(2000, 2)
+        @test 30 <= k_2k_d2 <= 60
+
+        k_2k_d3 = suggest_optimal_k(2000, 3)
+        @test 40 <= k_2k_d3 <= 70
+
+        k_10k_d2 = suggest_optimal_k(10000, 2)
+        @test 70 <= k_10k_d2 <= 110
+
+        # Safety clamps for very small datasets
+        k_small = suggest_optimal_k(15, 2)
+        @test 2 <= k_small < 15
+
+        # Matrix overload
+        dummy_matrix = randn(100, 3)
+        @test suggest_optimal_k(dummy_matrix) == suggest_optimal_k(100, 3)
+
+        # Test find_optimal_k
+        res_opt = find_optimal_k(dummy_matrix; k_candidates = [8, 16, 24, 32])
+        @test res_opt.optimal_k in [8, 16, 24, 32]
+        @test length(res_opt.candidates) == 4
+        @test length(res_opt.variances) == 4
     end
 
     @testset "citation" begin

@@ -61,7 +61,7 @@ function run_phase_space_grids_experiment(;
         y_label = L"\mathcal{A}",
         k_neighbor = k_eval,
         tolerance = tol_eval,
-        normalize_method = :max
+        normalize_method = :zscore
     )
     save(joinpath(output_directory, "phase_space_colored_grid_mis_coords_T_A.pdf"), fig_mis_colored_TA)
     save(joinpath(output_directory, "phase_space_colored_grid_mis_coords_T_A.png"), fig_mis_colored_TA)
@@ -75,7 +75,7 @@ function run_phase_space_grids_experiment(;
         y_label = L"\mathcal{A}",
         k_neighbor = k_eval,
         tolerance = tol_eval,
-        normalize_method = :max
+        normalize_method = :zscore
     )
     save(joinpath(output_directory, "phase_space_colored_grid_mis_coords_w_A.pdf"), fig_mis_colored_wA)
 
@@ -87,7 +87,7 @@ function run_phase_space_grids_experiment(;
             feature_indices = [2, 3],
             k_neighbor = k_eval,
             tolerance = tol_eval,
-            normalize_method = :max
+            normalize_method = :zscore
         )
         fig_snap_TA = plot_colored_phase_space_slice_2d(
             slice_data_TA;
@@ -104,7 +104,7 @@ function run_phase_space_grids_experiment(;
             feature_indices = [2, 3],
             k_neighbor = k_eval,
             tolerance = tol_eval,
-            normalize_method = :max
+            normalize_method = :zscore
         )
         fig_snap_wA = plot_colored_phase_space_slice_2d(
             slice_data_wA;
@@ -157,7 +157,7 @@ function run_phase_space_grids_experiment(;
         grid_times;
         k_neighbor = k_eval,
         tolerance = tol_eval,
-        normalize_method = :max
+        normalize_method = :zscore
     )
     save(joinpath(output_directory, "phase_space_colored_grid_hjsw_projections_A_B.pdf"), fig_hjsw_colored_AB)
 
@@ -171,7 +171,7 @@ function run_phase_space_grids_experiment(;
         y_label = L"\mathcal{A}",
         k_neighbor = k_eval,
         tolerance = tol_eval,
-        normalize_method = :max
+        normalize_method = :zscore
     )
     save(joinpath(output_directory, "phase_space_colored_grid_hjsw_coords_w_A.pdf"), fig_hjsw_colored_wA)
 
@@ -184,7 +184,7 @@ function run_phase_space_grids_experiment(;
             feature_indices = [2, 3, 4],
             k_neighbor = k_eval,
             tolerance = tol_eval,
-            normalize_method = :max
+            normalize_method = :zscore
         )
         fig_hjsw_3d = plot_colored_phase_space_slice_hjsw_3d(
             slice_data_3d;
@@ -200,7 +200,7 @@ function run_phase_space_grids_experiment(;
             feature_indices = [2, 3, 4],
             k_neighbor = k_eval,
             tolerance = tol_eval,
-            normalize_method = :max
+            normalize_method = :zscore
         )
         fig_hjsw_3d_w = plot_colored_phase_space_slice_hjsw_3d(
             slice_data_3d_w;

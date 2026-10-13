@@ -1,0 +1,14 @@
+\contentsline {section}{\numberline {1}Introduction and Physical Context}{2}{section.1}%
+\contentsline {section}{\numberline {2}Domain Aspect Ratio and Metric Invariance via Standardization}{2}{section.2}%
+\contentsline {section}{\numberline {3}Mathematical Derivation of the Optimal Neighborhood Size $K_{\mathrm {opt}}$}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Local Ball Radius and Density Scaling}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Bias-Variance Decomposition of Local Tangent Space Estimation}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Application to Hydrodynamic Attractor Manifolds}{5}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Lower Spectral Bound: Marchenko--Pastur Eigenvalue Repulsion}{5}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Geometric Bounds: Transverse Bundle Thickness vs. Extrinsic Curvature}{5}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Closed-Form Formula for $K_{\mathrm {opt}}$}{6}{subsection.3.6}%
+\contentsline {section}{\numberline {4}The Sample Size vs. Scale Dilemma (The Finite Thickness Paradox)}{6}{section.4}%
+\contentsline {section}{\numberline {5}Algorithmic Specification and Data-Driven Selection}{8}{section.5}%
+\contentsline {section}{\numberline {6}Numerical Verification and Multiscale Diagnostics}{8}{section.6}%
+\contentsline {section}{\numberline {7}Generalization to 3D Phase Space (HJSW Model)}{10}{section.7}%
+\contentsline {section}{\numberline {8}Conclusion and Practical Recommendations}{10}{section.8}%
