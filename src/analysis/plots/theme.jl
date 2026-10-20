@@ -114,6 +114,13 @@ function set_publication_theme(;
     )
 end
 
+"""
+    set_publication_style(; cmap = lpca_style, kwargs...)
+
+Alias for `set_publication_theme(; cmap = lpca_style, kwargs...)`.
+"""
+const set_publication_style = set_publication_theme
+
 const PLOT_KEYS = Dict(
     :T => (L"T\,[\mathrm{fm}^{-1}]", (x, _) -> x[2]),
     :A => (L"\mathcal{A}", (x, _) -> x[3]),

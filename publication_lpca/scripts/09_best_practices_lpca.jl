@@ -24,8 +24,8 @@ function run_best_practices_lpca_experiment(;
 
     println("=== Starting 09_best_practices_lpca Experiment ===")
 
-    grid_taus = Float64[0.20, 0.25, 0.35, 0.45, 0.55, 0.65, 0.80, 1.00, 2.50]
-    tau_evolution_grid = Float64[round(t, digits = 2) for t in vcat(collect(0.20:0.05:1.50), collect(1.65:0.15:5.00))]
+    grid_taus = Float64[0.2, 0.25, 0.35, 0.45, 0.55, 0.65, 0.8, 1.0, 2.5]
+    tau_evolution_grid = Float64[round(t, digits = 2) for t in vcat(collect(0.2:0.05:1.5), collect(1.65:0.15:5.0))]
 
     k_eval = 24
     tol_eval = 0.01

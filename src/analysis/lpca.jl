@@ -68,8 +68,10 @@ Supported methods:
 - `:none` / `:raw`: Unscaled raw matrix.
 - Custom `Function`: User-supplied scaling function `f(X) -> X_scaled`.
 """
-function apply_normalization(X::AbstractMatrix{<:Real}, method::Union{Symbol, Function} = :standard)
-    if method isa Function
+function apply_normalization(X::AbstractMatrix{<:Real}, method::Union{Symbol, Function, AbstractVector{<:Real}} = :standard)
+    if method isa AbstractVector{<:Real}
+        return apply_frozen_scales(X, method)
+    elseif method isa Function
         return method(X)
     elseif method === :max
         return normalize_max(X)
@@ -85,7 +87,7 @@ function apply_normalization(X::AbstractMatrix{<:Real}, method::Union{Symbol, Fu
     elseif method === :none || method === :raw
         return Matrix{Float64}(X)
     else
-        throw(ArgumentError("Unknown normalization method: $method. Supported: :max, :minmax, :zscore, :none, or a Function."))
+        throw(ArgumentError("Unknown normalization method: $method. Supported: :max, :minmax, :zscore, :none, Vector of scales, or a Function."))
     end
 end
 
@@ -605,9 +607,9 @@ function sweep_k_dimensions_over_tau(
     D = length(feature_indices)
     k_vec = collect(k_range)
     n_k = length(k_vec)
-    
+
     results = Dict{Float64, NamedTuple}()
-    
+
     # Preallocate buffers for speed
     pts_buf = zeros(Float64, max_k + 1, D)
     cov_buf = zeros(Float64, D, D)
@@ -691,7 +693,7 @@ function sweep_k_dimensions_over_tau(
             mean_dims = mean_dims,
             std_dims = std_dims,
             mean_pr = mean_pr,
-            std_pr = std_pr
+            std_pr = std_pr,
         )
     end
 
@@ -700,7 +702,7 @@ function sweep_k_dimensions_over_tau(
         tau_values = copy(tau_values),
         results = results,
         normalize_method = normalize_method,
-        tolerance = tolerance
+        tolerance = tolerance,
     )
 end
 sweep_k_dimensions_over_tau(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) =
@@ -891,7 +893,7 @@ function compute_pointwise_pr(
         pr_values = res.d_pr,
         mean_pr = res.mean,
         std_pr = res.std,
-        feature_names = isempty(feature_names) ? [Symbol("x$i") for i in 1:length(feature_indices)] : feature_names
+        feature_names = isempty(feature_names) ? [Symbol("x$i") for i in 1:length(feature_indices)] : feature_names,
     )
 end
 compute_pointwise_pr(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = compute_pointwise_pr(to_2d_local_lpca(dataset), args...; kwargs...)
@@ -1256,6 +1258,215 @@ suggest_optimal_k(points::AbstractMatrix{<:Real}; scaling_factor::Real = 1.0) =
     suggest_optimal_k(size(points, 1), size(points, 2); scaling_factor = scaling_factor)
 
 """
+    find_optimal_k_spectral_gap(
+        points::AbstractMatrix{<:Real};
+        k_candidates::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+        n_eval::Integer = 2000,
+        normalize::Bool = true,
+        gap_threshold::Real = 5.0
+    ) -> NamedTuple
+
+W pełni nienadzorowane (unsupervised) wyznaczanie optymalnej liczby najbliższych sąsiadów \$K^*\$
+oraz wymiaru wewnętrznego \$d^*\$ w przestrzeni \$D\$-wymiarowej (np. \$D=3\$ dla modelu HJSW,
+\$D=2\$ dla MIS) **bez wcześniejszej znajomości wymiaru ani wiedzy, czy wymiar ulega redukcji**.
+
+### Zasada działania (Spectral Gap Maximization w D wymiarach):
+1. **Lokalne widmo wartości własnych:**
+   Dla każdego kandydata \$K \\in \\mathcal{K}\$ wyznaczane są lokalne wartości własne macierzy kowariancji:
+   \$\\lambda_1(K) \\ge \\lambda_2(K) \\ge \\dots \\ge \\lambda_D(K) \\ge 0\$.
+2. **Hierarchia przerw spektralnych:**
+   W przestrzeni \$D\$-wymiarowej istnieje \$D - 1\$ potencjalnych rozszczepień spektralnych:
+   \$g_j(K) = \\frac{\\langle \\lambda_j \\rangle}{\\max(\\langle \\lambda_{j+1} \\rangle, \\epsilon)}, \\quad j \\in \\{1, \\dots, D-1\\}\$.
+   - \$j = 1\$ mierzy zapadnięcie do krzywej 1D (\$g_1 = \\lambda_1 / \\lambda_2\$),
+   - \$j = 2\$ mierzy zapadnięcie do płata 2D (\$g_2 = \\lambda_2 / \\lambda_3\$), itd.
+3. **Maksymalny rozstęp spektralny:**
+   \$\\Delta_{\\max}(K) = \\max_{j \\in \\{1, \\dots, D-1\\}} g_j(K)\$.
+4. **Warunek Random Matrix Theory (RMT / Marchenko-Pastur):**
+   Aby zapobiec artefaktom pozornego rozpychania wartości własnych (eigenvalue repulsion) w małych próbach,
+   poszukiwanie istotnych przerw spektralnych ograniczone jest do \$K \\ge 12D\$.
+5. **Diagnoza wymiaru i redukcji:**
+   - Jeśli \$\\max_{K \\ge 12D} \\Delta_{\\max}(K) \\ge \\text{gap\\_threshold}\$, układ wykazuje rzeczywiste
+     zapadnięcie na podrozmaitość \$d^*\$-wymiarową (\$d^* < D\$). Wtedy:
+     \$K^* = \\arg\\max_{K \\ge 12D} \\Delta_{\\max}(K)\$, a zdiagnozowany wymiar to \$d^* = \\arg\\max_j g_j(K^*)\$.
+   - W przeciwnym razie układ zachowuje pełną objętość \$D\$-wymiarową (\$d^* = D\$). Optymalne \$K^*\$
+     wybierane jest wówczas na podstawie minimalizacji czułości skali \$S(K) = |\\partial \\langle d_{\\mathrm{PR}} \\rangle / \\partial \\ln K| \\to \\min\$.
+
+### Zwracane pola:
+- `optimal_k::Int`: Optymalna liczba najbliższych sąsiadów \$K^*\$.
+- `diagnosed_dimension::Int`: Zdiagnozowany wymiar całkowity \$d^* \\in \\{1, \\dots, D\\}\$.
+- `effective_dimension::Float64`: Średni wymiar Participation Ratio \$\\langle d_{\\mathrm{PR}}(K^*) \\rangle\$.
+- `has_submanifold_collapse::Bool`: Czy wykryto rzeczywistą redukcję wymiaru (\$d^* < D\$).
+- `k_candidates::Vector{Int}`: Wektor przebadanych sąsiedztw \$K\$.
+- `spectral_gaps::Matrix{Float64}`: Macierz luk spektralnych o rozmiarze `length(K) × (D-1)`.
+- `max_gaps::Vector{Float64}`: Wektor \$\\Delta_{\\max}(K)\$ dla każdego \$K\$.
+- `mean_eigenvalues::Matrix{Float64}`: Średnie wartości własne \$\\langle \\lambda_j \\rangle\$ (`length(K) × D`).
+- `mean_dpr::Vector{Float64}`: Średni wymiar Participation Ratio dla każdego \$K\$.
+- `std_dpr::Vector{Float64}`: Odchylenie standardowe \$\\sigma(d_{\\mathrm{PR}})\$ dla każdego \$K\$.
+- `scale_sensitivity::Vector{Float64}`: Wskaźnik wrażliwości na skalę \$S(K) = |\\partial \\langle d_{\\mathrm{PR}} \\rangle / \\partial \\ln K|\$.
+"""
+function find_optimal_k_spectral_gap(
+        points::AbstractMatrix{<:Real};
+        k_candidates::Union{Nothing, AbstractVector{<:Integer}} = nothing,
+        n_eval::Integer = 2000,
+        normalize::Bool = true,
+        gap_threshold::Real = 5.0
+    )
+    N, D = size(points)
+    @assert N >= 3 "Co najmniej 3 punkty są wymagane do estymacji sąsiedztwa (podano N=$N)."
+
+    if D == 1
+        k_opt = clamp(round(Int, N^0.45), 3, max(3, div(N, 10)))
+        return (
+            optimal_k = k_opt,
+            diagnosed_dimension = 1,
+            effective_dimension = 1.0,
+            has_submanifold_collapse = false,
+            k_candidates = [k_opt],
+            spectral_gaps = zeros(Float64, 1, 1),
+            max_gaps = [1.0],
+            mean_eigenvalues = ones(Float64, 1, 1),
+            mean_dpr = [1.0],
+            std_dpr = [0.0],
+            scale_sensitivity = [0.0],
+        )
+    end
+
+    # 1. Normalizacja (Z-score standardization)
+    X = if normalize
+        Xf = Matrix{Float64}(points)
+        μ = mean(Xf, dims = 1)
+        σ = std(Xf, dims = 1)
+        σ[σ .== 0.0] .= 1.0
+        (Xf .- μ) ./ σ
+    else
+        Matrix{Float64}(points)
+    end
+
+    # 2. Siatka kandydatów K
+    candidates = if k_candidates === nothing
+        base_grid = [4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 96, 128, 160, 192, 256, 384, 512, 768, 1024]
+        k_anchor = round(Int, (N^0.45) * sqrt(D))
+        grid = sort(unique(vcat(base_grid, [k_anchor])))
+        filter(k -> 2 <= k < N, grid)
+    else
+        sort(unique(filter(k -> 2 <= k < N, collect(k_candidates))))
+    end
+
+    @assert !isempty(candidates) "Brak poprawnych kandydatów k dla N=$N."
+
+    # 3. Podpróbkowanie centrów ewaluacji dla dużych zbiorów
+    eval_idxs = N <= n_eval ? collect(1:N) : round.(Int, range(1, N, length = n_eval))
+    n_sample = length(eval_idxs)
+
+    # 4. Jednokrotne zapytanie k-NN dla maksymalnego K
+    max_k = maximum(candidates)
+    tree = KDTree(transpose(X))
+    knn_idxs_all, _ = knn(tree, transpose(X[eval_idxs, :]), max_k, true)
+
+    n_k = length(candidates)
+    mean_evals = zeros(Float64, n_k, D)
+    mean_dpr = zeros(Float64, n_k)
+    std_dpr = zeros(Float64, n_k)
+    spectral_gaps = zeros(Float64, n_k, D - 1)
+
+    local_evals = zeros(Float64, D)
+
+    for (k_idx, k) in enumerate(candidates)
+        eval_accum = zeros(Float64, D)
+        dpr_vals = zeros(Float64, n_sample)
+
+        for i in 1:n_sample
+            idxs = knn_idxs_all[i][1:k]
+            Y = X[idxs, :]
+            Y_c = Y .- mean(Y, dims = 1)
+            C = (transpose(Y_c) * Y_c) ./ (k - 1)
+
+            ev = sort(eigvals(Symmetric(C)), rev = true)
+            for j in 1:D
+                val = max(ev[j], 1.0e-35)
+                local_evals[j] = val
+                eval_accum[j] += val
+            end
+
+            s_l = sum(local_evals)
+            s_l2 = sum(local_evals .^ 2)
+            dpr_vals[i] = s_l2 > 0.0 ? (s_l^2) / s_l2 : 1.0
+        end
+
+        eval_accum ./= n_sample
+        mean_evals[k_idx, :] .= eval_accum
+        mean_dpr[k_idx] = mean(dpr_vals)
+        std_dpr[k_idx] = std(dpr_vals)
+
+        # Luki spektralne: g_j = λ_j / λ_{j+1}
+        for j in 1:(D - 1)
+            spectral_gaps[k_idx, j] = eval_accum[j] / max(eval_accum[j + 1], 1.0e-35)
+        end
+    end
+
+    # 5. Czułość skali S(K) = |d <d_PR> / d ln K|
+    scale_sens = zeros(Float64, n_k)
+    for i in 2:(n_k - 1)
+        d_dpr = mean_dpr[i + 1] - mean_dpr[i - 1]
+        d_lnk = log(candidates[i + 1]) - log(candidates[i - 1])
+        scale_sens[i] = abs(d_dpr / d_lnk)
+    end
+    if n_k >= 2
+        scale_sens[1] = abs((mean_dpr[2] - mean_dpr[1]) / (log(candidates[2]) - log(candidates[1])))
+        scale_sens[end] = abs((mean_dpr[end] - mean_dpr[end - 1]) / (log(candidates[end]) - log(candidates[end - 1])))
+    end
+
+    # 6. Optymalizacja i diagnoza z uwzględnieniem progu RMT K >= 12D
+    min_k_rmt = min(12 * D, div(N, 2))
+    valid_idxs = findall(candidates .>= min_k_rmt)
+    search_idxs = isempty(valid_idxs) ? collect(1:n_k) : valid_idxs
+
+    # Skala plato o najmniejszej wrażliwości S(K)
+    stab_idx = search_idxs[argmin(scale_sens[search_idxs])]
+    base_eff_dim = mean_dpr[stab_idx]
+    pr_dim = clamp(round(Int, base_eff_dim), 1, D)
+
+    max_gaps = [maximum(spectral_gaps[k_idx, :]) for k_idx in 1:n_k]
+    gap_dims = [argmax(spectral_gaps[k_idx, :]) for k_idx in 1:n_k]
+
+    global_max_gap, rel_idx = findmax(max_gaps[search_idxs])
+    best_k_idx = search_idxs[rel_idx]
+    detected_gap_dim = gap_dims[best_k_idx]
+
+    has_collapse = global_max_gap >= gap_threshold || pr_dim < D
+
+    # Jeśli występuje redukcja wymiaru, wybieramy K* maksymalizujące separację modów
+    optimal_k, diagnosed_dim = if pr_dim < D
+        # Zapadnięcie na podrozmaitość pr_dim: maksymalizujemy lukę rozdzielającą podrozmaitość
+        split_gaps = spectral_gaps[search_idxs, pr_dim]
+        best_split_k = search_idxs[argmax(split_gaps)]
+        (candidates[best_split_k], pr_dim)
+    elseif has_collapse && detected_gap_dim < D
+        (candidates[best_k_idx], detected_gap_dim)
+    else
+        # Pełna objętość D-wymiarowa (brak redukcji wymiaru)
+        (candidates[stab_idx], D)
+    end
+
+    opt_k_idx = findfirst(==(optimal_k), candidates)
+    eff_dim = mean_dpr[opt_k_idx]
+
+    return (
+        optimal_k = optimal_k,
+        diagnosed_dimension = diagnosed_dim,
+        effective_dimension = eff_dim,
+        has_submanifold_collapse = has_collapse,
+        k_candidates = candidates,
+        spectral_gaps = spectral_gaps,
+        max_gaps = max_gaps,
+        mean_eigenvalues = mean_evals,
+        mean_dpr = mean_dpr,
+        std_dpr = std_dpr,
+        scale_sensitivity = scale_sens,
+    )
+end
+
+"""
     find_optimal_k(
         points::AbstractMatrix{<:Real};
         k_candidates::AbstractVector{<:Integer} = [16, 24, 32, 48, 64, 80, 100, 128, 160],
@@ -1264,6 +1475,7 @@ suggest_optimal_k(points::AbstractMatrix{<:Real}; scaling_factor::Real = 1.0) =
 
 Adaptacyjne (data-driven) wyznaczanie optymalnego \$k^*\$ na podstawie spektrum i rozkładu \$d_{\\mathrm{PR}}\$.
 Obsługiwane kryteria:
+- `:spectral_gap`: w pełni nienadzorowana maksymalizacja rozstępu spektralnego w \$D\$ wymiarach (nie wymaga znajomości wymiaru).
 - `:bimodality`: maksymalizacja wskaźnika bimodalności Sarle'a (dla stadiów przejściowych relaksacji).
 - `:variance`: maksymalizacja wariancji lokalnego wymiaru \$\\mathrm{Var}(d_{\\mathrm{PR}})\$.
 - `:stability`: minimalizacja wrażliwości na skalę \$|\\Delta d_{\\mathrm{PR}} / \\Delta \\log k|\$ (plato skali).
@@ -1275,6 +1487,9 @@ function find_optimal_k(
         k_candidates::AbstractVector{<:Integer} = [16, 24, 32, 48, 64, 80, 100, 128, 160],
         criterion::Symbol = :bimodality_or_stability
     )
+    if criterion === :spectral_gap
+        return find_optimal_k_spectral_gap(points; k_candidates = k_candidates)
+    end
     N, D = size(points)
     eff_candidates = filter(k -> 2 <= k < N, k_candidates)
     if isempty(eff_candidates)
@@ -1336,7 +1551,585 @@ function find_optimal_k(
         candidates = eff_candidates,
         bimodality_scores = b_scores,
         variances = vars,
-        means = means
+        means = means,
     )
 end
+
+# ==============================================================================
+# Frozen Initial-Scale Normalization and LPCA Analysis
+# ==============================================================================
+
+"""
+    compute_initial_scales(dataset::AbstractMatrix{<:Real}; tau_col::Integer = 1, feature_cols = 2:size(dataset, 2)) -> Vector{Float64}
+
+Computes scaling factors x_j = std(X_j(t_0)) from the initial time slice t_0 = min(tau).
+Dividing features by these scales ensures Var(X_j(t_0) / x_j) = 1.
+"""
+function compute_initial_scales(
+        dataset::AbstractMatrix{<:Real};
+        tau_col::Integer = 1,
+        feature_cols = 2:size(dataset, 2)
+    )
+    taus = view(dataset, :, tau_col)
+    t0 = minimum(taus)
+    _, X0 = get_tau_slice(dataset, t0; feature_cols = feature_cols)
+    scales = [std(X0[:, j]) for j in 1:size(X0, 2)]
+    for j in eachindex(scales)
+        if scales[j] == 0.0
+            scales[j] = 1.0
+        end
+    end
+    return scales
+end
+
+"""
+    apply_frozen_scales(X::AbstractMatrix{<:Real}, scales::AbstractVector{<:Real}) -> Matrix{Float64}
+
+Scales feature matrix X by dividing each column by fixed scales: X[:, j] ./ scales[j].
+"""
+function apply_frozen_scales(X::AbstractMatrix{<:Real}, scales::AbstractVector{<:Real})
+    Z = Matrix{Float64}(undef, size(X))
+    for j in 1:size(X, 2)
+        Z[:, j] .= X[:, j] ./ scales[j]
+    end
+    return Z
+end
+
+"""
+    lpca_frozen_slice(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_cols = 2:size(dataset, 2)
+    ) -> NamedTuple
+
+Computes local PCA Participation Ratio dimension d_PR for a given tau slice
+using frozen initial scales to define distances and local PCA coordinates.
+"""
+function lpca_frozen_slice(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_cols = 2:size(dataset, 2)
+    )
+    _, Xt = get_tau_slice(dataset, tau; feature_cols = feature_cols)
+    Z = apply_frozen_scales(Xt, scales)
+    N, D = size(Z)
+    eff_k = clamp(k, 2, N - 1)
+
+    tree = KDTree(transpose(Z))
+    knn_idxs, _ = knn(tree, transpose(Z), eff_k, true)
+
+    d_pr = zeros(Float64, N)
+    evals_mean = zeros(Float64, D)
+    local_evals = zeros(Float64, D)
+
+    for i in 1:N
+        idxs = knn_idxs[i]
+        Y = Z[idxs, :]
+        Y .-= mean(Y, dims = 1)
+        C = (transpose(Y) * Y) ./ (eff_k - 1)
+        ev = sort(eigvals(Symmetric(C)), rev = true)
+        for j in 1:D
+            local_evals[j] = max(ev[j], 0.0)
+            evals_mean[j] += local_evals[j]
+        end
+        s1 = sum(local_evals)
+        s2 = sum(local_evals .^ 2)
+        d_pr[i] = s2 > 0.0 ? (s1^2) / s2 : 1.0
+    end
+    evals_mean ./= N
+
+    return (
+        mean_dpr = mean(d_pr),
+        std_dpr = std(d_pr),
+        d_pr = d_pr,
+        mean_evals = evals_mean,
+        spectral_ratio = evals_mean[end] / max(evals_mean[1], 1e-35),
+        k = eff_k,
+        tau = tau
+    )
+end
+
+"""
+    k_sweep_frozen(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k_range = [4, 6, 8, 12, 16, 24, 32, 48, 64],
+        feature_cols = 2:size(dataset, 2)
+    ) -> NamedTuple
+
+Performs a k-sweep for a specific tau slice using frozen initial scales,
+returning the mean and std of d_PR across k values to detect the stability plateau.
+"""
+function k_sweep_frozen(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k_range = [4, 6, 8, 12, 16, 24, 32, 48, 64],
+        feature_cols = 2:size(dataset, 2)
+    )
+    _, Xt = get_tau_slice(dataset, tau; feature_cols = feature_cols)
+    Z = apply_frozen_scales(Xt, scales)
+    N, D = size(Z)
+
+    max_k = maximum(k_range)
+    tree = KDTree(transpose(Z))
+    knn_idxs_all, _ = knn(tree, transpose(Z), max_k, true)
+
+    n_k = length(k_range)
+    mean_dpr = zeros(Float64, n_k)
+    std_dpr = zeros(Float64, n_k)
+    mean_ratios = zeros(Float64, n_k)
+
+    for (kid, k) in enumerate(k_range)
+        eff_k = clamp(k, 2, N - 1)
+        d_pr = zeros(Float64, N)
+        ev_accum = zeros(Float64, D)
+
+        for i in 1:N
+            idxs = knn_idxs_all[i][1:eff_k]
+            Y = Z[idxs, :]
+            Y .-= mean(Y, dims = 1)
+            C = (transpose(Y) * Y) ./ (eff_k - 1)
+            ev = sort(eigvals(Symmetric(C)), rev = true)
+            ev = max.(ev, 0.0)
+            ev_accum .+= ev
+            s1 = sum(ev)
+            s2 = sum(ev .^ 2)
+            d_pr[i] = s2 > 0.0 ? (s1^2) / s2 : 1.0
+        end
+        mean_dpr[kid] = mean(d_pr)
+        std_dpr[kid] = std(d_pr)
+        mean_ratios[kid] = ev_accum[end] / max(ev_accum[1], 1e-35)
+    end
+
+    return (
+        k_values = collect(k_range),
+        mean_dpr = mean_dpr,
+        std_dpr = std_dpr,
+        mean_ratios = mean_ratios,
+        tau = tau
+    )
+end
+
+"""
+    scan_lpca_frozen(
+        dataset::AbstractMatrix{<:Real},
+        scales::AbstractVector{<:Real};
+        tau_values::Union{Nothing, AbstractVector{<:Real}} = nothing,
+        k::Integer = 16,
+        feature_cols = 2:size(dataset, 2)
+    ) -> NamedTuple
+
+Scans local PCA Participation Ratio dimension d_PR across tau slices
+using frozen initial scales.
+"""
+function scan_lpca_frozen(
+        dataset::AbstractMatrix{<:Real},
+        scales::AbstractVector{<:Real};
+        tau_values::Union{Nothing, AbstractVector{<:Real}} = nothing,
+        k::Integer = 16,
+        feature_cols = 2:size(dataset, 2)
+    )
+    taus = tau_values === nothing ? sort(unique(dataset[:, 1])) : collect(tau_values)
+    n_slices = length(taus)
+    mean_dims = zeros(Float64, n_slices)
+    std_dims = zeros(Float64, n_slices)
+    spectral_ratios = zeros(Float64, n_slices)
+
+    for (idx, τ) in enumerate(taus)
+        res = lpca_frozen_slice(dataset, τ, scales; k = k, feature_cols = feature_cols)
+        mean_dims[idx] = res.mean_dpr
+        std_dims[idx] = res.std_dpr
+        spectral_ratios[idx] = res.spectral_ratio
+    end
+
+    return (
+        tau_values = taus,
+        mean_dims = mean_dims,
+        std_dims = std_dims,
+        spectral_ratios = spectral_ratios,
+        k = k
+    )
+end
+
+"""
+    plot_frozen_phase_space_slice(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_indices = 2:size(dataset, 2),
+        scaled_coords::Bool = false,
+        x_label = nothing,
+        y_label = nothing,
+        z_label = nothing,
+        colormap = lpca_style,
+        figure_size = (800, 600),
+        markersize = 6
+    ) -> Figure
+
+Plots a phase-space slice at proper time `tau` colored by the local Participation Ratio dimension `d_PR`
+calculated using frozen initial scales.
+"""
+function plot_frozen_phase_space_slice(
+        dataset::AbstractMatrix{<:Real},
+        tau::Real,
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_indices = 2:size(dataset, 2),
+        scaled_coords::Bool = false,
+        x_label = nothing,
+        y_label = nothing,
+        z_label = nothing,
+        colormap = lpca_style,
+        figure_size = (800, 600),
+        markersize = 6
+    )
+    CairoMakie.activate!()
+    set_publication_theme(; cmap = lpca_style)
+    res = lpca_frozen_slice(dataset, tau, scales; k = k, feature_cols = feature_indices)
+    _, Xt = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    pts = scaled_coords ? apply_frozen_scales(Xt, scales) : Xt
+    D = size(pts, 2)
+
+    lbl_x = x_label !== nothing ? x_label : (scaled_coords ? L"T / x_T" : L"T\ [\text{fm}^{-1}]")
+    lbl_y = y_label !== nothing ? y_label : (scaled_coords ? L"\mathcal{A} / x_{\mathcal{A}}" : L"\mathcal{A}")
+    lbl_z = z_label !== nothing ? z_label : (scaled_coords ? L"\mathcal{B} / x_{\mathcal{B}}" : L"\mathcal{B}")
+
+    fig = Figure(size = figure_size)
+    c_min, c_max = 1.0, Float64(D)
+
+    if D == 2
+        ax = Axis(fig[1, 1],
+            title = L"\tau = %$(round(tau, digits=2))\,\text{fm}/c \quad (\langle d_{\text{PR}} \rangle = %$(round(res.mean_dpr, digits=3)))",
+            xlabel = lbl_x,
+            ylabel = lbl_y
+        )
+        sc = scatter!(ax, pts[:, 1], pts[:, 2]; color = res.d_pr, colormap = colormap, colorrange = (c_min, c_max), markersize = markersize, strokewidth = 0.2, strokecolor = (:black, 0.2))
+        Colorbar(fig[1, 2], sc, label = L"d_{\text{PR}}", width = 16)
+    elseif D >= 3
+        ax = Axis3(fig[1, 1],
+            title = L"\tau = %$(round(tau, digits=2))\,\text{fm}/c \quad (\langle d_{\text{PR}} \rangle = %$(round(res.mean_dpr, digits=3)))",
+            xlabel = lbl_x,
+            ylabel = lbl_y,
+            zlabel = lbl_z
+        )
+        sc = scatter!(ax, pts[:, 1], pts[:, 2], pts[:, 3]; color = res.d_pr, colormap = colormap, colorrange = (c_min, c_max), markersize = markersize, strokewidth = 0.2, strokecolor = (:black, 0.2))
+        Colorbar(fig[1, 2], sc, label = L"d_{\text{PR}}", width = 16)
+    end
+    return fig
+end
+
+"""
+    plot_frozen_phase_space_grid(
+        dataset::AbstractMatrix{<:Real},
+        tau_grid::AbstractVector{<:Real},
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_indices = 2:size(dataset, 2),
+        scaled_coords::Bool = false,
+        colormap = lpca_style,
+        figure_size = (1100, 850),
+        markersize = 5
+    ) -> Figure
+
+Generates a multi-panel 2D grid of phase space slices across time tau,
+showing the manifold collapse colored by local Participation Ratio dimension d_PR.
+"""
+function plot_frozen_phase_space_grid(
+        dataset::AbstractMatrix{<:Real},
+        tau_grid::AbstractVector{<:Real},
+        scales::AbstractVector{<:Real};
+        k::Integer = 16,
+        feature_indices = 2:size(dataset, 2),
+        scaled_coords::Bool = false,
+        x_label = nothing,
+        y_label = nothing,
+        colormap = lpca_style,
+        figure_size = (1100, 850),
+        markersize = 5
+    )
+    CairoMakie.activate!()
+    set_publication_theme(; cmap = lpca_style)
+    n_panels = length(tau_grid)
+    n_cols = n_panels <= 4 ? 2 : 3
+    n_rows = ceil(Int, n_panels / n_cols)
+
+    _, X_test = get_tau_slice(dataset, tau_grid[1]; feature_cols = feature_indices)
+    D = size(X_test, 2)
+    c_min, c_max = 1.0, Float64(D)
+
+    lbl_x = x_label !== nothing ? x_label : (scaled_coords ? L"T / x_T" : L"T\ [\text{fm}^{-1}]")
+    lbl_y = y_label !== nothing ? y_label : (scaled_coords ? L"\mathcal{A} / x_{\mathcal{A}}" : L"\mathcal{A}")
+
+    fig = Figure(size = figure_size)
+    local last_sc = nothing
+
+    for (idx, τ) in enumerate(tau_grid)
+        r = div(idx - 1, n_cols) + 1
+        c = mod(idx - 1, n_cols) + 1
+
+        res = lpca_frozen_slice(dataset, τ, scales; k = k, feature_cols = feature_indices)
+        _, Xt = get_tau_slice(dataset, τ; feature_cols = feature_indices)
+        pts = scaled_coords ? apply_frozen_scales(Xt, scales) : Xt
+
+        ax = Axis(fig[r, c],
+            title = L"\tau = %$(round(τ, digits=2))\,\text{fm}/c \quad (\langle d_{\text{PR}} \rangle = %$(round(res.mean_dpr, digits=2)))",
+            xlabel = (r == n_rows ? lbl_x : ""),
+            ylabel = (c == 1 ? lbl_y : "")
+        )
+        last_sc = scatter!(ax, pts[:, 1], pts[:, 2]; color = res.d_pr, colormap = colormap, colorrange = (c_min, c_max), markersize = markersize, strokewidth = 0.1, strokecolor = (:black, 0.15))
+    end
+
+    if last_sc !== nothing
+        Colorbar(fig[:, n_cols + 1], last_sc, label = L"\text{Lokalny wymiar } d_{\text{PR}}", width = 18)
+    end
+    return fig
+end
+
+"""
+    plot_frozen_k_sweep(
+        dataset::AbstractMatrix{<:Real},
+        tau_values::AbstractVector{<:Real},
+        scales::AbstractVector{<:Real};
+        k_range = [4, 6, 8, 12, 16, 20, 24, 32, 48, 64],
+        feature_indices = 2:size(dataset, 2),
+        figure_size = (900, 500)
+    ) -> Figure
+
+Plots d_PR vs k for selected tau slices to visualize the stability plateau.
+"""
+function plot_frozen_k_sweep(
+        dataset::AbstractMatrix{<:Real},
+        tau_values::AbstractVector{<:Real},
+        scales::AbstractVector{<:Real};
+        k_range = [4, 6, 8, 12, 16, 20, 24, 32, 48, 64],
+        feature_indices = 2:size(dataset, 2),
+        figure_size = (900, 500)
+    )
+    CairoMakie.activate!()
+    set_publication_theme(; cmap = lpca_style)
+    fig = Figure(size = figure_size)
+    ax = Axis(fig[1, 1],
+        title = L"\text{Zależność wymiaru } d_{\text{PR}} \text{ od } k \text{ (plateau stabilności)}",
+        xlabel = L"\text{Liczba sąsiadów } k",
+        ylabel = L"\langle d_{\text{PR}} \rangle",
+        xscale = log10
+    )
+
+    colors = LPCA_COLORS
+    for (i, τ) in enumerate(tau_values)
+        sw = k_sweep_frozen(dataset, τ, scales; k_range = k_range, feature_cols = feature_indices)
+        col = colors[mod1(i, length(colors))]
+        lines!(ax, sw.k_values, sw.mean_dpr, label = L"\tau = %$(round(τ, digits=2))\,\text{fm}/c", color = col, linewidth = 2.5)
+        scatter!(ax, sw.k_values, sw.mean_dpr, color = col, markersize = 8)
+    end
+    axislegend(ax, position = :rt)
+    return fig
+end
+
+"""
+    frozen(
+        MODEL_NAME::Symbol = :mis;
+        dataset_path::Union{Nothing, AbstractString} = nothing,
+        K_NEIGHBOR::Integer = 16,
+        K_SWEEP_RANGE = [4, 6, 8, 12, 16, 20, 24, 32, 48, 64],
+        TAU_SLICES_PLOT = [0.20, 0.35, 0.55, 0.85, 1.50, 2.50],
+        GENERATE_PLOTS::Bool = true,
+        SAVE_FORMAT::Symbol = :png,
+        OUTPUT_PLOT_DIR::String = "plots/frozen_lpca"
+    ) -> NamedTuple
+
+Kompleksowy workflow Local PCA z zamrożonymi skalami początkowymi:
+1. Oblicza skale x_j = std(X_j(t0)) w chwili początkowej t0 = min(tau).
+2. Skaluje cechy przez x_j dla wszystkich t >= t0.
+3. Bada plateau w funkcji k (k-sweep).
+4. Skanuje ewolucję wymiaru d_PR(tau).
+5. Generuje wykresy przestrzeni fazowej w lpca_style i stylu publikacyjnym.
+Zwraca krotkę z wynikami obliczeń i figurami Makie.
+"""
+function frozen(
+        MODEL_NAME::Symbol = :mis;
+        dataset_path::Union{Nothing, AbstractString} = nothing,
+        K_NEIGHBOR::Integer = 16,
+        K_SWEEP_RANGE = [4, 6, 8, 12, 16, 20, 24, 32, 48, 64],
+        TAU_SLICES_PLOT = [0.20, 0.35, 0.55, 0.85, 1.50, 2.50],
+        GENERATE_PLOTS::Bool = true,
+        SAVE_FORMAT::Symbol = :png,
+        OUTPUT_PLOT_DIR::String = "plots/frozen_lpca"
+    )
+    CairoMakie.activate!()
+    set_publication_style(; cmap = lpca_style, fontsize = 18)
+
+    fname = MODEL_NAME === :mis ? "mis_matched_seed5.h5" : "hjsw_matched_seed5.h5"
+    DATASET_PATH = if dataset_path !== nothing
+        dataset_path
+    else
+        possible_paths = [
+            joinpath("datasets", "hjsw_lpca", fname),
+            joinpath(@__DIR__, "..", "..", "datasets", "hjsw_lpca", fname),
+            joinpath(@__DIR__, "datasets", "hjsw_lpca", fname)
+        ]
+        data_idx = findfirst(isfile, possible_paths)
+        if isnothing(data_idx)
+            error("Nie znaleziono pliku $fname w folderze datasets/hjsw_lpca/")
+        end
+        possible_paths[data_idx]
+    end
+
+    println("="^75)
+    println(" ANALIZA LOCAL PCA Z ZAMROŻONYMI SKALAMI POCZĄTKOWYMI (FROZEN INITIAL SCALES)")
+    println("="^75)
+    println("Model:            ", MODEL_NAME)
+    println("Ścieżka do danych: ", DATASET_PATH)
+
+    println("\nWczytywanie zbioru danych...")
+    dataset = load_dataset(DATASET_PATH)
+    n_rows, n_cols = size(dataset)
+    all_taus = sort(unique(dataset[:, 1]))
+    t0 = all_taus[1]
+    t_max = all_taus[end]
+    feature_indices = collect(2:n_cols)
+    D = length(feature_indices)
+
+    println("Wczytano: $(n_rows) wierszy, $(n_cols) cech (D = $D), $(length(all_taus)) przekrojów tau od $(round(t0, digits=2)) do $(round(t_max, digits=2)) fm/c.")
+
+    # KROK 1: Obliczenie zamrożonych skal
+    println("\n" * "-"^75)
+    println("KROK 1: Obliczanie skal początkowych x_j = std(X_j(t0)) w chwili t0 = $t0")
+    println("-"^75)
+
+    scales = compute_initial_scales(dataset; tau_col = 1, feature_cols = feature_indices)
+    _, X0 = get_tau_slice(dataset, t0; feature_cols = feature_indices)
+    Z0 = apply_frozen_scales(X0, scales)
+
+    col_names = D == 2 ? ["T [fm^-1]", "A"] : ["T [MeV]", "A", "B"]
+    for j in 1:D
+        name = j <= length(col_names) ? col_names[j] : "X_$j"
+        println("  Cecha $(rpad(name, 10)): średnia = $(round(mean(X0[:, j]), digits=4)),  skala x_$j = std = $(round(scales[j], digits=4))  ==>  Var po skalowaniu = $(round(var(Z0[:, j]), digits=6))")
+    end
+
+    # KROK 2: Analiza w t0 i t_max
+    println("\n" * "-"^75)
+    println("KROK 2: Weryfikacja wymiaru d_PR dla t0 = $t0 oraz chwili późnej t = $t_max (k = $K_NEIGHBOR)")
+    println("-"^75)
+
+    res_t0 = lpca_frozen_slice(dataset, t0, scales; k = K_NEIGHBOR, feature_cols = feature_indices)
+    println("Chwila początkowa tau = $(round(t0, digits=2)) fm/c:")
+    println("  Średni wymiar d_PR = $(round(res_t0.mean_dpr, digits=4)) ± $(round(res_t0.std_dpr, digits=4)) (teoria: D = $D)")
+    println("  Stosunek spektralny lambda_min / lambda_max = $(res_t0.spectral_ratio)")
+
+    res_late = lpca_frozen_slice(dataset, t_max, scales; k = K_NEIGHBOR, feature_cols = feature_indices)
+    println("\nChwila asymptotyczna tau = $(round(t_max, digits=2)) fm/c:")
+    println("  Średni wymiar d_PR = $(round(res_late.mean_dpr, digits=4)) ± $(round(res_late.std_dpr, digits=4)) (teoria: 1.0 dla atraktora)")
+    println("  Stosunek spektralny lambda_min / lambda_max = $(res_late.spectral_ratio) (zanik poprzeczny)")
+
+    # KROK 3: Badanie plateau w funkcji k
+    println("\n" * "-"^75)
+    println("KROK 3: Poszukiwanie plateau w funkcji liczby sąsiadów k (k-sweep)")
+    println("-"^75)
+
+    sweep_t0 = k_sweep_frozen(dataset, t0, scales; k_range = K_SWEEP_RANGE, feature_cols = feature_indices)
+    sweep_late = k_sweep_frozen(dataset, t_max, scales; k_range = K_SWEEP_RANGE, feature_cols = feature_indices)
+
+    println("   k  |  d_PR(t0 = $t0)  |  d_PR(t = $t_max)  | Stosunek spektralny (t_max)")
+    println("------+-------------------+--------------------+----------------------------")
+    for (idx, k_val) in enumerate(K_SWEEP_RANGE)
+        println("  $(rpad(k_val, 3)) |  $(rpad(round(sweep_t0.mean_dpr[idx], digits=4), 6)) ± $(round(sweep_t0.std_dpr[idx], digits=4))  |  $(rpad(round(sweep_late.mean_dpr[idx], digits=4), 6)) ± $(round(sweep_late.std_dpr[idx], digits=4))  |  $(sweep_late.mean_ratios[idx])")
+    end
+
+    # KROK 4: Skan ewolucji w czasie
+    println("\n" * "-"^75)
+    println("KROK 4: Ewolucja wymiaru d_PR(tau) wzdłuż relaksacji hydrodynamicznej")
+    println("-"^75)
+
+    step_stride = max(1, div(length(all_taus), 15))
+    selected_scan_taus = all_taus[1:step_stride:end]
+    if selected_scan_taus[end] != all_taus[end]
+        push!(selected_scan_taus, all_taus[end])
+    end
+
+    scan_res = scan_lpca_frozen(dataset, scales; tau_values = selected_scan_taus, k = K_NEIGHBOR, feature_cols = feature_indices)
+
+    println("  tau [fm/c] |  Średni d_PR  |   std(d_PR)  | lambda_min / lambda_max")
+    println("-------------+---------------+--------------+------------------------")
+    for (i, τ) in enumerate(scan_res.tau_values)
+        println("    $(rpad(round(τ, digits=2), 6))   |    $(rpad(round(scan_res.mean_dims[i], digits=4), 7))    |    $(rpad(round(scan_res.std_dims[i], digits=4), 7))   |       $(scan_res.spectral_ratios[i])")
+    end
+
+    # KROK 5: Wykresy
+    figs = nothing
+    if GENERATE_PLOTS
+        println("\n" * "-"^75)
+        println("KROK 5: Generowanie wykresów przestrzeni fazowej z motywem publikacyjnym i lpca_style...")
+        println("-"^75)
+        mkpath(OUTPUT_PLOT_DIR)
+        ext = string(SAVE_FORMAT)
+
+        valid_plot_taus = filter(τ -> any(isapprox.(all_taus, τ; atol = 0.05)), TAU_SLICES_PLOT)
+        if isempty(valid_plot_taus)
+            valid_plot_taus = all_taus[round.(Int, range(1, length(all_taus), length = 6))]
+        end
+
+        fig_grid_phys = plot_frozen_phase_space_grid(
+            dataset, valid_plot_taus, scales;
+            k = K_NEIGHBOR, feature_indices = feature_indices, scaled_coords = false,
+            colormap = lpca_style
+        )
+        save(joinpath(OUTPUT_PLOT_DIR, "$(MODEL_NAME)_phase_space_grid_physical.$ext"), fig_grid_phys)
+
+        fig_grid_scaled = plot_frozen_phase_space_grid(
+            dataset, valid_plot_taus, scales;
+            k = K_NEIGHBOR, feature_indices = feature_indices, scaled_coords = true,
+            colormap = lpca_style
+        )
+        save(joinpath(OUTPUT_PLOT_DIR, "$(MODEL_NAME)_phase_space_grid_scaled.$ext"), fig_grid_scaled)
+
+        taus_for_k_plot = [valid_plot_taus[1], valid_plot_taus[max(1, div(length(valid_plot_taus), 2))], valid_plot_taus[end]]
+        fig_k_sweep = plot_frozen_k_sweep(
+            dataset, taus_for_k_plot, scales;
+            k_range = K_SWEEP_RANGE, feature_indices = feature_indices
+        )
+        save(joinpath(OUTPUT_PLOT_DIR, "$(MODEL_NAME)_k_plateau_analysis.$ext"), fig_k_sweep)
+
+        fig_evo = Figure(size = (850, 500))
+        ax_evo = Axis(fig_evo[1, 1],
+            title = L"\text{Ewolucja lokalnego wymiaru } d_{\text{PR}}(\tau) \text{ w czasie (%$MODEL_NAME)}",
+            xlabel = L"\text{Czas własny } \tau\,[\text{fm}/c]",
+            ylabel = L"\langle d_{\text{PR}} \rangle"
+        )
+        main_color = AttractorsQGP.LPCA_COLORS[4]
+        lines!(ax_evo, scan_res.tau_values, scan_res.mean_dims, color = main_color, linewidth = 2.8, label = L"\text{Lokalne PCA } (k = %$(K_NEIGHBOR))")
+        scatter!(ax_evo, scan_res.tau_values, scan_res.mean_dims, color = main_color, markersize = 9)
+        hlines!(ax_evo, [1.0], color = :gray50, linestyle = :dash, linewidth = 1.5, label = L"\text{Atraktor 1D } (d = 1)")
+        hlines!(ax_evo, [Float64(D)], color = :black, linestyle = :dot, linewidth = 1.5, label = L"\text{Pełna przestrzeń } (d = %$D)")
+        axislegend(ax_evo, position = :rt)
+        save(joinpath(OUTPUT_PLOT_DIR, "$(MODEL_NAME)_dimension_evolution_tau.$ext"), fig_evo)
+
+        println("  [OK] Zapisano komplet wykresów w: $OUTPUT_PLOT_DIR")
+        figs = (grid_phys = fig_grid_phys, grid_scaled = fig_grid_scaled, k_sweep = fig_k_sweep, evolution = fig_evo)
+    end
+
+    println("\n" * "="^75)
+    println(" ZAKOŃCZONO SUKCESEM!")
+    println("="^75)
+
+    return (
+        model = MODEL_NAME,
+        scales = scales,
+        res_t0 = res_t0,
+        res_late = res_late,
+        sweep_t0 = sweep_t0,
+        sweep_late = sweep_late,
+        scan = scan_res,
+        figures = figs
+    )
+end
+
+
 

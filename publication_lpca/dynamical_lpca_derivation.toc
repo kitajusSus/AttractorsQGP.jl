@@ -1,0 +1,24 @@
+\contentsline {section}{\numberline {1}Introduction and Dynamical State Representation}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}State Vector and Dimensionless Time}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Phase Velocity Field}{3}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Evolution of a Local Point Cloud: The Jacobian Matrix $\mathbf {J}$}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Matrix Elements}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Spectral Decomposition and Phase-Space Volume Contraction}{4}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Evolution of the Local Covariance Matrix $\mathbf {\Sigma }(t)$}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}The Factor of Two in the Covariance Decay Rate}{6}{subsection.3.1}%
+\contentsline {section}{\numberline {4}Analytical Participation Ratio Dimension $d_{\mathrm {PR}}(t)$}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Physical Regimes of the Analytical Curve}{6}{subsection.4.1}%
+\contentsline {section}{\numberline {5}Microscopic Origin of the $k$-Dependency: Curvature Sagitta}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Analytical Calculation of the Sagitta Covariance Tensor}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}The Eigenvalue Ratio and Curvature Inflation}{8}{subsection.5.2}%
+\contentsline {section}{\numberline {6}The Noise-Curvature Trade-Off: The U-Curve Valley}{8}{section.6}%
+\contentsline {section}{\numberline {7}Numerical Verification on Conformal MIS Attractors}{9}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Verification of Covariance Damping Rate (Hypothesis 1)}{9}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Verification of Curvature Scaling and the U-Curve Valley}{11}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Curvature Prefactor and Frenet--Serret Agreement}{12}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Standardization and Metric Invariance}{12}{subsection.7.4}%
+\contentsline {section}{\numberline {8}Generalization to 3D Phase Space (HJSW Model): Unsupervised Detection of the $3 \to 2 \to 1$ Transition}{12}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Two-Stage Relaxation Dynamics}{13}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Unsupervised Dimension Discovery: We Do Not Assume Reduction}{14}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Does the Method Function When the Input Dimension is Unknown?}{14}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Conclusion}{15}{section.9}%

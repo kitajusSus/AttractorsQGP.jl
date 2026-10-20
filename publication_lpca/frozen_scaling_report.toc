@@ -1,0 +1,17 @@
+\contentsline {section}{\numberline {1}Hydrodynamic Setup and Initial Phase-Space Configuration}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Equations of Motion}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Numerical Dataset and Initial Reference Scales}{3}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Coordinate Normalization Schemes}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Variant 1: Frozen Scale Normalization}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Variant 2: Cooling-Compensated Scale Normalization}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Variant 3: Logarithmic Temperature Normalization}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Reference Benchmark: Slice-by-Slice $Z$-Score Standardization}{5}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Phase-Space Scatter Evolution}{5}{subsection.2.5}%
+\contentsline {section}{\numberline {3}Local PCA and Spectral Eigenvalue Dynamics}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Continuous Participation Ratio Dimension}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Eigenvalue Trajectories Across Proper Time}{7}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Neighborhood Size $k$-Sweep and Plateau Selection}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Inflection Point Plateau Detection Algorithm}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Empirical $k$-Sweep Results}{8}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Dimensional Trajectories Across Proper Time}{8}{section.5}%
+\contentsline {section}{\numberline {6}Tabulated Numerical Summary}{8}{section.6}%

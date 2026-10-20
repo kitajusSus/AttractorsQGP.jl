@@ -76,6 +76,38 @@ function _is_initial_feature(color_by)::Bool
     end
 end
 
+function _normalize_slice(feature_slice::AbstractMatrix{<:Real}, feature_slice0::AbstractMatrix{<:Real}, method::Union{Symbol, Function, AbstractVector{<:Real}})
+    if method isa Symbol
+        if method in (:var1, :frozen)
+            scales0 = std(feature_slice0, dims = 1)
+            scales0[scales0 .== 0.0] .= 1.0
+            return feature_slice ./ scales0
+        elseif method === :var2
+            scales0 = std(feature_slice0, dims = 1)
+            scales0[scales0 .== 0.0] .= 1.0
+            mean_T0 = mean(feature_slice0[:, 1])
+            mean_Tt = mean(feature_slice[:, 1])
+            scale_T = scales0[1] * (mean_T0 > 0 ? (mean_Tt / mean_T0) : 1.0)
+            scale_T = scale_T == 0.0 ? 1.0 : scale_T
+            other_scales = length(scales0) > 1 ? scales0[2:end] : Float64[]
+            scaled_others = !isempty(other_scales) ? (feature_slice[:, 2:end] ./ reshape(other_scales, 1, :)) : Matrix{Float64}(undef, size(feature_slice, 1), 0)
+            return hcat(feature_slice[:, 1] ./ scale_T, scaled_others)
+        elseif method === :var3
+            scales0 = std(feature_slice0, dims = 1)
+            scales0[scales0 .== 0.0] .= 1.0
+            mean_T0 = mean(feature_slice0[:, 1])
+            T0_pos = filter(x -> x > 0, feature_slice0[:, 1])
+            std_lnT0 = isempty(T0_pos) ? 1.0 : std(log.(T0_pos))
+            std_lnT0 = std_lnT0 == 0.0 ? 1.0 : std_lnT0
+            other_scales = length(scales0) > 1 ? scales0[2:end] : Float64[]
+            scaled_others = !isempty(other_scales) ? (feature_slice[:, 2:end] ./ reshape(other_scales, 1, :)) : Matrix{Float64}(undef, size(feature_slice, 1), 0)
+            y_T = log.(max.(feature_slice[:, 1], 1e-12) ./ (mean_T0 > 0 ? mean_T0 : 1.0)) ./ std_lnT0
+            return hcat(y_T, scaled_others)
+        end
+    end
+    return apply_normalization(feature_slice, method)
+end
+
 function _resolve_color_feature(
         slice_data::AbstractMatrix{<:Real},
         initial_slice_data::AbstractMatrix{<:Real},
@@ -173,7 +205,7 @@ function plot_pr_dimension_histogram(
         tau::Real;
         feature_indices::Union{AbstractVector{<:Integer}, Nothing} = nothing,
         k_neighbor::Union{Integer, Symbol} = :auto,
-        normalize_method::Symbol = :zscore,
+        normalize_method::Union{Symbol, Function, AbstractVector{<:Real}} = :zscore,
         use_density_weights::Bool = false,
         n_bins::Integer = 40,
         color_by::Union{Symbol, Integer, Nothing} = :initial_A,
@@ -208,7 +240,8 @@ function plot_pr_dimension_histogram(
     end
 
     feature_slice = calc_slice[:, actual_features]
-    norm_slice = apply_normalization(feature_slice, normalize_method)
+    feature_slice0 = calc_slice0[:, actual_features]
+    norm_slice = _normalize_slice(feature_slice, feature_slice0, normalize_method)
     eff_k = if k_neighbor === :auto
         suggest_optimal_k(size(norm_slice, 1), size(norm_slice, 2))
     else
@@ -334,7 +367,7 @@ function plot_pr_dimension_histogram_grid(
         tau_grid::AbstractVector{<:Real};
         feature_indices::Union{AbstractVector{<:Integer}, Nothing} = nothing,
         k_neighbor::Union{Integer, Symbol} = :auto,
-        normalize_method::Symbol = :zscore,
+        normalize_method::Union{Symbol, Function, AbstractVector{<:Real}} = :zscore,
         use_density_weights::Bool = false,
         n_bins::Integer = 40,
         color_by::Union{Symbol, Integer, Nothing} = :initial_A,
@@ -406,7 +439,8 @@ function plot_pr_dimension_histogram_grid(
         end
 
         feature_slice = calc_slice[:, actual_features]
-        norm_slice = apply_normalization(feature_slice, normalize_method)
+        feature_slice0 = calc_slice0[:, actual_features]
+        norm_slice = _normalize_slice(feature_slice, feature_slice0, normalize_method)
         eff_k = if k_neighbor === :auto
             suggest_optimal_k(size(norm_slice, 1), size(norm_slice, 2))
             # println("")

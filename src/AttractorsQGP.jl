@@ -74,7 +74,7 @@ include("io/citation.jl")
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel, HJSWModel, HJSWwModel
 export HBARC_MEV_FM, MEV_PER_FM, FM_PER_MEV, to_temperature_unit, temperature_to_fm
 export solve_hydro, generate_initial_conditions, generate_trajectories, build_dataset, run_main
-export set_publication_theme, set_palette!, register_palette!, resolve_palette
+export set_publication_theme, set_publication_style, set_palette!, register_palette!, resolve_palette
 export JAPIDI_COLORS, LPCA_COLORS, THEMES_DICT
 export japidi_grid, japidi_stype, lpca_style_grad, lpca_style
 export explained_variance_ratio_from_svd, normalize_minmax, run_pca, run_pca_kernel, get_tau_slice, run_pca_for_tau, run_pca_per_time, run_evolution_pca_workflow
@@ -90,7 +90,9 @@ export analyze_dimension_distribution, analyze_tolerance_sensitivity, compute_pa
 export PointwiseDimensionSlice, compute_pointwise_dimensions, compute_pointwise_pr
 export compute_soft_weighted_dimension, scan_soft_weighted_dimension
 export compute_local_pr_dimension, scan_local_pr_dimension
-export suggest_optimal_k, find_optimal_k
+export suggest_optimal_k, find_optimal_k, find_optimal_k_spectral_gap
+export compute_initial_scales, apply_frozen_scales, lpca_frozen_slice, k_sweep_frozen
+export scan_lpca_frozen, plot_frozen_phase_space_slice, plot_frozen_phase_space_grid, plot_frozen_k_sweep, frozen
 export plot_pr_dimension_histogram, plot_pr_dimension_histogram_grid
 export PINNConfig, build_pinn_network, normalize_pinn_input, denormalize_pinn_output, pinn_predict
 export train_pinn, PINNResult
