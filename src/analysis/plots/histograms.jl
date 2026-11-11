@@ -175,7 +175,7 @@ function plot_pr_dimension_histogram(
     _, full_slice0 = get_tau_slice(dataset, tau0; feature_cols = 1:size(dataset, 2))
 
     calc_slice, calc_slice0 = if size(full_slice, 1) > n_calc
-        rng = MersenneTwister(seed)
+        rng = Xoshiro(seed)
         p_idxs = randperm(rng, size(full_slice, 1))[1:n_calc]
         s = full_slice[p_idxs, :]
         s0 = (size(full_slice0, 1) == size(full_slice, 1)) ? full_slice0[p_idxs, :] : full_slice0

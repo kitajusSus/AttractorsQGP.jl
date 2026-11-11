@@ -19,14 +19,14 @@ function marchenko(
         D::Int = 3,
         atol::Real = 1.0e-5
     )
-    set_publication_theme(; cmap = lpca_style)
+    set_publication_theme()
     colors = AttractorsQGP.LPCA_COLORS
 
     idx_0 = findall(isapprox.(dane[:, 1], tau0; atol = atol))
     idx_t = findall(isapprox.(dane[:, 1], tau; atol = atol))
 
-    X0 = copy(dane[idx_0, 2:4])
-    Xt = copy(dane[idx_t, 2:4])
+    X0 = copy(dane[idx_0, 2:(D + 1)])
+    Xt = copy(dane[idx_t, 2:(D + 1)])
     X0[:, 1] ./= T_scale
     Xt[:, 1] ./= T_scale
 
@@ -40,7 +40,6 @@ function marchenko(
 
     dpr_vals = zeros(Float64, N_pts)
     evals_sum = zeros(Float64, D)
-
     for i in 1:N_pts
         Y = Zt[knn_idxs[i], :]
         Y .-= mean(Y, dims = 1)
@@ -54,13 +53,11 @@ function marchenko(
     mean_evals = evals_sum ./ N_pts
     mean_dpr = mean(dpr_vals)
 
-    # 4. Przeskalowane pasmo szumu Marczenki-Pastura
     q = D / K
     sigma2_loc = sum(mean_evals) / D
     lambda_minus = q < 1.0 ? sigma2_loc * (1.0 - sqrt(q))^2 : 0.0
     lambda_plus = sigma2_loc * (1.0 + sqrt(q))^2
 
-    # 5. Skan plateau w funkcji K
     k_list = sort(unique(filter(k -> 2 <= k < N_pts, collect(K_sweep))))
     knn_sweep, _ = knn(tree, transpose(Zt), maximum(k_list), true)
 
@@ -96,18 +93,18 @@ function marchenko(
     centers = (edges[1:(end - 1)] .+ edges[2:end]) ./ 2
     counts = [count(x -> edges[i] <= x < edges[i + 1], dpr_vals) for i in 1:length(centers)]
     norm_counts = counts ./ max(maximum(counts), 1)
-    barplot!(ax1, centers, norm_counts, width = step(edges) * 0.95, color = (colors[4], 0.6), strokewidth = 0.5, strokecolor = :black)
+    barplot!(ax1, centers, norm_counts, width = step(edges) * 0.95, color = (colors[2], 0.6), strokewidth = 0.5, strokecolor = :black)
     vlines!(ax1, [mean_dpr], color = colors[1], linestyle = :dash, linewidth = 2.5, label = L"\langle d_{\mathrm{PR}} \rangle = %$(round(mean_dpr, digits=2))")
     axislegend(ax1, position = :rt, labelsize = 12)
 
     # (b) Skan plateau
     ax2 = Axis(
         fig[1, 2],
-        xscale = log10,
+        # xscale = log10,
         title = L"\text{(b) Skan plateau } \langle d_{\mathrm{PR}}(K) \rangle",
         xlabel = L"K \text{ (liczba sąsiadów)}",
         ylabel = L"\langle d_{\mathrm{PR}} \rangle",
-        limits = (minimum(k_list), maximum(k_list), 0.95, 3.05)
+        limits = (minimum(k_list), maximum(k_list), 0.95, D + 0.05)
     )
     band!(ax2, k_list, sweep_mean .- sweep_std, sweep_mean .+ sweep_std, color = (colors[4], 0.2))
     lines!(ax2, k_list, sweep_mean, color = colors[4], linewidth = 2.8, label = L"\langle d_{\mathrm{PR}} \rangle \pm 1\sigma")

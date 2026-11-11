@@ -19,3 +19,26 @@ Few $\lambda$ may be >1 or $\lambda <1$
 They proved that with dataset with dimension $D$ and $N$ number of observations
 and their proportion converges to the constant:
 $$q = \frac{D}{N} <= 1$$
+
+....
+
+## Code
+
+This function counts the marchenko $q$ and shows the plateu
+
+```julia
+
+
+function marchenko(
+        dane::AbstractMatrix{<:Real};
+        tau::Real = 0.2,
+        tau0::Real = 0.2,
+        K::Integer = 160,
+        T_scale::Real = 193.0,
+        K_sweep = [6:4:250...],
+        D::Int = 3,
+        atol::Real = 1.0e-5
+    )
+
+
+```
