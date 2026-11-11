@@ -9,10 +9,6 @@ using AttractorsQGP
 
 CairoMakie.activate!()
 
-# ==============================================================================
-# ANALIZA LPCA & RMT DLA WYBRANEJ CHWILI TAU
-# ==============================================================================
-
 function marchenko(
         dane::AbstractMatrix{<:Real};
         tau::Real = 0.2,
