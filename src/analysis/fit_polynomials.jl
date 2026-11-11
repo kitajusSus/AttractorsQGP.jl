@@ -24,8 +24,6 @@ function compute_polynomial_lle(data::AbstractMatrix{<:Real}, order::Integer, ta
     rownanie = ξ₂ ~ wyrazenie_sym
     kod_latex = latexify(rownanie)
 
-    println("==================================================================")
-    println("Odzyskane prawo fizyczne (Symbolics):")
     println(rownanie)
     println("\n latex:")
     println(kod_latex)

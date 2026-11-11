@@ -58,6 +58,7 @@ include("analysis/exponent.jl")
 include("analysis/fit_polynomials.jl")
 include("analysis/lle.jl")
 include("analysis/lpca.jl")
+include("analysis/marchenko.jl")
 include("analysis/plots.jl")
 
 include("pinns/network.jl")
@@ -71,53 +72,60 @@ include("io/data_io.jl")
 include("io/attractor.jl")
 include("io/citation.jl")
 
+# Modele i parametry
 export HydroParams, AbstractHydroModel, BRSSSModel, MISModel, HJSWModel, HJSWwModel
 export HBARC_MEV_FM, MEV_PER_FM, FM_PER_MEV, to_temperature_unit, temperature_to_fm
+
+# Symulacje i ODE
 export solve_hydro, generate_initial_conditions, generate_trajectories, build_dataset, run_main
+
+# Style i motywy
 export set_publication_theme, set_publication_style, set_palette!, register_palette!, resolve_palette
 export JAPIDI_COLORS, LPCA_COLORS, THEMES_DICT
 export japidi_grid, japidi_stype, lpca_style_grad, lpca_style
-export explained_variance_ratio_from_svd, normalize_minmax, run_pca, run_pca_kernel, get_tau_slice, run_pca_for_tau, run_pca_per_time, run_evolution_pca_workflow
+
+# PCA
+export explained_variance_ratio_from_svd, normalize_minmax, run_pca, run_pca_kernel
+export get_tau_slice, run_pca_for_tau, run_pca_per_time, run_evolution_pca_workflow
+
+# Wymiary nieliniowe i LLE
 export estimate_effective_dimension, estimate_dimension, scan_dimension_from_data
 export estimate_lid, estimate_twonn, scan_intrinsic_dimensions, spectral_dimension, estimate_pinn_dimension
-export estimate_scale_dimension, run_LLE
-export compute_polynomial_lle
+export estimate_scale_dimension, run_LLE, compute_polynomial_lle
 export lle, run_lle_per_time, run_lle_for_selected_taus, lle_spectrum, lle_spectrum_over_k, spectrum_statistics, scan_lle_spectrum
-export dims, normalize_max, apply_normalization, swiss_roll, compute_lpca
-export transform_to_dimensionless, rescale_temperature, create_mixed_scaled, prepare_dataset_variants, load_hydro_dataset
-export evaluate_k_pair, evaluate_k_pair_pr, evaluate_k_dependency, evaluate_k_dependency_pr, compare_normalization_methods, compare_normalization_methods_pr, test_coordinate_invariance
-export analyze_dimension_distribution, analyze_tolerance_sensitivity, compute_parameterization_k_sweep, sweep_k_dimensions_over_tau
-export PointwiseDimensionSlice, compute_pointwise_dimensions, compute_pointwise_pr
-export compute_soft_weighted_dimension, scan_soft_weighted_dimension
-export compute_local_pr_dimension, scan_local_pr_dimension
-export suggest_optimal_k, find_optimal_k, find_optimal_k_spectral_gap
-export compute_initial_scales, apply_frozen_scales, lpca_frozen_slice, k_sweep_frozen
-export scan_lpca_frozen, plot_frozen_phase_space_slice, plot_frozen_phase_space_grid, plot_frozen_k_sweep, frozen
-export plot_pr_dimension_histogram, plot_pr_dimension_histogram_grid
-export PINNConfig, build_pinn_network, normalize_pinn_input, denormalize_pinn_output, pinn_predict
-export train_pinn, PINNResult
-export predict_trajectories_pinn, build_pinn_dataset, compare_pinn_ode, pinn_attractor_analysis
-export pinn_jacobian, pinn_jacobian_full, d_eff_from_singular_values, pinn_deff_at, pinn_deff_scan, pinn_jacobian_scan, pinn_hydrodynamisation_time
-export sample_ic_ensemble, fixed_transport_ic_ensemble, pinn_dimensionality_workflow
-export normalize_generic, build_generic_network, compute_data_jacobian
 
+# Local PCA & Zamrożone skale
+export dims, normalize_max, apply_normalization, swiss_roll, compute_lpca
+export compute_local_pr_dimension, scan_local_pr_dimension
+export compute_initial_scales, apply_frozen_scales, lpca_frozen_slice, k_sweep_frozen, scan_lpca_frozen
+
+# RMT & Marchenko-Pastur
+export marchenko
+# PINN
+# export PINNConfig, build_pinn_network, normalize_pinn_input, denormalize_pinn_output, pinn_predict
+# export train_pinn, PINNResult
+# export predict_trajectories_pinn, build_pinn_dataset, compare_pinn_ode, pinn_attractor_analysis
+# export pinn_jacobian, pinn_jacobian_full, d_eff_from_singular_values, pinn_deff_at, pinn_deff_scan, pinn_jacobian_scan, pinn_hydrodynamisation_time
+# export sample_ic_ensemble, fixed_transport_ic_ensemble, pinn_dimensionality_workflow
+# export normalize_generic, build_generic_network, compute_data_jacobian
+
+# I/O i Atraktor
 export save_dataset_csv, load_dataset_csv, save_dataset_h5, load_dataset_h5, save_dataset_jls, load_dataset_jls, save_dataset, load_dataset
 export attractor_data, build_attractor_interpolant, get_attractor_line, temperature_grid, interpolate_attractor_state, get_attractor_line_for_frame
 export citation
 
-export set_publication_theme, PLOT_KEYS, resolve_def, get_data, get_limits
+# Wizualizacja
+export PLOT_KEYS, resolve_def, get_data, get_limits
 export plot_phase_space_grid, plot_phase_space_grid_3d, plot_thermodynamics_evolution, plot_phase_space_evolution, plot_phase_space_evolution_3d, plot_attractor, plot_attractor_Aw_T
-export plot_pca_summary, plot_pca_evr_over_time, plot_pca_bar_variance
-export plot_twonn, plot_lid_dimension, plot_map_lpca, plot_local_pca, plot_local_pca_regularizations, plot_phase_space_lpca_dims, plot_phase_space_local_pca_dimensions
-export plot_k_dependency_bands, plot_dims_k_dependency, plot_k_sweep_curve, plot_d_vs_tau_multi_k, plot_d_vs_tau_k_averaged, plot_normalization_multipanel, plot_normalization_direct_overlay, plot_pr_normalization_direct_overlay
-export plot_coordinate_invariance, plot_coordinate_invariance_single
-export plot_dimension_distribution, plot_dimension_mean_single, plot_dimension_populations_single, plot_tolerance_sensitivity
-export plot_colored_phase_space_slice_2d, plot_colored_phase_space_grid_2d, plot_colored_phase_space_grid_hjsw_projections, plot_colored_phase_space_slice_hjsw_3d, plot_colored_phase_space_grid_3d
-export plot_parameterization_focus_tripanel, plot_parameterization_focus_2x2
-export plot_soft_weighted_dimension, plot_soft_k_dependency, plot_soft_phase_space_slice_2d, plot_soft_phase_space_grid_2d, plot_soft_phase_space_slice_3d, plot_soft_phase_space_grid_3d
-export plot_local_pr_dimension, plot_pr_k_dependency, plot_pr_phase_space_slice_2d, plot_pr_phase_space_grid_2d, plot_pr_phase_space_slice_3d, plot_pr_phase_space_grid_3d, plot_unified_lpca_comparison
+export plot_pca_summary, plot_pca_evr_over_time, plot_pca_bar_variance, animate_pca_evolution
+export plot_twonn, plot_lid_dimension, plot_pinn_deff_evolution
 export plot_lle_dim, plot_simulation_lle, plot_lle_spectrum_statistics, plot_lle_spectrum_statistics_grid, plot_lle_σ_spectrum, plot_lle_embedding, plot_lle_grid, plot_lle_grid_2d, plot_lle_grid_3d, plot_lle_results_for_taus, plot_lle_spectrum_analysis, plot_lle_spectrum_scan_analysis
-export plot_pinn_deff_evolution, animate_pca_evolution
+export plot_pr_dimension_histogram, plot_pr_dimension_histogram_grid
+export plot_local_pca, plot_local_pca_regularizations, plot_map_lpca
+export plot_normalization_direct_overlay, plot_pr_normalization_direct_overlay
+export plot_local_pr_dimension, plot_pr_k_dependency
+export plot_phase_space_lpca_dims, plot_phase_space_local_pca_dimensions
+export plot_pr_phase_space_slice_2d, plot_pr_phase_space_slice_3d, plot_pr_phase_space_grid_2d, plot_pr_phase_space_grid_3d
 
 function run_main(
         model::AbstractHydroModel;
