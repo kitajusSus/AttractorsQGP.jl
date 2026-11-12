@@ -33,6 +33,36 @@ fig = plot_phase_space_grid(mis, times, :T, :A; attractor = true)
 fig = plot_phase_space_grid(mis, times, :tauT, :A; attractor = true)
 ```
 """
+function _project_attractor_3d(
+        dataset::AbstractMatrix{<:Real},
+        attr_data::AbstractMatrix{<:Real},
+        selected::AbstractMatrix{<:Real},
+        xfn::Function,
+        yfn::Function,
+        zfn::Function,
+        n_points::Int
+    )
+    tau_val = selected[1, 1]
+    Tmin, Tmax = minimum(dataset[:, 2]) * 0.95, maximum(dataset[:, 2]) * 1.05
+    T_grid = temperature_grid(Tmin, Tmax, n_points)
+    A_attr = build_attractor_interpolant(attr_data)
+
+    attr_x = Vector{Float64}(undef, n_points)
+    attr_y = Vector{Float64}(undef, n_points)
+    attr_z = Vector{Float64}(undef, n_points)
+
+    state = zeros(Float64, size(dataset, 2))
+    state[1] = tau_val
+    for (k, T) in enumerate(T_grid)
+        state[2] = T
+        state[3] = A_attr(tau_val * T)
+        attr_x[k] = xfn(state, selected)
+        attr_y[k] = yfn(state, selected)
+        attr_z[k] = zfn(state, selected)
+    end
+    return attr_x, attr_y, attr_z
+end
+
 function plot_phase_space_grid(
         dataset::AbstractMatrix{<:Real},
         times,
@@ -55,13 +85,12 @@ function plot_phase_space_grid(
     rowgap!(fig.layout, 60)
 
     lims = get_limits(dataset, xdef, ydef; times = times)
-
     raw_attr = isnothing(Attractor) ? attractor : Attractor
     attr_data = _resolve_attractor_data(raw_attr, dataset)
 
     for (i, t) in enumerate(times)
-        row = (i - 1) ÷ ncols + 1
-        col = (i - 1) % ncols + 1
+        row = div(i - 1, ncols) + 1
+        col = mod1(i, ncols)
         d = get_data(dataset, t, xdef, ydef)
 
         ax = Axis(
@@ -91,13 +120,12 @@ function plot_phase_space_grid(
             )
             xlims!(ax, 0, lims[2])
             lines!(ax, attr_line.x, attr_line.y; color = (RGBAf(176 / 255, 0, 0, 1.0), 0.86), linewidth = 5, label = "Atraktor")
-            if show_legend
-                axislegend(ax, position = :rt)
-            end
+            show_legend && axislegend(ax, position = :rt)
         end
+
+        n_pts = min(10_000, length(d.x))
         scatter!(
-            ax, d.x[1:min(10000, length(d.x))], d.y[1:min(10000, length(d.y))];
-            # ax, d.x, d.y;
+            ax, d.x[1:n_pts], d.y[1:n_pts];
             markersize = 3.5, color = (palette[10], 0.9),
             strokecolor = (palette[9], 0.01), strokewidth = 0.2
         )
@@ -139,16 +167,10 @@ function plot_phase_space_grid_3d(
     rowgap!(fig.layout, 85)
 
     for (i, t) in enumerate(times)
-        row = (i - 1) ÷ ncols + 1
-        col = (i - 1) % ncols + 1
+        row = div(i - 1, ncols) + 1
+        col = mod1(i, ncols)
 
-        rows = findall(isapprox.(dataset[:, 1], t; atol = 1.0e-8))
-        if isempty(rows)
-            nearest = argmin(abs.(dataset[:, 1] .- t))
-            rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol = 1.0e-8))
-        end
-        selected = dataset[rows, :]
-
+        _, selected = get_tau_slice(dataset, t; atol = 1.0e-8, feature_cols = 1:size(dataset, 2), nearest = true)
         dx = [xfn(selected[j, :], selected) for j in 1:size(selected, 1)]
         dy = [yfn(selected[j, :], selected) for j in 1:size(selected, 1)]
         dz = [zfn(selected[j, :], selected) for j in 1:size(selected, 1)]
@@ -167,26 +189,9 @@ function plot_phase_space_grid_3d(
         !isnothing(limits) && limits!(ax, limits...)
 
         if !isnothing(attr_data)
-            tau_val = selected[1, 1]
-            Tmin, Tmax = minimum(dataset[:, 2]) * 0.95, maximum(dataset[:, 2]) * 1.05
-            T_grid = temperature_grid(Tmin, Tmax, attractor_points)
-            A_attr = build_attractor_interpolant(attr_data)
-            attr_x = Vector{Float64}(undef, attractor_points)
-            attr_y = Vector{Float64}(undef, attractor_points)
-            attr_z = Vector{Float64}(undef, attractor_points)
-            state = zeros(Float64, size(dataset, 2))
-            state[1] = tau_val
-            for (k, T) in enumerate(T_grid)
-                state[2] = T
-                state[3] = A_attr(tau_val * T)
-                attr_x[k] = xfn(state, selected)
-                attr_y[k] = yfn(state, selected)
-                attr_z[k] = zfn(state, selected)
-            end
+            attr_x, attr_y, attr_z = _project_attractor_3d(dataset, attr_data, selected, xfn, yfn, zfn, attractor_points)
             lines!(ax, attr_x, attr_y, attr_z; color = (RGBAf(176 / 255, 0, 0, 1.0), 0.9), linewidth = 4, label = "Atraktor")
-            if show_legend
-                axislegend(ax, position = :rt)
-            end
+            show_legend && axislegend(ax, position = :rt)
         end
 
         n_pts = min(length(dx), n_points_scatter)
@@ -228,8 +233,7 @@ function plot_attractor(
 
     if !isnothing(attr_data)
         omega_attr = attr_data[:, 1] .* attr_data[:, 2]
-        A_attr = attr_data[:, 3]
-        lines!(ax, omega_attr, A_attr, color = (:red, 1), linewidth = 7.0, label = L"\text{Teoretyczny atraktor}")
+        lines!(ax, omega_attr, attr_data[:, 3], color = (:red, 1), linewidth = 7.0, label = L"\text{Teoretyczny atraktor}")
         axislegend(ax, position = :rt)
     end
 
@@ -247,8 +251,7 @@ function plot_attractor(
         norm_val = (T0 - min_T0) / (max_T0 - min_T0)
         col = get(ColorSchemes.batlow, norm_val)
         omega_traj = dataset[tr, 1] .* dataset[tr, 2]
-        A_traj = dataset[tr, 3]
-        lines!(ax, omega_traj, A_traj, color = (col, 0.5), linewidth = 1.5)
+        lines!(ax, omega_traj, dataset[tr, 3], color = (col, 0.5), linewidth = 1.5)
     end
     hlines!(ax, [0.0], color = :black, linestyle = :dash, linewidth = 1.5)
     Colorbar(fig[1, 2], colormap = :batlow, limits = (min_T0, max_T0))
@@ -258,18 +261,17 @@ end
 function plot_thermodynamics_evolution(dataset::AbstractMatrix{<:Real})
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
-    trajs = _split_trajectories(dataset)
-    trajektorie = trajs[1:10:end]
+    trajektorie = _split_trajectories(dataset)[1:10:end]
+
     fig = Figure(size = (1200, 700))
     ax1 = Axis(fig[1, 1], title = L"\text{Ewolucja Temperatury } T\,[\mathrm{fm}^{-1}]\; \text{w czasie własnym } \tau", xlabel = L"\tau\,[\mathrm{fm}/c]", ylabel = L"T\,[\mathrm{fm}^{-1}]")
+    ax2 = Axis(fig[2, 1], title = L"\text{Ewolucja Anizotropii}\; \mathcal{A}(\tau)\; \text{ w czasie własnym}", xlabel = L"\tau\,[\mathrm{fm}/c]", ylabel = L"\mathcal{A}")
+
     for tr in trajektorie
         lines!(ax1, dataset[tr, 1], dataset[tr, 2], color = (palette[3], 0.2), linewidth = 1.5)
-    end
-
-    ax2 = Axis(fig[2, 1], title = L"\text{Ewolucja Anizotropii}\; \mathcal{A}(\tau)\; \text{ w czasie własnym}", xlabel = L"\tau\,[\mathrm{fm}/c]", ylabel = L"\mathcal{A}")
-    for tr in trajektorie
         lines!(ax2, dataset[tr, 1], dataset[tr, 3], color = (palette[2], 0.2), linewidth = 1.5)
     end
+
     hlines!(ax2, [0.0], color = :red, linestyle = :dash, linewidth = 2.0, label = L"\mathcal{A}=0\;(\text{Anizotropia} = 0)")
     axislegend(ax2, position = :rt)
     linkxaxes!(ax1, ax2)
@@ -279,8 +281,8 @@ end
 function plot_phase_space_evolution(dataset::AbstractMatrix{<:Real})
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
-    trajs = _split_trajectories(dataset)
-    trajektorie = trajs[1:10:end]
+    trajektorie = _split_trajectories(dataset)[1:10:end]
+
     fig = Figure(size = (950, 620))
     ax = Axis(fig[1, 1], title = L"\text{Ewolucja w przestrzeni fazowej } (T, \mathcal{A})\; \text{w czasie własnym } \tau", xlabel = L"T\,[\mathrm{fm}^{-1}]", ylabel = L"\mathcal{A}")
     for (i, tr) in enumerate(trajektorie)
@@ -301,13 +303,7 @@ function plot_attractor_Aw_T(
         kwargs...
     )
     set_publication_theme()
-    T_col = dataset[:, 2]
-    rows = findall(isapprox.(T_col, T_zadana; atol = T_tol))
-    if isempty(rows)
-        nearest_idx = argmin(abs.(T_col .- T_zadana))
-        T_najblizsze = T_col[nearest_idx]
-        rows = findall(isapprox.(T_col, T_najblizsze; atol = T_tol))
-    end
+    rows = get_tau_slice(view(dataset, :, 2), T_zadana; atol = T_tol, nearest = true)
     slice = dataset[rows, :]
     omega_slice = slice[:, 1] .* slice[:, 2]
     A_slice = slice[:, 3]
@@ -335,7 +331,6 @@ end
 
 plot_phase_space_grid(dataset::AbstractArray{<:Real, 3}, times, xdef, ydef; kwargs...) = plot_phase_space_grid(to_2d_local_plots(dataset), times, xdef, ydef; kwargs...)
 plot_phase_space_grid(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_phase_space_grid(to_2d_local_plots(dataset), args...; kwargs...)
-
 plot_phase_space_grid_3d(dataset::AbstractArray{<:Real, 3}, times, xdef, ydef, zdef; kwargs...) = plot_phase_space_grid_3d(to_2d_local_plots(dataset), times, xdef, ydef, zdef; kwargs...)
 plot_phase_space_grid_3d(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_phase_space_grid_3d(to_2d_local_plots(dataset), args...; kwargs...)
 plot_attractor(dataset::AbstractArray{<:Real, 3}, args...; kwargs...) = plot_attractor(to_2d_local_plots(dataset), args...; kwargs...)

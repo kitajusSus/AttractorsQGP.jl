@@ -12,9 +12,6 @@ solve_hydro(model::AbstractHydroModel, u0::AbstractVector{<:Real}, tspan::Tuple{
     saveat=nothing,
 )
 
-
-
-
 ```
 Zwraca 
 

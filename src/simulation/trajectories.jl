@@ -49,7 +49,7 @@ function build_dataset(
     )
     state_dim = length(solutions[1].u[1])
     has_extra = has_temperature && (include_tau || include_w)
-    
+
     n_features = if has_extra
         include_temperature ? (2 + state_dim) : (1 + state_dim)
     elseif has_temperature
@@ -60,14 +60,14 @@ function build_dataset(
 
     n_trajectories = length(solutions)
     n_time_steps = length(solutions[1].t)
-    
+
     data = Array{Float64, 3}(undef, n_trajectories, n_time_steps, n_features)
 
     @inbounds for (traj_idx, sol) in enumerate(solutions)
         for time_idx in 1:n_time_steps
             if time_idx <= length(sol.t) && time_idx <= length(sol.u)
                 t_var = sol.t[time_idx]
-                
+
                 if has_extra
                     # Determine tau and w
                     T_fm = sol.u[time_idx][1]
@@ -104,7 +104,7 @@ function build_dataset(
                     else
                         throw(ArgumentError("Unsupported temperature_unit: $temperature_unit. Expected :fm or :MeV."))
                     end
-                    
+
                     if include_temperature
                         data[traj_idx, time_idx, 2] = T
                         for col in 3:n_features
@@ -132,5 +132,3 @@ function build_dataset(
 
     return data
 end
-
-

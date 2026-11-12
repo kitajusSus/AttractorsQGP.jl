@@ -9,8 +9,8 @@ const JAPIDI_COLORS = [
     "#911465",
     "#6A0DAD",
     "#4361EE",
-    "#0096C7",  # Błękit
-    "#0000FF",  # Klasyczny niebieski (koniec)
+    "#0096C7",
+    "#0000FF",
 ]
 
 const LPCA_COLORS = [
@@ -114,11 +114,6 @@ function set_publication_theme(;
     )
 end
 
-"""
-    set_publication_style(; cmap = lpca_style, kwargs...)
-
-Alias for `set_publication_theme(; cmap = lpca_style, kwargs...)`.
-"""
 const set_publication_style = set_publication_theme
 
 const PLOT_KEYS = Dict(
@@ -148,25 +143,27 @@ function resolve_def(def)
     if def isa Symbol
         @assert haskey(PLOT_KEYS, def) "Unknown plot key: $def"
         return PLOT_KEYS[def]
-    end
-    if isa(def, Tuple) && length(def) == 2
+    elseif def isa Tuple && length(def) == 2
         return (def[1], def[2])
     end
     error("Axis definition must be Symbol or Tuple(label, function).")
 end
 
+function _pad_limits(vmin::Real, vmax::Real, padding::Real = 0.05)
+    dv = vmax - vmin
+    if dv ≈ 0.0
+        dv = vmin ≈ 0.0 ? 1.0 : abs(vmin) * 0.1
+    end
+    return (vmin - padding * dv, vmax + padding * dv)
+end
+
 function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef; is_attractor = false)
     xlbl, xfn = resolve_def(xdef)
     ylbl, yfn = resolve_def(ydef)
-    if is_attractor
-        selected = dataset
+    selected = if is_attractor
+        dataset
     else
-        rows = findall(isapprox.(dataset[:, 1], t; atol = 1.0e-8))
-        if isempty(rows)
-            nearest = argmin(abs.(dataset[:, 1] .- t))
-            rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol = 1.0e-8))
-        end
-        selected = dataset[rows, :]
+        get_tau_slice(dataset, t; atol = 1.0e-8, feature_cols = 1:size(dataset, 2), nearest = true)[2]
     end
     x = [xfn(selected[i, :], selected) for i in 1:size(selected, 1)]
     y = [yfn(selected[i, :], selected) for i in 1:size(selected, 1)]
@@ -174,87 +171,35 @@ function get_data(dataset::AbstractMatrix{<:Real}, t::Real, xdef, ydef; is_attra
 end
 
 function get_limits(dataset::AbstractMatrix{<:Real}, def; times = nothing, padding = 0.05)
-    lbl, fn = resolve_def(def)
+    _, fn = resolve_def(def)
     ts = isnothing(times) ? unique(dataset[:, 1]) : times
     vals = Float64[]
     for t in ts
-        rows = findall(isapprox.(dataset[:, 1], t; atol = 1.0e-8))
-        if isempty(rows)
-            nearest = argmin(abs.(dataset[:, 1] .- t))
-            rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol = 1.0e-8))
-        end
-        selected = dataset[rows, :]
+        _, selected = get_tau_slice(dataset, t; atol = 1.0e-8, feature_cols = 1:size(dataset, 2), nearest = true)
         for i in 1:size(selected, 1)
             push!(vals, fn(selected[i, :], selected))
         end
     end
-    if isempty(vals)
-        return (0.0, 1.0)
-    end
-    val_min, val_max = minimum(vals), maximum(vals)
-    dval = val_max - val_min
-    if dval ≈ 0.0
-        dval = val_min ≈ 0.0 ? 1.0 : abs(val_min) * 0.1
-    end
-    return (val_min - padding * dval, val_max + padding * dval)
+    isempty(vals) && return (0.0, 1.0)
+    return _pad_limits(minimum(vals), maximum(vals), padding)
 end
 
 function get_limits(dataset::AbstractMatrix{<:Real}, xdef, ydef; times = nothing, padding = 0.05)
-    xlbl, xfn = resolve_def(xdef)
-    ylbl, yfn = resolve_def(ydef)
-    ts = isnothing(times) ? unique(dataset[:, 1]) : times
-    x_vals = Float64[]
-    y_vals = Float64[]
-    for t in ts
-        rows = findall(isapprox.(dataset[:, 1], t; atol = 1.0e-8))
-        if isempty(rows)
-            nearest = argmin(abs.(dataset[:, 1] .- t))
-            rows = findall(isapprox.(dataset[:, 1], dataset[nearest, 1]; atol = 1.0e-8))
-        end
-        selected = dataset[rows, :]
-        for i in 1:size(selected, 1)
-            row = selected[i, :]
-            push!(x_vals, xfn(row, selected))
-            push!(y_vals, yfn(row, selected))
-        end
-    end
-    if isempty(x_vals) || isempty(y_vals)
-        return (0.0, 1.0, 0.0, 1.0)
-    end
-    xmin, xmax = minimum(x_vals), maximum(x_vals)
-    ymin, ymax = minimum(y_vals), maximum(y_vals)
-    dx = xmax - xmin
-    dy = ymax - ymin
-    if dx ≈ 0.0
-        dx = xmin ≈ 0.0 ? 1.0 : abs(xmin) * 0.1
-    end
-    if dy ≈ 0.0
-        dy = ymin ≈ 0.0 ? 1.0 : abs(ymin) * 0.1
-    end
-    return (
-        xmin - padding * dx, xmax + padding * dx,
-        ymin - padding * dy, ymax + padding * dy,
-    )
+    xlims = get_limits(dataset, xdef; times = times, padding = padding)
+    ylims = get_limits(dataset, ydef; times = times, padding = padding)
+    return (xlims[1], xlims[2], ylims[1], ylims[2])
 end
 
 function _split_trajectories(dataset::AbstractMatrix{<:Real})
     @assert size(dataset, 2) >= 2 "Dataset must have at least columns [tau, feature1]."
-    if size(dataset, 1) == 0
-        return UnitRange{Int}[]
-    end
+    size(dataset, 1) == 0 && return UnitRange{Int}[]
     starts = Int[1]
     for i in 2:size(dataset, 1)
         if dataset[i, 1] <= dataset[i - 1, 1]
             push!(starts, i)
         end
     end
-    ranges = UnitRange{Int}[]
-    for k in eachindex(starts)
-        s = starts[k]
-        e = k < length(starts) ? starts[k + 1] - 1 : size(dataset, 1)
-        push!(ranges, s:e)
-    end
-    return ranges
+    return [starts[k]:(k < length(starts) ? starts[k + 1] - 1 : size(dataset, 1)) for k in eachindex(starts)]
 end
 
 function _extract_column_or_key(data_slice::AbstractMatrix{<:Real}, def::Union{Symbol, Integer, Tuple})
@@ -262,14 +207,9 @@ function _extract_column_or_key(data_slice::AbstractMatrix{<:Real}, def::Union{S
         return L"\text{Kolumna } %$(def)", data_slice[:, def]
     elseif def === :tau || def === :t
         return L"\tau\,[\mathrm{fm}/c]", data_slice[:, 1]
-    elseif def isa Symbol && haskey(PLOT_KEYS, def)
-        lbl, fn = PLOT_KEYS[def]
-        return lbl, [fn(data_slice[i, :], data_slice) for i in 1:size(data_slice, 1)]
-    elseif def isa Tuple && length(def) == 2
-        lbl = def[1]
-        return lbl, [def[2](data_slice[i, :], data_slice) for i in 1:size(data_slice, 1)]
     else
-        error("Nieobsługiwany typ definicji osi: $def. Użyj Symbolu, liczby całkowitej lub Tupli.")
+        lbl, fn = resolve_def(def)
+        return lbl, [fn(data_slice[i, :], data_slice) for i in 1:size(data_slice, 1)]
     end
 end
 

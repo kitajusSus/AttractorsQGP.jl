@@ -1,3 +1,34 @@
+function _prepare_pr_phase_space_points(
+        dataset::AbstractArray{<:Real},
+        tau::Real;
+        feature_indices = [2, 3],
+        normalize_method = :zscore,
+        return_normalized::Bool = false,
+        eff_k::Integer = 120,
+        n_calc::Integer = 10_000,
+        n_plot::Integer = 5_000,
+        seed::Integer = 42
+    )
+    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
+    calc_slice = if size(raw_slice, 1) > n_calc
+        raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :]
+    else
+        raw_slice
+    end
+
+    norm_slice = apply_normalization(calc_slice, normalize_method)
+    res = compute_local_pr_dimension(norm_slice; k = eff_k)
+
+    pts = return_normalized ? norm_slice : calc_slice
+    d_vals = res.d_pr
+    if size(pts, 1) > n_plot
+        p_idxs = randperm(MersenneTwister(seed + 10_000), size(pts, 1))[1:n_plot]
+        pts = pts[p_idxs, :]
+        d_vals = d_vals[p_idxs]
+    end
+    return pts, d_vals
+end
+
 @views function plot_phase_space_lpca_dims(
         dataset::AbstractMatrix{<:Real};
         liczba_sąsiadów::Int = 20,
@@ -21,12 +52,7 @@
     all_dims = Float64[]
 
     for τ in target_taus
-        rows = findall(isapprox.(dataset[:, 1], τ; atol = tolerancja_czasowa))
-        if isempty(rows)
-            nearest_idx = argmin(abs.(dataset[:, 1] .- τ))
-            rows = findall(isapprox.(dataset[:, 1], dataset[nearest_idx, 1]; atol = tolerancja_czasowa))
-        end
-        X_tau = dataset[rows, wymiary_cech]
+        rows, X_tau = get_tau_slice(dataset, τ; atol = tolerancja_czasowa, feature_cols = wymiary_cech, nearest = true)
         size(X_tau, 1) < 2 && continue
         X_norm = apply_normalization(X_tau, metoda_regularyzacji)
         d_local = dims(X_norm; k = min(liczba_sąsiadów, size(X_tau, 1)), tol = tolerancja_wartości_własnych)
@@ -44,7 +70,7 @@
 
     if zmienna_z !== nothing
         lbl_z, vals_z = _extract_column_or_key(sub_dataset, zmienna_z)
-        default_title = tytuł_wykresu !== nothing ? tytuł_wykresu : L"\text{Lokalny wymiar } d_{\mathrm{lokalny}} \text{ w przestrzeni fazowej 3D}"
+        default_title = isnothing(tytuł_wykresu) ? L"\text{Lokalny wymiar } d_{\mathrm{lokalny}} \text{ w przestrzeni fazowej 3D}" : tytuł_wykresu
         ax3 = Axis3(fig[1, 1], title = default_title, xlabel = lbl_x, ylabel = lbl_y, zlabel = lbl_z, azimuth = 1.3 * π, elevation = 0.15 * π)
         for (i, d_val) in enumerate(unique_dims)
             mask = all_dims .== d_val
@@ -52,7 +78,7 @@
         end
         axislegend(ax3, position = :rt)
     else
-        default_title = tytuł_wykresu !== nothing ? tytuł_wykresu : L"\text{Lokalny wymiar } d_{\mathrm{lokalny}} \text{ w przestrzeni fazowej}"
+        default_title = isnothing(tytuł_wykresu) ? L"\text{Lokalny wymiar } d_{\mathrm{lokalny}} \text{ w przestrzeni fazowej}" : tytuł_wykresu
         ax2 = Axis(fig[1, 1], title = default_title, xlabel = lbl_x, ylabel = lbl_y, xautolimitmargin = (0.05, 0.05), yautolimitmargin = (0.05, 0.05))
         for (i, d_val) in enumerate(unique_dims)
             mask = all_dims .== d_val
@@ -83,18 +109,13 @@ function plot_pr_phase_space_slice_2d(
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
-    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
-    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
-    norm_slice = apply_normalization(calc_slice, normalize_method)
-    res = compute_local_pr_dimension(norm_slice; k = eff_k)
-
-    pts = return_normalized ? norm_slice : calc_slice
-    d_vals = res.d_pr
-    if size(pts, 1) > n_plot
-        p_idxs = randperm(MersenneTwister(seed + 10_000), size(pts, 1))[1:n_plot]
-        pts, d_vals = pts[p_idxs, :], d_vals[p_idxs]
-    end
+    eff_k = something(k_neighbor, k)
+    pts, d_vals = _prepare_pr_phase_space_points(
+        dataset, tau;
+        feature_indices = feature_indices, normalize_method = normalize_method,
+        return_normalized = return_normalized, eff_k = eff_k,
+        n_calc = n_calc, n_plot = n_plot, seed = seed
+    )
 
     fig = Figure(size = figure_size, figure_padding = (35, 35, 25, 25))
     ax = Axis(fig[1, 1], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 24, xlabel = x_label, ylabel = y_label, xautolimitmargin = (0.04, 0.04), yautolimitmargin = (0.05, 0.05))
@@ -124,21 +145,23 @@ function plot_pr_phase_space_slice_3d(
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
-    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
-    _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-    calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed), size(raw_slice, 1))[1:n_calc], :] : raw_slice
-    norm_slice = apply_normalization(calc_slice, normalize_method)
-    res = compute_local_pr_dimension(norm_slice; k = eff_k)
-
-    pts = return_normalized ? norm_slice : calc_slice
-    d_vals = res.d_pr
-    if size(pts, 1) > n_plot
-        p_idxs = randperm(MersenneTwister(seed + 10_000), size(pts, 1))[1:n_plot]
-        pts, d_vals = pts[p_idxs, :], d_vals[p_idxs]
-    end
+    eff_k = something(k_neighbor, k)
+    pts, d_vals = _prepare_pr_phase_space_points(
+        dataset, tau;
+        feature_indices = feature_indices, normalize_method = normalize_method,
+        return_normalized = return_normalized, eff_k = eff_k,
+        n_calc = n_calc, n_plot = n_plot, seed = seed
+    )
 
     fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
-    ax = Axis3(fig[1, 1], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label, azimuth = azimuth, elevation = elevation, xlabeloffset = 40, ylabeloffset = 40, zlabeloffset = 50, xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4))
+    ax = Axis3(
+        fig[1, 1],
+        title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c",
+        titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label,
+        azimuth = azimuth, elevation = elevation,
+        xlabeloffset = 40, ylabeloffset = 40, zlabeloffset = 50,
+        xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4)
+    )
     sc = scatter!(ax, pts[:, 1], pts[:, 2], pts[:, 3]; color = d_vals, colormap = colormap, colorrange = color_limits, markersize = 6)
     Colorbar(fig[1, 2], sc, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 18, ticklabelsize = 14, labelsize = 16)
     return fig
@@ -162,7 +185,7 @@ function plot_pr_phase_space_grid_2d(
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
-    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
+    eff_k = something(k_neighbor, k)
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
@@ -173,16 +196,21 @@ function plot_pr_phase_space_grid_2d(
     for (index, tau) in enumerate(tau_grid)
         row = div(index - 1, column_count) + 1
         col = mod1(index, column_count)
-        ax = Axis(fig[row, col], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 24, xlabel = x_label, ylabel = y_label, xlabelsize = 22, ylabelsize = 22, xticklabelsize = 16, yticklabelsize = 16, xticks = LinearTicks(4), yticks = LinearTicks(4), xautolimitmargin = (0.05, 0.05), yautolimitmargin = (0.05, 0.05))
-
-        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed + index), size(raw_slice, 1))[1:n_calc], :] : raw_slice
-        norm_calc = apply_normalization(calc_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_calc; k = eff_k)
-
-        pts = return_normalized ? norm_calc : calc_slice
-        plot_idxs = size(pts, 1) > n_plot ? randperm(MersenneTwister(seed + index + 10_000), size(pts, 1))[1:n_plot] : collect(1:size(pts, 1))
-        sc = scatter!(ax, pts[plot_idxs, 1], pts[plot_idxs, 2]; color = res.d_pr[plot_idxs], colormap = colormap, colorrange = color_limits, markersize = 6, strokewidth = 0.2, strokecolor = (:black, 0.2))
+        ax = Axis(
+            fig[row, col],
+            title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c",
+            titlesize = 24, xlabel = x_label, ylabel = y_label,
+            xlabelsize = 22, ylabelsize = 22, xticklabelsize = 16, yticklabelsize = 16,
+            xticks = LinearTicks(4), yticks = LinearTicks(4),
+            xautolimitmargin = (0.05, 0.05), yautolimitmargin = (0.05, 0.05)
+        )
+        pts, d_vals = _prepare_pr_phase_space_points(
+            dataset, tau;
+            feature_indices = feature_indices, normalize_method = normalize_method,
+            return_normalized = return_normalized, eff_k = eff_k,
+            n_calc = n_calc, n_plot = n_plot, seed = seed + index
+        )
+        sc = scatter!(ax, pts[:, 1], pts[:, 2]; color = d_vals, colormap = colormap, colorrange = color_limits, markersize = 6, strokewidth = 0.2, strokecolor = (:black, 0.2))
         isnothing(sc_handle) && (sc_handle = sc)
     end
     Colorbar(fig[1:row_count, column_count + 1], sc_handle, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 22, ticklabelsize = 16, labelsize = 20)
@@ -211,7 +239,7 @@ function plot_pr_phase_space_grid_3d(
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
-    eff_k = !isnothing(k_neighbor) ? k_neighbor : k
+    eff_k = something(k_neighbor, k)
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
@@ -222,16 +250,23 @@ function plot_pr_phase_space_grid_3d(
     for (index, tau) in enumerate(tau_grid)
         row = div(index - 1, column_count) + 1
         col = mod1(index, column_count)
-        ax = Axis3(fig[row, col], title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c", titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label, xlabelsize = 22, ylabelsize = 22, zlabelsize = 22, xticklabelsize = 16, yticklabelsize = 16, zticklabelsize = 16, azimuth = azimuth, elevation = elevation, xreversed = xreversed, xlabeloffset = 55, ylabeloffset = 55, zlabeloffset = 70, xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4))
-
-        _, raw_slice = get_tau_slice(dataset, tau; feature_cols = feature_indices)
-        calc_slice = size(raw_slice, 1) > n_calc ? raw_slice[randperm(MersenneTwister(seed + index), size(raw_slice, 1))[1:n_calc], :] : raw_slice
-        norm_calc = apply_normalization(calc_slice, normalize_method)
-        res = compute_local_pr_dimension(norm_calc; k = eff_k)
-
-        pts = return_normalized ? norm_calc : calc_slice
-        plot_idxs = size(pts, 1) > n_plot ? randperm(MersenneTwister(seed + index + 10_000), size(pts, 1))[1:n_plot] : collect(1:size(pts, 1))
-        sc = scatter!(ax, pts[plot_idxs, 1], pts[plot_idxs, 2], pts[plot_idxs, 3]; color = res.d_pr[plot_idxs], colormap = colormap, colorrange = color_limits, markersize = markersize)
+        ax = Axis3(
+            fig[row, col],
+            title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c",
+            titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label,
+            xlabelsize = 22, ylabelsize = 22, zlabelsize = 22,
+            xticklabelsize = 16, yticklabelsize = 16, zticklabelsize = 16,
+            azimuth = azimuth, elevation = elevation, xreversed = xreversed,
+            xlabeloffset = 55, ylabeloffset = 55, zlabeloffset = 70,
+            xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4)
+        )
+        pts, d_vals = _prepare_pr_phase_space_points(
+            dataset, tau;
+            feature_indices = feature_indices, normalize_method = normalize_method,
+            return_normalized = return_normalized, eff_k = eff_k,
+            n_calc = n_calc, n_plot = n_plot, seed = seed + index
+        )
+        sc = scatter!(ax, pts[:, 1], pts[:, 2], pts[:, 3]; color = d_vals, colormap = colormap, colorrange = color_limits, markersize = markersize)
         isnothing(sc_handle) && (sc_handle = sc)
     end
     Colorbar(fig[1:row_count, column_count + 1], sc_handle, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 22, ticklabelsize = 16, labelsize = 20)

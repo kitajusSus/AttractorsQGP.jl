@@ -25,7 +25,7 @@ function plot_lid_dimension(dataset::AbstractMatrix{<:Real})
     )
     for (idx, current_k) in enumerate(1:10:100)
         taus, lid, _, _ = scan_intrinsic_dimensions(dataset, k = current_k)
-        lines!(ax, taus, lid, color = palette[idx], linewidth = 2.5, label = latexstring("k = ", current_k))
+        lines!(ax, taus, lid, color = palette[mod1(idx, length(palette))], linewidth = 2.5, label = latexstring("k = ", current_k))
     end
     return fig
 end

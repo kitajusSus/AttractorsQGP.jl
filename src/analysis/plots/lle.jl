@@ -1,17 +1,55 @@
+function _plot_lle_eigen_band!(ax::Axis, μ::AbstractVector, σ::AbstractVector, ile_λ::Int, palette)
+    x = 1:ile_λ
+    scatterlines!(
+        ax, x, μ[1:ile_λ],
+        linewidth = 2, color = (palette[5], 0.3),
+        markercolor = palette[5], markersize = 15,
+        label = L"\text{Średnia } i\text{-ta } \lambda_{i}"
+    )
+    band!(ax, x, μ[1:ile_λ] .- σ[1:ile_λ], μ[1:ile_λ] .+ σ[1:ile_λ], color = (palette[3], 0.2))
+    axislegend(ax, position = :lt)
+    return ax
+end
+
+function _plot_lle_embedding_panel!(
+        grid_pos,
+        embedding::AbstractMatrix{<:Real};
+        title = L"\text{Projekcja LLE}",
+        color = (:dodgerblue, 0.75),
+        colormap = :viridis,
+        markersize::Real = 6,
+        force_dim::Union{Nothing, Int} = nothing
+    )
+    dim = isnothing(force_dim) ? size(embedding, 2) : force_dim
+    if dim >= 3
+        ax = Axis3(grid_pos, title = title, xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}", zlabel = L"\text{LLE3}")
+        scatter!(ax, embedding[:, 1], embedding[:, 2], embedding[:, 3], color = color, colormap = colormap, markersize = markersize)
+    elseif dim == 2
+        ax = Axis(grid_pos, title = title, xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}")
+        scatter!(ax, embedding[:, 1], embedding[:, 2], color = color, colormap = colormap, markersize = markersize)
+    else
+        ax = Axis(grid_pos, title = title, xlabel = L"\text{LLE1}", ylabel = L"\text{Wartość stała}")
+        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)), color = color, colormap = colormap, markersize = markersize)
+    end
+    return ax
+end
+
 function plot_lle_spectrum_statistics(dataset; τ, k_values = 5:5:50, ile_λ = 4)
     k_values = flatten_k_values(k_values)
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
     spectra, _ = lle_spectrum_over_k(dataset; tau = τ, k_values = k_values)
     μ, σ = spectrum_statistics(spectra)
-    x = 1:ile_λ
     k_min, k_max = extrema(k_values)
 
     fig = Figure(size = (1400, 700))
-    ax = Axis(fig[1, 1], title = L"\text{LLE analiza wartości własnych dla K z zakresu (%$k_min - %$k_max) (średnia } \pm \sigma \text{) } \tau=%$τ", xlabel = L"\text{Indeks wartości własnej } \lambda_{i}", ylabel = L"\text{Wartość } \lambda_{i}")
-    scatterlines!(ax, x, μ[1:ile_λ], linewidth = 2, color = (palette[5], 0.3), markercolor = palette[5], markersize = 15, label = L"\text{Średnia } i\text{-ta } \lambda_{i}")
-    band!(ax, x, μ[1:ile_λ] .- σ[1:ile_λ], μ[1:ile_λ] .+ σ[1:ile_λ], color = (palette[3], 0.2))
-    axislegend(ax, position = :lt)
+    ax = Axis(
+        fig[1, 1],
+        title = L"\text{LLE analiza wartości własnych dla K z zakresu (%$k_min - %$k_max) (średnia } \pm \sigma \text{) } \tau=%$τ",
+        xlabel = L"\text{Indeks wartości własnej } \lambda_{i}",
+        ylabel = L"\text{Wartość } \lambda_{i}"
+    )
+    _plot_lle_eigen_band!(ax, μ, σ, ile_λ, palette)
     return fig
 end
 
@@ -22,6 +60,7 @@ function plot_lle_spectrum_statistics_grid(dataset, taus; k_values = 5:5:50, ile
     n = length(taus)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
+
     spectra1, _ = lle_spectrum_over_k(dataset; tau = taus[1], k_values = k_values, atol = atol)
     μ1, σ1 = spectrum_statistics(spectra1)
     y_min = minimum(μ1[1:ile_λ] .- σ1[1:ile_λ])
@@ -35,17 +74,12 @@ function plot_lle_spectrum_statistics_grid(dataset, taus; k_values = 5:5:50, ile
     Label(fig[2:(nrows + 1), 1], L"\text{Wartość } \lambda_{i}", rotation = pi / 2, font = :bold, fontsize = 32)
     Label(fig[nrows + 2, 2:(ncols + 1)], L"\text{Indeks wartości własnej } \lambda_{i}", font = :bold, fontsize = 32)
 
-    x = 1:ile_λ
     for (i, tau) in enumerate(taus)
-        row = (i - 1) ÷ ncols + 2
-        col = (i - 1) % ncols + 2
+        row_idx = div(i - 1, ncols) + 1
+        col_idx = mod1(i, ncols)
         μ, σ = i == 1 ? (μ1, σ1) : spectrum_statistics(lle_spectrum_over_k(dataset; tau = tau, k_values = k_values, atol = atol)[1])
-        ax = Axis(fig[row, col], title = L"\tau = %$tau\,\mathrm{fm}/c", limits = lims, xticks = 1:ile_λ)
-        scatterlines!(ax, x, μ[1:ile_λ], linewidth = 2, color = (palette[5], 0.3), markercolor = palette[5], markersize = 15, label = L"\text{Średnia } i\text{-ta } \lambda_{i}")
-        band!(ax, x, μ[1:ile_λ] .- σ[1:ile_λ], μ[1:ile_λ] .+ σ[1:ile_λ], color = (palette[3], 0.2))
-        axislegend(ax, position = :lt)
-        row_idx = (i - 1) ÷ ncols + 1
-        col_idx = (i - 1) % ncols + 1
+        ax = Axis(fig[row_idx + 1, col_idx + 1], title = L"\tau = %$tau\,\mathrm{fm}/c", limits = lims, xticks = 1:ile_λ)
+        _plot_lle_eigen_band!(ax, μ, σ, ile_λ, palette)
         !((row_idx == nrows) || (i + ncols > n)) && hidexdecorations!(ax, grid = false)
         !(col_idx == 1) && hideydecorations!(ax, grid = false)
     end
@@ -56,14 +90,14 @@ end
     k_values = flatten_k_values(k_values)
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
-    n_taus = length(taus)
-    sigma_matrix = fill(NaN, n_taus, ile_λ)
+    sigma_matrix = fill(NaN, length(taus), ile_λ)
     for (i, tau) in enumerate(taus)
         spectra, _ = lle_spectrum_over_k(dataset; tau = tau, k_values = k_values, atol = atol)
         _, σ = spectrum_statistics(spectra)
         N = min(ile_λ, length(σ))
-        sigma_matrix[i, 1:N] .= σ[1:N] .* 10^(8)
+        sigma_matrix[i, 1:N] .= σ[1:N] .* 10^8
     end
+
     fig = Figure(size = (800, 600))
     ax = Axis(fig[1, 1], title = L"\text{Zmiana } \sigma_i \text{ w funkcji } \tau \text{ dla } i \le %$ile_λ", xlabel = L"\tau \ [\mathrm{fm/c}]", ylabel = L"\sigma_i \cdot 10^{8}", xticks = 0.2:0.05:maximum(taus))
     for j in 1:ile_λ
@@ -71,24 +105,6 @@ end
         scatter!(ax, taus, sigma_matrix[:, j], color = palette[j + 3], markersize = 5)
     end
     axislegend(ax, position = :rt)
-    return fig
-end
-
-function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
-    set_publication_theme()
-    palette = Makie.theme(:Palette, :color)[]
-    embedding = run_lle_per_time(dataset; k = k, d = d).lle_results[tau]
-    fig = Figure(size = (600, 500))
-    ax = Axis(fig[1, 1], title = L"\text{LLE: } k=%$k, d=%$d, \tau=%$tau")
-    if d == 1
-        ax.xlabel = L"\text{LLE1}"
-        ax.ylabel = L"\text{Wartość stała}"
-        scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)); markersize = 4.5, color = (palette[1], 0.75))
-    else
-        ax.xlabel = L"\text{LLE1}"
-        ax.ylabel = L"\text{LLE2}"
-        scatter!(ax, embedding[:, 1], embedding[:, 2]; markersize = 4.5, color = (palette[1], 0.75))
-    end
     return fig
 end
 
@@ -109,6 +125,14 @@ function plot_lle_dim!(ax::Axis, dataset::AbstractMatrix{<:Real}, k::Int, d::Int
     return nothing
 end
 
+function plot_lle_dim(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau::Real)
+    set_publication_theme()
+    fig = Figure(size = (600, 500))
+    ax = Axis(fig[1, 1])
+    plot_lle_dim!(ax, dataset, k, d, tau)
+    return fig
+end
+
 function plot_simulation_lle(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, tau_zakres)
     set_publication_theme()
     kolumny = 2
@@ -116,8 +140,8 @@ function plot_simulation_lle(dataset::AbstractMatrix{<:Real}, k::Int, d::Int, ta
     bok = max(kolumny, wiersze)
     fig = Figure(size = (bok * 400, bok * 400))
     for (i, tau) in enumerate(tau_zakres)
-        row = (i - 1) ÷ kolumny + 1
-        col = (i - 1) % kolumny + 1
+        row = div(i - 1, kolumny) + 1
+        col = mod1(i, kolumny)
         ax = Axis(fig[row, col], aspect = 1)
         plot_lle_dim!(ax, dataset, k, d, tau)
     end
@@ -127,64 +151,41 @@ end
 function plot_lle_embedding(dataset::AbstractMatrix{<:Real}; labels = nothing, title = L"\text{Projekcja LLE}", osie = nothing)
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
-    dim = size(dataset, 2)
     fig = Figure(size = (750, 600))
     color_param = isnothing(labels) ? (palette[1], 0.75) : labels
     cmap_param = isnothing(labels) ? :viridis : :jet
-    if dim >= 3
-        ax = Axis3(fig[1, 1], title = title)
-        scatter!(ax, dataset[:, 1], dataset[:, 2], dataset[:, 3], color = color_param, colormap = cmap_param, markersize = 6)
-    elseif dim == 2
-        ax = Axis(fig[1, 1], title = title, xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}")
-        scatter!(ax, dataset[:, 1], dataset[:, 2], color = color_param, colormap = cmap_param, markersize = 6)
-    else
-        ax = Axis(fig[1, 1], title = title, xlabel = L"\text{LLE1}")
-        scatter!(ax, dataset[:, 1], zeros(size(dataset, 1)), color = color_param, colormap = cmap_param, markersize = 6)
+    _plot_lle_embedding_panel!(fig[1, 1], dataset; title = title, color = color_param, colormap = cmap_param, markersize = 6)
+    return fig
+end
+
+function _plot_lle_grid_impl(lle_results::Dict, taus; labels = nothing, force_dim::Int = 2)
+    set_publication_theme()
+    palette = Makie.theme(:Palette).color[]
+    color_param = isnothing(labels) ? (palette[1], 0.75) : labels
+    cmap_param = isnothing(labels) ? :viridis : :jet
+    n = length(taus)
+    ncols = min(3, n)
+    nrows = ceil(Int, n / ncols)
+    fig = Figure(size = (400 * ncols, 380 * nrows))
+    for (i, t) in enumerate(taus)
+        row = div(i - 1, ncols) + 1
+        col = mod1(i, ncols)
+        _plot_lle_embedding_panel!(
+            fig[row, col], lle_results[t];
+            title = L"\tau = %$(round(t, digits=2))",
+            color = color_param, colormap = cmap_param,
+            markersize = 5, force_dim = force_dim
+        )
     end
     return fig
 end
+
+plot_lle_grid_2d(lle_results::Dict, taus; labels = nothing) = _plot_lle_grid_impl(lle_results, taus; labels = labels, force_dim = 2)
+plot_lle_grid_3d(lle_results::Dict, taus; labels = nothing) = _plot_lle_grid_impl(lle_results, taus; labels = labels, force_dim = 3)
 
 function plot_lle_grid(lle_results::Dict, taus; labels = nothing)
     dim = size(first(values(lle_results)), 2)
     return dim >= 3 ? plot_lle_grid_3d(lle_results, taus; labels = labels) : plot_lle_grid_2d(lle_results, taus; labels = labels)
-end
-
-function plot_lle_grid_2d(lle_results::Dict, taus; labels = nothing)
-    set_publication_theme()
-    palette = Makie.theme(:Palette).color[]
-    color_param = isnothing(labels) ? (palette[1], 0.75) : labels
-    cmap_param = isnothing(labels) ? :viridis : :jet
-    n = length(taus)
-    ncols = min(3, n)
-    nrows = ceil(Int, n / ncols)
-    fig = Figure(size = (400 * ncols, 380 * nrows))
-    for (i, t) in enumerate(taus)
-        row = (i - 1) ÷ ncols + 1
-        col = (i - 1) % ncols + 1
-        embedding = lle_results[t]
-        ax = Axis(fig[row, col], title = L"\tau = %$(round(t, digits=2))", xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}")
-        scatter!(ax, embedding[:, 1], embedding[:, 2], color = color_param, colormap = cmap_param, markersize = 5)
-    end
-    return fig
-end
-
-function plot_lle_grid_3d(lle_results::Dict, taus; labels = nothing)
-    set_publication_theme()
-    palette = Makie.theme(:Palette).color[]
-    color_param = isnothing(labels) ? (palette[1], 0.75) : labels
-    cmap_param = isnothing(labels) ? :viridis : :jet
-    n = length(taus)
-    ncols = min(3, n)
-    nrows = ceil(Int, n / ncols)
-    fig = Figure(size = (400 * ncols, 380 * nrows))
-    for (i, t) in enumerate(taus)
-        row = (i - 1) ÷ ncols + 1
-        col = (i - 1) % ncols + 1
-        embedding = lle_results[t]
-        ax = Axis3(fig[row, col], title = L"\tau = %$(round(t, digits=2))", xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}", zlabel = L"\text{LLE3}")
-        scatter!(ax, embedding[:, 1], embedding[:, 2], embedding[:, 3], color = color_param, colormap = cmap_param, markersize = 5)
-    end
-    return fig
 end
 
 function plot_lle_results_for_taus(
@@ -197,29 +198,20 @@ function plot_lle_results_for_taus(
     )
     set_publication_theme()
     palette = Makie.theme(:Palette).color[]
-    results = run_lle_for_selected_taus(dataset, target_taus; k = k, d = d, atol = atol, feature_cols = feature_cols)
-    lle_res = results.lle_results
+    lle_res = run_lle_for_selected_taus(dataset, target_taus; k = k, d = d, atol = atol, feature_cols = feature_cols).lle_results
     n = length(target_taus)
     ncols = min(3, n)
     nrows = ceil(Int, n / ncols)
     fig = Figure(size = (max(1400, 450 * ncols), max(700, 450 * nrows)))
     for (i, t) in enumerate(target_taus)
         !haskey(lle_res, t) && continue
-        row = (i - 1) ÷ ncols + 1
-        col = (i - 1) % ncols + 1
-        embedding = lle_res[t]
-        dim = size(embedding, 2)
-        ax_title = L"\tau = %$(round(t, digits=2))"
-        if dim >= 3
-            ax = Axis3(fig[row, col], title = ax_title, xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}", zlabel = L"\text{LLE3}")
-            scatter!(ax, embedding[:, 1], embedding[:, 2], embedding[:, 3], color = (palette[1], 0.75), markersize = 6)
-        elseif dim == 2
-            ax = Axis(fig[row, col], title = ax_title, xlabel = L"\text{LLE1}", ylabel = L"\text{LLE2}")
-            scatter!(ax, embedding[:, 1], embedding[:, 2], color = (palette[1], 0.75), markersize = 6)
-        else
-            ax = Axis(fig[row, col], title = ax_title, xlabel = L"\text{LLE1}")
-            scatter!(ax, embedding[:, 1], zeros(size(embedding, 1)), color = (palette[1], 0.75), markersize = 6)
-        end
+        row = div(i - 1, ncols) + 1
+        col = mod1(i, ncols)
+        _plot_lle_embedding_panel!(
+            fig[row, col], lle_res[t];
+            title = L"\tau = %$(round(t, digits=2))",
+            color = (palette[1], 0.75), markersize = 6
+        )
     end
     return fig
 end
@@ -247,8 +239,7 @@ function plot_lle_spectrum_scan_analysis(dataset::AbstractMatrix{<:Real}, taus::
     ax = Axis(fig[1, 1], title = L"\text{Statystyki widma LLE w czasie}", xlabel = L"\text{Indeks wartości własnej}", ylabel = L"\lambda")
     for (i, t) in enumerate(taus)
         !haskey(results, t) && continue
-        res = results[t]
-        μ, σ = res.mean, res.std
+        μ, σ = results[t].mean, results[t].std
         col = palette[mod1(i, length(palette))]
         lines!(ax, 1:length(μ), μ, label = L"\tau = %$(t)", linewidth = 3, color = col)
         band!(ax, 1:length(μ), μ .- σ, μ .+ σ, color = (col, 0.2))
