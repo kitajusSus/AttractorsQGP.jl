@@ -75,8 +75,8 @@ function marchenko(
 
     ax2 = Axis(
         fig[1, 2],
-        title = L"\text{(b) Skan plateau } \langle d_{\mathrm{PR}}(K) \rangle",
-        xlabel = L"K \text{ (liczba sąsiadów)}",
+        title = L"\text{(b) Scan plateau } \langle d_{\mathrm{PR}}(K) \rangle",
+        xlabel = L"K \text{ (Number of KNN)}",
         ylabel = L"\langle d_{\mathrm{PR}} \rangle",
         limits = (minimum(k_list), maximum(k_list), 0.95, D + 0.05)
     )
@@ -112,7 +112,7 @@ function marchenko(
         axislegend(ax3, position = :rt, labelsize = 12)
     end
 
-    display(fig)
+    # display(fig)
     return (
         mean_dpr = slice_res.mean_dpr,
         mean_evals = slice_res.mean_evals,
