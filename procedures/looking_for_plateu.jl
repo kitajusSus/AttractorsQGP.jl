@@ -4,6 +4,13 @@ using CairoMakie
 
 using AttractorsQGP
 
+CairoMakie.activate!()
+K = [30, 71, 86]
+KNN(N, D) = D / 2 * (N^(1 / 2) / D^(1 / 2))
+taus = [0.2, 0.4, 0.8, 2]
+figures_mis = Dict(); figures_hjsw = Dict()
+mis = load_dataset("datasets/hjsw_lpca/mis_matched_seed5.h5")
+hjsw = load_dataset("datasets/hjsw_lpca/hjsw_matched_seed5.h5")
 
 """
     looking_for_plateu(D, N)
@@ -11,15 +18,8 @@ using AttractorsQGP
 
 procedure created for using the all type of lpca combination
 """
-function looking_for_plateu(D, N)
-    CairoMakie.activate!()
+function looking_for_plateu()
 
-    K = [30, 71, 86]
-    KNN(N, D) = D / 2 * (N^(1 / 2) / D^(1 / 2))
-    taus = [0.2, 0.4, 0.8, 2]
-    figures_mis = Dict(); figures_hjsw = Dict()
-    mis = load_dataset("datasets/hjsw_lpca/mis_matched_seed5.h5")
-    hjsw = load_dataset("datasets/hjsw_lpca/hjsw_matched_seed5.h5")
     for i in K
         for j in taus
             figures_mis[(i, j)] = marchenko(mis, D = 2, K_sweep = [6:2:150...], K = i, tau = j)
