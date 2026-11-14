@@ -13,7 +13,7 @@ mis = load_dataset("datasets/hjsw_lpca/mis_matched_seed5.h5")
 hjsw = load_dataset("datasets/hjsw_lpca/hjsw_matched_seed5.h5")
 
 """
-    looking_for_plateu(D, N)
+    looking_for_plateu()
 
 
 procedure created for using the all type of lpca combination

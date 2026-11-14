@@ -104,8 +104,8 @@ function plot_pr_phase_space_slice_2d(
         figure_size = (850, 600),
         n_calc = 10_000,
         n_plot = 5_000,
-        seed = 42,
-        k::Integer = 120,
+        seed = 5,
+        k::Integer = 71,
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
@@ -234,8 +234,8 @@ function plot_pr_phase_space_grid_3d(
         return_normalized = false,
         n_calc = 10_000,
         n_plot = 5_000,
-        seed = 42,
-        k::Integer = 120,
+        seed = 5,
+        k::Integer = 86,
         k_neighbor::Union{Nothing, Integer} = nothing
     )
     set_publication_theme()
