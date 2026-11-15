@@ -153,17 +153,23 @@ function plot_pr_phase_space_slice_3d(
         n_calc = n_calc, n_plot = n_plot, seed = seed
     )
 
-    fig = Figure(size = figure_size, figure_padding = (90, 50, 60, 40))
+    fig = Figure(size = figure_size, figure_padding = (60, 50, 50, 40))
+    colgap!(fig.layout, 25)
     ax = Axis3(
         fig[1, 1],
         title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c",
-        titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label,
+        titlesize = 24, titlegap = 12,
+        xlabel = x_label, ylabel = y_label, zlabel = z_label,
         azimuth = azimuth, elevation = elevation,
-        xlabeloffset = 40, ylabeloffset = 40, zlabeloffset = 50,
+        xlabeloffset = 48, ylabeloffset = 48, zlabeloffset = 60,
+        protrusions = (90, 90, 75, 45),
+        xypanelcolor = RGBf(0.98, 0.98, 0.985),
+        xzpanelcolor = RGBf(0.98, 0.98, 0.985),
+        yzpanelcolor = RGBf(0.98, 0.98, 0.985),
         xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4)
     )
     sc = scatter!(ax, pts[:, 1], pts[:, 2], pts[:, 3]; color = d_vals, colormap = colormap, colorrange = color_limits, markersize = 6)
-    Colorbar(fig[1, 2], sc, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 18, ticklabelsize = 14, labelsize = 16)
+    Colorbar(fig[1, 2], sc, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 18, ticklabelsize = 14, labelsize = 16, labelpadding = 12)
     return fig
 end
 
@@ -243,21 +249,34 @@ function plot_pr_phase_space_grid_3d(
     slice_count = length(tau_grid)
     column_count = min(3, slice_count)
     row_count = ceil(Int, slice_count / column_count)
-    fig = Figure(size = (720 * column_count + 200, 620 * row_count), figure_padding = (80, 70, 60, 60))
-    colgap!(fig.layout, 80); rowgap!(fig.layout, 90)
+    fig = Figure(size = (760 * column_count + 240, 650 * row_count), figure_padding = (40, 50, 40, 40))
+    colgap!(fig.layout, 36); rowgap!(fig.layout, 36)
     sc_handle = nothing
 
     for (index, tau) in enumerate(tau_grid)
         row = div(index - 1, column_count) + 1
         col = mod1(index, column_count)
+        cell = fig[row, col] = GridLayout()
+        Box(
+            cell[1, 1, Makie.GridLayoutBase.Outer()];
+            color = :transparent,
+            strokecolor = RGBAf(0.78, 0.78, 0.83, 1.0),
+            strokewidth = 1.2,
+            cornerradius = 8
+        )
         ax = Axis3(
-            fig[row, col],
+            cell[1, 1],
             title = L"\tau = %$(string(round(tau, digits = 2)))\,\mathrm{fm}/c",
-            titlesize = 24, xlabel = x_label, ylabel = y_label, zlabel = z_label,
+            titlesize = 24, titlegap = 12,
+            xlabel = x_label, ylabel = y_label, zlabel = z_label,
             xlabelsize = 22, ylabelsize = 22, zlabelsize = 22,
             xticklabelsize = 16, yticklabelsize = 16, zticklabelsize = 16,
             azimuth = azimuth, elevation = elevation, xreversed = xreversed,
-            xlabeloffset = 55, ylabeloffset = 55, zlabeloffset = 70,
+            xlabeloffset = 55, ylabeloffset = 55, zlabeloffset = 65,
+            protrusions = (105, 50, 88, 52),
+            xypanelcolor = RGBf(0.98, 0.98, 0.985),
+            xzpanelcolor = RGBf(0.98, 0.98, 0.985),
+            yzpanelcolor = RGBf(0.98, 0.98, 0.985),
             xticks = LinearTicks(4), yticks = LinearTicks(4), zticks = LinearTicks(4)
         )
         pts, d_vals = _prepare_pr_phase_space_points(
@@ -269,7 +288,7 @@ function plot_pr_phase_space_grid_3d(
         sc = scatter!(ax, pts[:, 1], pts[:, 2], pts[:, 3]; color = d_vals, colormap = colormap, colorrange = color_limits, markersize = markersize)
         isnothing(sc_handle) && (sc_handle = sc)
     end
-    Colorbar(fig[1:row_count, column_count + 1], sc_handle, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 22, ticklabelsize = 16, labelsize = 20)
+    Colorbar(fig[1:row_count, column_count + 1], sc_handle, label = L"\text{Local PR Dimension } d_{\mathrm{PR}}(x_i)", width = 22, ticklabelsize = 16, labelsize = 20, labelpadding = 12)
     return fig
 end
 
