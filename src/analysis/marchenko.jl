@@ -29,7 +29,7 @@ function marchenko(
         tau0::Real = 0.2,
         K::Integer = 160,
         T_unit::Real = 193.0,
-        K_sweep = [6:4:250...],
+        K_range = [6:4:250...],
         D::Int = 3,
         atol::Real = 1.0e-5,
         show_spectrum::Bool = false
@@ -43,7 +43,7 @@ function marchenko(
     mp_band = _marchenko_pastur_band(slice_res.mean_evals, slice_res.k)
 
     n_pts = length(slice_res.d_pr)
-    k_list = sort(unique(filter(k -> 2 <= k < n_pts, collect(K_sweep))))
+    k_list = sort(unique(filter(k -> 2 <= k < n_pts, collect(K_range))))
     sweep_res = k_sweep_frozen(dane, tau, scales; k_range = k_list, feature_cols = feature_cols)
 
     fig_width = show_spectrum ? 1850 : 1300
@@ -89,36 +89,39 @@ function marchenko(
     lines!(ax2, sweep_res.k_values, sweep_res.mean_dpr, color = colors[4], linewidth = 2.8, label = L"\langle d_{\mathrm{PR}} \rangle \pm 1\sigma")
     vlines!(ax2, [K], color = colors[1], linestyle = :dash, linewidth = 2.0, label = L"K = %$(K)")
     axislegend(ax2, position = :rb, labelsize = 12)
-
-    if show_spectrum
-        lambda_minus, lambda_plus = mp_band
-        ax3 = Axis(
-            fig[1, 3],
-            yscale = log10,
-            title = L"\text{(c) Spectrum } \langle \lambda_j \rangle \text{ vs range Marchenko Pasteur}",
-            xlabel = L"\text{Index od modes } j",
-            ylabel = L"\langle \lambda_j \rangle",
-            xticks = (1:D, [latexstring("\\lambda_{$j}") for j in 1:D])
-        )
-        scatterlines!(ax3, 1:D, max.(slice_res.mean_evals, 1.0e-35), color = colors[1], markersize = 14, linewidth = 2.0, label = L"\text{Średnie } \langle \lambda_j \rangle")
-        band!(
-            ax3, [0.5, Float64(D) + 0.5],
-            fill(max(lambda_minus, 1.0e-35), 2),
-            fill(lambda_plus, 2),
-            color = (:gray70, 0.35), label = L"\text{Pasmo szumu MP}"
-        )
-        hlines!(ax3, [lambda_plus], color = :crimson, linestyle = :dash, linewidth = 1.5)
-        lambda_minus > 0 && hlines!(ax3, [lambda_minus], color = :navy, linestyle = :dash, linewidth = 1.5)
-        axislegend(ax3, position = :rt, labelsize = 12)
-    end
+    # testowy wykres narazie zakomentowany
+    # if show_spectrum
+    #     lambda_minus, lambda_plus = mp_band
+    #     ax3 = Axis(
+    #         fig[1, 3],
+    #         yscale = log10,
+    #         title = L"\text{(c) Spectrum } \langle \lambda_j \rangle \text{ vs range Marchenko Pasteur}",
+    #         xlabel = L"\text{Index od modes } j",
+    #         ylabel = L"\langle \lambda_j \rangle",
+    #         xticks = (1:D, [latexstring("\\lambda_{$j}") for j in 1:D])
+    #     )
+    #     scatterlines!(ax3, 1:D, max.(slice_res.mean_evals, 1.0e-35), color = colors[1], markersize = 14, linewidth = 2.0, label = L"\text{Średnie } \langle \lambda_j \rangle")
+    #     band!(
+    #         ax3, [0.5, Float64(D) + 0.5],
+    #         fill(max(lambda_minus, 1.0e-35), 2),
+    #         fill(lambda_plus, 2),
+    #         color = (:gray70, 0.35), label = L"\text{Pasmo szumu MP}"
+    #     )
+    #     hlines!(ax3, [lambda_plus], color = :crimson, linestyle = :dash, linewidth = 1.5)
+    #     lambda_minus > 0 && hlines!(ax3, [lambda_minus], color = :navy, linestyle = :dash, linewidth = 1.5)
+    #     axislegend(ax3, position = :rt, labelsize = 12)
+    # end
 
     # display(fig)
     return (
-        mean_dpr = slice_res.mean_dpr,
-        mean_evals = slice_res.mean_evals,
-        mp_band = mp_band,
         fig = fig,
+        stats = (
+            mean_dpr = slice_res.mean_dpr,
+            mean_evals = slice_res.mean_evals,
+            mp_band = mp_band,
+        ),
     )
+
 end
 
 marchenko(dane::AbstractArray{<:Real, 3}, args...; kwargs...) = marchenko(to_2d_local_plots(dane), args...; kwargs...)
