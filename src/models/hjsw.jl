@@ -1,6 +1,5 @@
 """
 Konfiguracja modelu HJSW (Heller-Janik-Spaliński-Witaszczyk).
-Zawiera klasyczne parametry transportu oraz stałe tłumienia modów QNM.
 """
 struct HJSWModel{T <: Real} <: AbstractHydroModel
     params::HydroParams{T}
@@ -66,6 +65,3 @@ function Base.getproperty(model::HJSWwModel, sym::Symbol)
         return getfield(model, sym)
     end
 end
-
-
-

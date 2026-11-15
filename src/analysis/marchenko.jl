@@ -76,7 +76,7 @@ function marchenko(
     ax2 = Axis(
         fig[1, 2],
         title = L"\text{(b) Scan plateau } \langle d_{\mathrm{PR}}(K) \rangle",
-        xlabel = L"K \text{ (Number of KNN)}",
+        xlabel = L"K \text{ (Number of KNN)} \text{ from } K = [ %$(minimum(K_range)) \text{ to } %$(maximum(K_range))]",
         ylabel = L"\langle d_{\mathrm{PR}} \rangle",
         limits = (minimum(k_list), maximum(k_list), 0.95, D + 0.05)
     )
