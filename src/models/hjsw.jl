@@ -20,7 +20,7 @@ function HJSWModel(;
     )
 
     # tau_pi = 1 / (2 * π)
-    tau_pi = 0.02
+    tau_pi = 0.2
     lambda1 = 0.0
     T = promote_type(typeof(eta_over_s), typeof(tau_pi), typeof(lambda1), typeof(omega_R), typeof(omega_I))
     params = HydroParams(T(eta_over_s), T(tau_pi), T(lambda1))
