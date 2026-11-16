@@ -1,6 +1,6 @@
 name = "AttractorsQGP"
 uuid = "3aa772ee-73c7-4728-8ce2-799db91c0e5f"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Krzysztof Bezubik <116976902+kitajusSus@users.noreply.github.com>", "Michał Spaliński <mspalinski@gmail.com>"]
 
 [deps]
